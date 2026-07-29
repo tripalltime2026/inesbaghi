@@ -10,19 +10,32 @@
     <link rel="stylesheet" href="{{ asset('css/admin-modules.css') }}">
 </head>
 <body class="admin-body">
+@php
+    $staffHome = auth()->user()->hasRole('admin')
+        ? route('admin.dashboard')
+        : (auth()->user()->hasRole('finance') ? route('admin.payments.index') : route('admin.attendance.index'));
+    $staffLabel = auth()->user()->hasRole('finance') ? 'ფინანსური მართვა' : (auth()->user()->hasRole('teacher') ? 'დასწრების მართვა' : 'ადმინისტრაცია');
+@endphp
 <div class="admin-shell">
     <aside class="admin-sidebar">
-        <a class="brand admin-brand" href="{{ route('admin.dashboard') }}">
+        <a class="brand admin-brand" href="{{ $staffHome }}">
             <span class="logo">ი</span>
-            <span><strong>ინეს ბაღი</strong><small>ადმინისტრაცია</small></span>
+            <span><strong>ინეს ბაღი</strong><small>{{ $staffLabel }}</small></span>
         </a>
 
-        <nav class="admin-nav" aria-label="ადმინისტრაციის ნავიგაცია">
-            <a class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">მიმოხილვა</a>
-            <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}">ჩარიცხვის განაცხადები</a>
-            <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}">ბავშვები</a>
-            <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}">ჯგუფები</a>
-            <span class="disabled">გადახდები <small>შემდეგი</small></span>
+        <nav class="admin-nav" aria-label="საოპერაციო ნავიგაცია">
+            @if(auth()->user()->hasRole('admin'))
+                <a class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">მიმოხილვა</a>
+                <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}">ჩარიცხვის განაცხადები</a>
+                <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}">ბავშვები</a>
+                <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}">ჯგუფები</a>
+            @endif
+            @if(auth()->user()->hasRole('admin', 'finance'))
+                <a class="{{ request()->routeIs('admin.payments.*') ? 'active' : '' }}" href="{{ route('admin.payments.index') }}">გადახდები</a>
+            @endif
+            @if(auth()->user()->hasRole('admin', 'teacher'))
+                <a class="{{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}" href="{{ route('admin.attendance.index') }}">დასწრება</a>
+            @endif
         </nav>
 
         <div class="admin-user">
