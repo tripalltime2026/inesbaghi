@@ -92,6 +92,8 @@ class PhoneOtpController extends Controller
 
         $redirectTo = match (true) {
             $user->hasRole('admin') => route('admin.dashboard'),
+            $user->hasRole('finance') => route('admin.payments.index'),
+            $user->hasRole('teacher') => route('admin.attendance.index'),
             $user->hasRole('parent') => route('parent.dashboard'),
             default => route('home'),
         };
