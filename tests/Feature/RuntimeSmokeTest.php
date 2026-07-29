@@ -1,0 +1,48 @@
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class RuntimeSmokeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_public_site_and_demo_portals_render_without_server_errors(): void
+    {
+        config([
+            'services.demo_auth.enabled' => true,
+            'services.demo_auth.admin_phone' => '555411831',
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('სიყვარულით')
+            ->assertSee('ჩარიცხვის განაცხადი');
+
+        $this->getJson('/auth/demo/status')
+            ->assertOk()
+            ->assertJsonPath('enabled', true);
+
+        $this->postJson('/auth/demo/login', [
+            'name' => 'ინეს ბაღის ადმინისტრატორი',
+            'phone' => '555411831',
+        ])->assertOk()->assertJsonPath('user.role', 'admin');
+
+        $this->get('/admin')
+            ->assertOk()
+            ->assertSee('ადმინისტრაცია');
+
+        $this->post('/logout')->assertRedirect('/');
+
+        $this->postJson('/auth/demo/login', [
+            'name' => 'დემო მშობელი',
+            'phone' => '555123456',
+        ])->assertOk()->assertJsonPath('user.role', 'parent');
+
+        $this->get('/parent')
+            ->assertOk()
+            ->assertSee('მშობელთა კლუბი');
+    }
+}
