@@ -21,7 +21,7 @@ class RuntimeSmokeTest extends TestCase
             ->assertSee('სიყვარულით')
             ->assertSee('ჩარიცხვის განაცხადი');
 
-        $this->getJson('/auth/demo/status')
+        $this->getJson('/auth/mode')
             ->assertOk()
             ->assertJsonPath('enabled', true);
 
