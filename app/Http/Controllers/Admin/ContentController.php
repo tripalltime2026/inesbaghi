@@ -8,7 +8,6 @@ use App\Models\SiteItem;
 use App\Services\ManagedContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -21,7 +20,12 @@ class ContentController extends Controller
         return view('admin.content.index', [
             'textSections' => $content->groupedTextEntries(),
             'sectionLabels' => $content->sectionLabels(),
-            'itemTypeLabels' => $content->itemTypeLabels(),
+            'itemTypeLabels' => array_merge($content->itemTypeLabels(), [
+                'club_post' => 'კლუბის ლენტა',
+                'club_event' => 'კლუბის ღონისძიებები',
+                'club_poll' => 'კლუბის გამოკითხვები',
+                'club_topic' => 'კლუბის ფორუმის თემები',
+            ]),
             'itemsByType' => SiteItem::query()->orderBy('type')->orderBy('sort_order')->orderBy('id')->get()->groupBy('type'),
             'posts' => BlogPost::query()->orderBy('sort_order')->orderByDesc('published_at')->orderByDesc('id')->get(),
             'postStatuses' => BlogPost::STATUSES,
@@ -51,7 +55,7 @@ class ContentController extends Controller
 
         SiteItem::create($payload);
 
-        return back()->with('success', 'ახალი ჩანაწერი დაემატა და საჯარო საიტზე გამოჩნდება.');
+        return back()->with('success', 'ახალი ჩანაწერი დაემატა და შესაბამის გვერდზე გამოჩნდება.');
     }
 
     public function updateItem(Request $request, SiteItem $item): RedirectResponse
