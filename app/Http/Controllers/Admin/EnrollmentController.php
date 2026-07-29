@@ -29,7 +29,7 @@ class EnrollmentController extends Controller
                 $group = KindergartenGroup::query()->lockForUpdate()->findOrFail($lockedEnrollment->kindergarten_group_id);
                 $activeCount = Enrollment::where('kindergarten_group_id', $group->id)
                     ->where('status', 'active')
-                    ->whereKeyNot($lockedEnrollment->id)
+                    ->where('id', '!=', $lockedEnrollment->id)
                     ->count();
 
                 if ($activeCount >= $group->capacity) {
