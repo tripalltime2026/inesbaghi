@@ -16,6 +16,10 @@ class DashboardController extends Controller
                 'enrollments' => fn ($query) => $query
                     ->with(['group', 'payments' => fn ($paymentQuery) => $paymentQuery->latest('period')])
                     ->latest(),
+                'attendanceRecords' => fn ($query) => $query
+                    ->with('group')
+                    ->latest('attendance_date')
+                    ->limit(14),
             ])
             ->orderBy('first_name')
             ->get();
