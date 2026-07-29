@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="ka"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ინეს ბაღი — ადმინისტრაცია</title><link rel="stylesheet" href="{{ asset('css/app.css') }}"></head>
+<body><main><section><span class="badge">დაცული ადმინისტრაცია</span><h1>საოპერაციო პანელი</h1><p>ეს გვერდი ხელმისაწვდომია მხოლოდ აქტიური admin როლისთვის.</p><div class="cards"><article><b>{{ $users }}</b><p>მომხმარებელი</p></article><article><b>{{ $pending }}</b><p>დასამტკიცებელი</p></article><article><b>{{ $applications }}</b><p>განაცხადი</p></article></div><p><a class="primary" href="{{ route('home') }}">საიტზე დაბრუნება</a></p></section></main></body></html>
