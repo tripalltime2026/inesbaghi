@@ -19,7 +19,7 @@
     <form class="ops-form-inline" method="post" action="{{ route('admin.payments.generate') }}">
         @csrf
         <label>პერიოდი<input type="month" name="period" value="{{ $period }}" required></label>
-        <label>გადახდის ვადა<input type="date" name="due_at" value="{{ now()->startOfMonth()->addDays(9)->format('Y-m-d') }}" required></label>
+        <label>გადახდის ვადა<input type="date" name="due_at" value="{{ \Carbon\Carbon::parse($period.'-10')->format('Y-m-d') }}" required></label>
         <label>ჯგუფი<select name="group_id"><option value="">ყველა აქტიური ჯგუფი</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
         <button class="primary" type="submit">დარიცხვების შექმნა</button>
     </form>
