@@ -30,13 +30,23 @@ class InjectResponsiveAssets
             $content,
         );
 
-        if (! str_contains($content, '/css/mobile.css')) {
-            $responsiveAssets = <<<'HTML'
-    <meta name="theme-color" content="#FBF7EC">
-    <link rel="stylesheet" href="/css/mobile.css?v=20260729">
-HTML;
+        $headAssets = [];
 
-            $content = str_replace('</head>', $responsiveAssets."\n</head>", $content);
+        if (! str_contains($content, '/css/mobile.css')) {
+            $headAssets[] = '<meta name="theme-color" content="#FBF7EC">';
+            $headAssets[] = '<link rel="stylesheet" href="/css/mobile.css?v=20260729">';
+        }
+
+        if (! str_contains($content, '/css/experience-v2.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/experience-v2.css?v=20260729b">';
+        }
+
+        if ($headAssets !== []) {
+            $content = str_replace('</head>', '    '.implode("\n    ", $headAssets)."\n</head>", $content);
+        }
+
+        if (! str_contains($content, '/js/experience-v2.js') && str_contains($content, '</body>')) {
+            $content = str_replace('</body>', '    <script src="/js/experience-v2.js?v=20260729b" defer></script>'."\n</body>", $content);
         }
 
         $response->setContent($content);
