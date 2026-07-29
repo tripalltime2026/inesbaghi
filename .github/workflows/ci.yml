@@ -13,6 +13,7 @@ jobs:
       - run: node --check public/js/portal.js
       - run: node --check public/js/cms-public.js
       - run: node --check public/js/cms-portal.js
+      - run: node --check public/js/experience-v2.js
       - name: Validate zero-config demo bootstrap
         run: env -u APP_KEY DEMO_AUTH_ENABLED=true DB_CONNECTION=sqlite SESSION_DRIVER=file CACHE_STORE=file php artisan about --only=environment
       - name: Compile all Blade views
