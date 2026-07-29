@@ -1,6 +1,6 @@
 <?php
 
-$demoAuthEnabled = filter_var(env('DEMO_AUTH_ENABLED', false), FILTER_VALIDATE_BOOL);
+$demoAuthEnabled = filter_var(env('DEMO_AUTH_ENABLED', true), FILTER_VALIDATE_BOOL);
 $demoFallbackKey = 'base64:SYlhdxhwXNerzu7RCntVrs659/ayZI+Y7krnXHJ2wuM=';
 
 return [
