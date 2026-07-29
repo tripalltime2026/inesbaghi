@@ -1,87 +1,222 @@
 <!doctype html>
 <html lang="ka">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="description" content="ინეს ბაღი — თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული საგანმანათლებლო სივრცე ბათუმში.">
-<title>ინეს ბაღი — სივრცე ბედნიერი ბავშვობისთვის</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif+Georgian:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('css/site.css') }}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="ინეს ბაღი — თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული კერძო საბავშვო ბაღი ბათუმში.">
+    <title>ინეს ბაღი — სიყვარულით</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700;800&family=Noto+Serif+Georgian:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/site.css') }}">
 </head>
-<body>
-<header id="header"><div class="wrap nav">
-<a class="logo" href="#home"><span class="logo-mark">ი</span><span>ინეს ბაღი</span></a>
-<nav class="links" id="navLinks"><a href="#about">ჩვენ შესახებ</a><a href="#programs">ასაკობრივი ჯგუფები</a><a href="#method">მიდგომა</a><a href="#club">მშობელთა კლუბი</a><a href="#faq">კითხვა–პასუხი</a><a href="#contact">კონტაქტი</a>@guest<button class="mobile-login" type="button" data-open-login>მშობლის კაბინეტი</button>@endguest</nav>
-<div class="nav-actions">
-<button class="btn small light" data-open>რეგისტრაცია</button>
-@auth
-<a class="btn small mint portal-link" href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : (auth()->user()->hasRole('finance') ? route('admin.payments.index') : (auth()->user()->hasRole('teacher') ? route('admin.attendance.index') : (auth()->user()->hasRole('parent') ? route('parent.dashboard') : route('home')))) }}">კაბინეტი</a>
-@else
-<button class="btn small mint portal-link" data-open-login>შესვლა</button>
-@endauth
-<button aria-label="მენიუ" class="menu-btn" id="menuBtn">☰</button>
-</div>
-</div></header>
-<main>
-<section class="hero" id="home"><div class="wrap hero-grid">
-<div class="hero-copy"><span class="eyebrow">ბედნიერი ბავშვობა იწყება აქ</span><h1>სივრცე, სადაც ბავშვი იზრდება <span style="color:#729c89">სიყვარულით</span></h1><p>თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული ბაღი — უსაფრთხო გარემო, პროფესიონალი გუნდი და განვითარების გააზრებული პროგრამა.</p><div class="hero-actions"><button class="btn" data-open>ბავშვის რეგისტრაცია <span class="arrow">→</span></button><a class="btn light" href="#programs">იხილეთ პროგრამები</a></div><div class="trust"><div class="faces"><span class="face">მ</span><span class="face" style="background:var(--yellow)">ნ</span><span class="face" style="background:var(--lav)">ა</span></div><span><strong>90-მდე ბედნიერი აღსაზრდელი</strong><br>ერთიან, მზრუნველ გარემოში</span></div></div>
-<div class="visual"><div class="scribble"></div><div class="arch"><div class="sun"></div><div class="tree"></div><div class="house"><span class="window w1"></span><span class="window w2"></span></div></div><div class="float-card fc1"><strong>🌿 ეკომეგობრული</strong>ჯანსაღი და უსაფრთხო სივრცე</div><div class="float-card fc2"><strong>4 ასაკობრივი ჯგუფი</strong>2-დან 6 წლამდე</div></div>
-</div></section>
-<section class="values"><div class="wrap value-grid"><article class="value"><div class="value-icon">♡</div><h3>მზრუნველი გარემო</h3><p>ყურადღება, ემოციური უსაფრთხოება და პატივისცემა თითოეული ბავშვის მიმართ.</p></article><article class="value"><div class="value-icon">✦</div><h3>თანამედროვე სწავლება</h3><p>თამაშზე დაფუძნებული მეთოდები და ასაკობრივ საჭიროებებზე მორგებული პროგრამა.</p></article><article class="value"><div class="value-icon">☀</div><h3>ჯანსაღი განვითარება</h3><p>დაბალანსებული კვება, მოძრაობა, სუფთა გარემო და ყოველდღიური აქტივობები.</p></article><article class="value"><div class="value-icon">◎</div><h3>მშობელთან კავშირი</h3><p>ღია კომუნიკაცია და აქტიური ჩართულობა ბავშვის განვითარების პროცესში.</p></article></div></section>
-<section class="section about" id="about"><div class="wrap about-grid"><div class="about-visual"><div class="blob"><div class="blob-inner"></div><div class="plant"><i class="leaf l1"></i><i class="leaf l2"></i><i class="leaf l3"></i></div></div></div><div class="about-copy"><span class="eyebrow">ჩვენ შესახებ</span><h2>ქართული ღირებულებები და ევროპული გამოცდილება</h2><p>„ინეს ბაღი“ თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული საგანმანათლებლო სივრცეა, სადაც თითოეული აღსაზრდელის ჯანმრთელობა, უსაფრთხოება და ჰარმონიული განვითარება ჩვენი მთავარი პრიორიტეტია.</p><p>ბაღის შექმნამდე აქტიურად ვთანამშრომლობდით დასავლეთ ევროპელ კოლეგებთან. მათი გამოცდილებისა და რეკომენდაციების გათვალისწინებით შევიმუშავეთ ქართულ საგანმანათლებლო ღირებულებებზე დაფუძნებული თანამედროვე მიდგომა.</p><div class="stats"><div class="stat"><strong>4</strong><span>ასაკობრივი პროგრამა</span></div><div class="stat"><strong>12+</strong><span>პროფესიონალი პედაგოგი</span></div><div class="stat"><strong>90</strong><span>ბავშვზე გათვლილი სივრცე</span></div></div></div></div></section>
-<section class="section programs" id="programs"><div class="wrap"><div class="section-head"><div><span class="eyebrow">ასაკობრივი ჯგუფები</span><h2>თითოეულ ასაკს —<br>თავისი გზა</h2></div><p>პროგრამა იცვლება ბავშვის ასაკის, ინტერესებისა და განვითარების ეტაპის მიხედვით.</p></div><div class="tabs" id="programTabs"></div><article class="program-card"><div class="program-art" id="programArt"><span class="big-age" id="bigAge"></span></div><div class="program-copy"><div class="availability"><i class="dot"></i><span id="availability"></span></div><h3 id="programTitle"></h3><p id="programDesc"></p><div class="details"><div class="detail"><span>აღმზრდელი</span><strong id="teacher"></strong></div><div class="detail"><span>დღის განრიგი</span><strong>09:00 — 18:00</strong></div><div class="detail"><span>ძირითადი მიმართულება</span><strong id="focus"></strong></div><div class="detail"><span>კვება</span><strong>4-ჯერადი, დაბალანსებული</strong></div></div><button class="btn small" data-open>ჯგუფზე რეგისტრაცია →</button></div></article></div></section>
-<section class="section" id="method"><div class="wrap"><div class="section-head"><div><span class="eyebrow">ჩვენი მიდგომა</span><h2>სწავლა, რომელიც<br>ბავშვს უყვარს</h2></div><p>ყოველი დღე აერთიანებს თამაშს, აღმოჩენას, შემოქმედებასა და რეალური ცხოვრების უნარებს.</p></div><div class="method-grid"><article class="method"><span class="num">01</span><div class="method-icon">♙</div><h3>თამაშით სწავლება</h3><p>ბავშვები ბუნებრივად სწავლობენ თამაშის, კვლევის, ცდისა და გამოცდილების გზით.</p></article><article class="method"><span class="num">02</span><div class="method-icon">◌</div><h3>ინდივიდუალური მიდგომა</h3><p>ვაკვირდებით ბავშვის ტემპს, ინტერესებსა და საჭიროებებს და შესაბამისად ვგეგმავთ აქტივობებს.</p></article><article class="method"><span class="num">03</span><div class="method-icon">✎</div><h3>შემოქმედებითი განვითარება</h3><p>ხელოვნება, მუსიკა, მოძრაობა და ამბების თხრობა აძლიერებს აზროვნებასა და თვითგამოხატვას.</p></article></div></div></section>
-<section class="section club" id="club"><div class="wrap club-grid"><div class="club-demo"><div class="app-head"><div class="app-user"><span class="avatar">ი</span><span>ინეს ბაღი<br><small style="font-weight:500;color:#718286">მშობელთა კლუბი</small></span></div><span>•••</span></div><div class="post"><small>დღეს · 09:30</small><h4>საზაფხულო ღონისძიების დეტალები</h4><p>პარასკევს, 17:00 საათზე, ბაღის ეზოში გაიმართება ჩვენი საზაფხულო ღონისძიება. გელოდებით ყველას!</p><div class="post-actions"><span>♡ 24</span><span>◯ 8 კომენტარი</span><span>↗ გაზიარება</span></div></div><div class="post" style="background:var(--mint2)"><small>გამოკითხვა</small><h4>რომელი დროა თქვენთვის მოსახერხებელი?</h4><div style="height:8px;margin-top:15px;border-radius:8px;background:#fff;overflow:hidden"><div style="width:68%;height:100%;background:var(--sage)"></div></div></div></div><div><span class="eyebrow">მშობელთა კლუბი</span><h2>მეტი კავშირი.<br>მეტი ჩართულობა.</h2><p class="lead">დახურული სივრცე, რომელიც აერთიანებს მშობლებსა და ბაღის გუნდს და გაძლევთ შესაძლებლობას, აქტიურად ჩაერთოთ ბაღის ცხოვრებაში.</p><div class="club-list"><div class="club-item"><span class="check">✓</span><div><strong>მნიშვნელოვანი სიახლეები</strong><span>მიიღეთ ინფორმაცია პროგრამების, აქტივობებისა და დღის ამბების შესახებ.</span></div></div><div class="club-item"><span class="check">✓</span><div><strong>ღონისძიებები და შეხვედრები</strong><span>დაგეგმეთ მონაწილეობა და მარტივად ადევნეთ თვალი კალენდარს.</span></div></div><div class="club-item"><span class="check">✓</span><div><strong>ფორუმი და გამოკითხვები</strong><span>გაუზიარეთ გამოცდილება სხვა მშობლებს და მიიღეთ მონაწილეობა გადაწყვეტილებებში.</span></div></div></div><button class="btn" data-open-login>კლუბში შესვლა →</button></div></div></section>
-<section class="section faq" id="faq"><div class="wrap faq-grid"><div class="faq-intro"><span class="eyebrow">კითხვა–პასუხი</span><h2>ხშირად დასმული კითხვები</h2><p class="lead">თუ დამატებითი კითხვა გაქვთ, ჩვენი ადმინისტრაცია სიამოვნებით დაგეხმარებათ.</p><a class="btn light" href="#contact">დაგვიკავშირდით</a></div><div id="faqList"></div></div></section>
-<section class="cta"><div class="wrap cta-box"><span class="eyebrow">გაიცანით ინეს ბაღი</span><h2>პირველი ნაბიჯი მშვიდი და ბედნიერი დასაწყისისკენ</h2><p>ბავშვის რეგისტრაციის ან გაცნობითი ვიზიტის დასაგეგმად შეავსეთ მოკლე ფორმა. ჩვენი ადმინისტრაცია დაგიკავშირდებათ დეტალების შესათანხმებლად.</p><button class="btn" data-open>ბავშვის რეგისტრაცია <span>→</span></button></div></section>
+<body class="final-site">
+<header class="site-header" id="siteHeader">
+    <button class="brand-lockup" type="button" data-page-target="home" aria-label="მთავარ გვერდზე დაბრუნება">
+        <span class="brand-arch"><i></i></span>
+        <span><strong>ინეს ბაღი</strong><small>კერძო საბავშვო ბაღი</small></span>
+    </button>
+    <nav class="site-nav" id="siteNav" aria-label="მთავარი ნავიგაცია">
+        <button type="button" data-page-target="home">მთავარი</button>
+        <button type="button" data-page-target="about">ჩვენ შესახებ</button>
+        <button type="button" data-page-target="groups">ჯგუფები</button>
+        <button type="button" data-page-target="blog">ბლოგი</button>
+        <button type="button" data-page-target="faq">კითხვა-პასუხი</button>
+        <button type="button" data-page-target="contact">კონტაქტი</button>
+    </nav>
+    <div class="site-actions">
+        <button class="pill butter" type="button" data-page-target="admission">ჩარიცხვა</button>
+        @auth
+            @php
+                $cabinetUrl = auth()->user()->hasRole('admin')
+                    ? route('admin.dashboard')
+                    : (auth()->user()->hasRole('finance')
+                        ? route('admin.payments.index')
+                        : (auth()->user()->hasRole('teacher')
+                            ? route('admin.attendance.index')
+                            : route('parent.dashboard')));
+            @endphp
+            <a class="pill navy" href="{{ $cabinetUrl }}">{{ auth()->user()->hasRole('admin') ? 'ადმინი' : 'კლუბი' }}</a>
+            <span class="user-chip"><i>{{ mb_substr(auth()->user()->name, 0, 1) }}</i>{{ auth()->user()->name }}</span>
+        @else
+            <button class="pill navy" type="button" data-open-login>შესვლა</button>
+        @endauth
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="მენიუს გახსნა">☰</button>
+    </div>
+</header>
+
+<main id="publicApp">
+    <section class="public-page active" data-page="home">
+        <div class="hero-shell content-width">
+            <div class="hero-copy">
+                <span class="section-badge butter">საბავშვო ბაღი</span>
+                <h1>სიყვარულით<br>ინეს ბაღი</h1>
+                <p>ინდივიდუალური მიდგომა თითოეულ ბავშვთან, თანამედროვე სასწავლო პროგრამა და მზრუნველი პედაგოგები. მშობლებისთვის გამჭვირვალე კომუნიკაცია, აქტიური მონაწილეობა და განსაკუთრებული ღონისძიებები მთელი წლის განმავლობაში.</p>
+                <div class="button-row">
+                    @auth
+                        <a class="primary-button" href="{{ $cabinetUrl ?? route('parent.dashboard') }}">შემოგვიერთდი კლუბში</a>
+                    @else
+                        <button class="primary-button" type="button" data-open-login>შემოგვიერთდი კლუბში</button>
+                    @endauth
+                    <button class="secondary-button lavender" type="button" data-page-target="admission">ჩარიცხვის განაცხადი</button>
+                </div>
+            </div>
+            <div class="hero-art" role="img" aria-label="ინეს ბაღის ილუსტრაცია"><img src="{{ asset('images/ines-final-hero.svg') }}" alt="ინეს ბაღი — სივრცე ბავშვებისთვის"></div>
+        </div>
+
+        <section class="content-width home-offers">
+            <h2>რას გთავაზობთ</h2>
+            <div class="offer-grid">
+                <button class="offer-card mint" type="button" data-page-target="methodology"><span>🧩</span><strong>მონტესორის მეთოდი</strong><small>დამოუკიდებლობა და თამაშზე დაფუძნებული სწავლება</small></button>
+                <button class="offer-card lavender" type="button" data-page-target="groups"><span>👶</span><strong>4 ასაკობრივი ჯგუფი</strong><small>ასაკზე მორგებული სასწავლო პროგრამები</small></button>
+                <button class="offer-card butter" type="button" data-page-target="team"><span>🌟</span><strong>გამოცდილი გუნდი</strong><small>პედაგოგები და ფსიქოლოგი, რომლებიც ბავშვს ინდივიდუალურად უდგებიან</small></button>
+                <button class="offer-card peach" type="button" data-open-login><span>💬</span><strong>მშობელთა კლუბი</strong><small>სიახლეები, ღონისძიებები, ფორუმი და გამოკითხვები</small></button>
+            </div>
+        </section>
+
+        <section class="latest-band">
+            <div class="content-width latest-grid">
+                <div><span class="section-badge mint">ბოლო სიახლეები</span><h2>ბლოგი მშობლებისთვის</h2><p>რჩევები აღზრდაზე, კვებაზე, დღის რეჟიმზე და სკოლისთვის მზადებაზე.</p><button class="ghost-button" type="button" data-page-target="blog">ყველა სტატია →</button></div>
+                <div class="mini-post-grid">
+                    <article><i class="mint"></i><small>8 ივლისი, 2026</small><strong>როგორ ვამზადოთ ბავშვი ბაღისთვის — 5 რჩევა</strong></article>
+                    <article><i class="butter"></i><small>2 ივლისი, 2026</small><strong>ჯანსაღი კვება პატარებისთვის</strong></article>
+                    <article><i class="lavender"></i><small>25 ივნისი, 2026</small><strong>თამაშის მნიშვნელობა 3-4 წლის ასაკში</strong></article>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <section class="public-page" data-page="about">
+        <div class="page-intro content-width"><span class="section-badge mint">ჩვენ შესახებ</span><h1>სივრცე, სადაც ბავშვი იზრდება სიყვარულით</h1></div>
+        <div class="content-width prose-layout">
+            <article class="prose-card">
+                <p>„ინეს ბაღი“ თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული საგანმანათლებლო სივრცეა, სადაც თითოეული აღსაზრდელის ჯანმრთელობა, უსაფრთხოება და ჰარმონიული განვითარება ჩვენი მთავარი პრიორიტეტია.</p>
+                <p>ბაღის შექმნამდე აქტიურად ვთანამშრომლობდით დასავლეთ ევროპელ კოლეგებთან. მათი გამოცდილებისა და რეკომენდაციების გათვალისწინებით, ქართულ საგანმანათლებლო ღირებულებებზე დაფუძნებული სწავლების თანამედროვე მიდგომა შევიმუშავეთ.</p>
+                <p>ჩვენი პროგრამა ითვალისწინებს ბავშვის ასაკს, ინტერესებსა და ინდივიდუალურ საჭიროებებს. სწავლა მიმდინარეობს თამაშით, შემოქმედებითი აქტივობებითა და ინოვაციური მეთოდებით, რაც ბავშვებს ეხმარება დამოუკიდებელი აზროვნების, კომუნიკაციისა და სოციალური უნარების განვითარებაში.</p>
+            </article>
+            <div class="story-stack">
+                <article class="story-card mint"><span>ჩვენი ისტორია</span><strong>დაარსდა 2022 წელს ცოტა ბავშვით და დიდი ოცნებით. დღეს ეს არის თბილი სივრცე ორმოცამდე პატარისთვის.</strong></article>
+                <article class="story-card butter"><span>ჩვენი ფილოსოფია</span><strong>ბავშვი არის აქტიური აღმომჩენი — ჩვენი როლი მისი ცნობისმოყვარეობის მხარდაჭერაა.</strong></article>
+                <article class="story-card lavender"><span>ჩვენი ღირებულებები</span><strong>პატივისცემა · უსაფრთხოება · ინდივიდუალური მიდგომა · გამჭვირვალე კომუნიკაცია მშობლებთან · სიხარული ყოველდღიურობაში</strong></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="public-page" data-page="methodology">
+        <div class="page-intro content-width"><span class="section-badge lavender">მეთოდოლოგია</span><h1>ბავშვის ბუნებრივ რიტმზე მორგებული სწავლება</h1><p>ჩვენ ვიყენებთ მონტესორის ელემენტებს, გამდიდრებულს თამაშზე დაფუძნებული სწავლებით. თითოეული ჯგუფის დღის რიტმი ბავშვის ბუნებრივ ციკლს მიჰყვება.</p></div>
+        <div class="content-width method-grid">
+            <article class="method-card mint"><span>🧩</span><h3>სწავლების მეთოდი</h3><p>ბავშვი თავად ირჩევს აქტივობას მოწოდებული მასალებიდან.</p></article>
+            <article class="method-card butter"><span>🎨</span><h3>თამაშზე დაფუძნებული სწავლება</h3><p>შემოქმედებითი პროცესები ემოციური და სოციალური განვითარებისთვის.</p></article>
+            <article class="method-card lavender"><span>🌱</span><h3>ბუნებრივი დღის რიტმი</h3><p>ძილი, კვება და თამაში ბავშვის ბიოლოგიურ ციკლს მიჰყვება.</p></article>
+        </div>
+    </section>
+
+    <section class="public-page" data-page="groups">
+        <div class="page-intro content-width"><span class="section-badge butter">ჯგუფები</span><h1>4 ასაკობრივი ჯგუფი</h1><p>თითოეულ ჯგუფს საკუთარი პროგრამა და დღის რიტმი აქვს.</p></div>
+        <div class="content-width group-tabs" id="groupTabs"></div>
+        <div class="content-width group-detail">
+            <article class="group-summary" id="groupSummary"></article>
+            <article class="schedule-card"><h2>დღის განრიგი</h2><div id="groupSchedule"></div></article>
+        </div>
+    </section>
+
+    <section class="public-page" data-page="team">
+        <div class="page-intro content-width"><span class="section-badge peach">გუნდი</span><h1>გამოცდილი პედაგოგები</h1><p>გუნდი, რომელიც ზრუნავს თითოეულ ბავშვზე ინდივიდუალურად.</p></div>
+        <div class="content-width team-grid" id="teamGrid"></div>
+    </section>
+
+    <section class="public-page" data-page="gallery">
+        <div class="page-intro content-width"><span class="section-badge mint">გალერეა</span><h1>ბოლო ფოტოები ჩვენი ბაღიდან</h1><p>გალერეა ხელმისაწვდომია მხოლოდ კლუბის წევრებისთვის.</p></div>
+        @guest
+            <div class="content-width locked-card"><span>🔒</span><h2>გალერეა ხელმისაწვდომია მხოლოდ კლუბის წევრებისთვის</h2><p>გაიარეთ მარტივი ვერიფიკაცია ტელეფონის ნომრით — ბაღის ფოტოები, ღონისძიებები და სიახლეები დაუყოვნებლივ გაიხსნება.</p><button class="primary-button" type="button" data-open-login>შესვლა / რეგისტრაცია</button></div>
+        @else
+            <div class="content-width gallery-grid" id="galleryGrid"></div>
+        @endguest
+    </section>
+
+    <section class="public-page" data-page="blog">
+        <div class="page-intro content-width"><span class="section-badge lavender">ბლოგი</span><h1>სტატიები მშობლებისთვის</h1><p>აღზრდაზე, კვებაზე, დღის რეჟიმზე და ბავშვის განვითარებაზე.</p></div>
+        <div class="content-width blog-grid" id="blogGrid"></div>
+    </section>
+
+    <section class="public-page" data-page="faq">
+        <div class="page-intro content-width"><span class="section-badge butter">კითხვა-პასუხი</span><h1>ხშირად დასმული კითხვები</h1><p>ფასების დეტალები გეგზავნებათ ვერიფიკაციის შემდეგ, მშობელთა კლუბის პროფილში.</p></div>
+        <div class="content-width faq-list" id="faqList"></div>
+    </section>
+
+    <section class="public-page" data-page="contact">
+        <div class="page-intro content-width"><span class="section-badge mint">კონტაქტი</span><h1>დაგვიკავშირდით</h1><p>ნებისმიერ საკითხზე — სიამოვნებით დაგეხმარებით.</p></div>
+        <div class="content-width contact-grid">
+            <article><span>მისამართი</span><strong>ლერმონტოვის 53, ქ. ბათუმი</strong></article>
+            <article><span>ცხელი ხაზი</span><a href="tel:+995555411831">+995 555 41 18 31</a></article>
+            <article><span>სამუშაო საათები</span><strong>ორშ–პარ, 08:00–19:00</strong></article>
+            <article class="map-card"><span>📍</span><strong>რუკა</strong><small>ლერმონტოვის 53, ბათუმი</small></article>
+        </div>
+    </section>
+
+    <section class="public-page" data-page="admission">
+        <div class="page-intro content-width"><span class="section-badge peach">მიღებაზე რეგისტრაცია</span><h1>შეავსეთ ჩარიცხვის განაცხადი ან დაგეგმეთ გაცნობითი ვიზიტი</h1></div>
+        <div class="content-width admission-layout">
+            <form class="final-form" id="registrationForm" novalidate>
+                <div class="form-grid">
+                    <label><span>მშობლის სახელი და გვარი *</span><input name="parent_name" required placeholder="მაგ. ნინო ბერიძე"></label>
+                    <label><span>ტელეფონის ნომერი *</span><input name="phone" required type="tel" placeholder="+995 5XX XX XX XX"></label>
+                    <label><span>ბავშვის სახელი და გვარი *</span><input name="child_name" required placeholder="ბავშვის სახელი"></label>
+                    <label><span>დაბადების წელი</span><input name="birth_year" type="number" min="2018" max="2026" placeholder="მაგ. 2022"></label>
+                </div>
+                <fieldset><legend>სასურველი ჯგუფი</legend><div class="choice-row" id="admissionGroups"></div></fieldset>
+                <fieldset><legend>სასწავლო წელი</legend><div class="choice-row"><label class="choice active"><input type="radio" name="academic_year" value="2026" checked>2026–2027</label><label class="choice"><input type="radio" name="academic_year" value="2027">2027–2028</label></div><small>შესაძლებელია ჩარიცხვის მოთხოვნის გაგზავნა წლით ადრეც — თქვენი ადგილი დაცული იქნება.</small></fieldset>
+                <label class="switch-row"><input type="checkbox" name="wants_tour" value="1" checked><span>გვსურს დავჯავშნოთ ვიზიტი ბაღში</span></label>
+                <label><span>სასურველი ვიზიტის თარიღი</span><input name="preferred_tour_date" type="date"></label>
+                <label><span>დამატებითი ინფორმაცია</span><textarea name="comment" placeholder="მოგვწერეთ, თუ გაქვთ რაიმე მნიშვნელოვანი კითხვა ან ინფორმაცია"></textarea></label>
+                <p class="form-note">ფორმის გაგზავნით ეთანხმებით, რომ ადმინისტრაცია დაგიკავშირდეთ მითითებულ ნომერზე.</p>
+                <div class="form-status" id="registrationStatus" aria-live="polite"></div>
+                <button class="primary-button full" type="submit">განაცხადის გაგზავნა</button>
+            </form>
+            <aside class="admission-note butter"><span>🌱</span><h2>გმადლობთ ინტერესისთვის</h2><p>განაცხადის მიღების შემდეგ ადმინისტრაცია დაგიკავშირდებათ, გაგაცნობთ პირობებს და ვიზიტის დროს შეგითანხმებთ.</p><small>თქვენი განაცხადის სტატუსს შემდგომში კლუბის პროფილიდანაც ნახავთ.</small></aside>
+        </div>
+    </section>
 </main>
-<footer id="contact"><div class="wrap"><div class="footer-grid"><div class="footer-brand"><a class="logo" href="#home"><span class="logo-mark" style="background:var(--mint);color:var(--ink)">ი</span><span>ინეს ბაღი</span></a><p style="margin-top:20px">თანამედროვე, ეკომეგობრული და ბავშვზე ორიენტირებული საგანმანათლებლო სივრცე ბათუმში.</p></div><div class="footer-col"><h4>ნავიგაცია</h4><a href="#about">ჩვენ შესახებ</a><a href="#programs">ჯგუფები</a><a href="#method">მიდგომა</a><a href="#faq">კითხვა–პასუხი</a></div><div class="footer-col"><h4>კონტაქტი</h4><a href="tel:+995555000000">+995 555 00 00 00</a><a href="mailto:hello@ines.ge">hello@ines.ge</a><span>ბათუმი, საქართველო</span></div><div class="footer-col"><h4>სამუშაო საათები</h4><span>ორშაბათი — პარასკევი</span><span>09:00 — 18:00</span><a href="#">Facebook ↗</a><a href="#">Instagram ↗</a></div></div><div class="copyright"><span>© 2026 ინეს ბაღი. ყველა უფლება დაცულია.</span><span>შექმნილია ბავშვებისა და მშობლებისთვის ♡</span></div></div></footer>
-<div aria-labelledby="modalTitle" aria-modal="true" class="modal" id="modal" role="dialog"><div class="modal-box"><button aria-label="დახურვა" class="close" id="closeModal">×</button><div id="formWrap"><span class="eyebrow">რეგისტრაცია</span><h2 id="modalTitle">გადადგით პირველი ნაბიჯი</h2><p class="lead" style="font-size:14px">შეავსეთ ფორმა და ჩვენი ადმინისტრაცია დაგიკავშირდებათ დეტალების შესათანხმებლად.</p><form id="registrationForm" novalidate>
-<div class="form-grid">
-<div class="field"><label>მშობლის სახელი და გვარი *</label><input name="parent_name" placeholder="მაგ. ნინო ბერიძე" required></div>
-<div class="field"><label>ტელეფონის ნომერი *</label><input name="phone" placeholder="+995 5XX XX XX XX" required type="tel"></div>
-<div class="field"><label>ბავშვის სახელი და გვარი *</label><input name="child_name" placeholder="ბავშვის სახელი" required></div>
-<div class="field"><label>დაბადების წელი</label><input max="2026" min="2018" name="birth_year" placeholder="მაგ. 2022" type="number"></div>
-<div class="field"><label>ასაკობრივი ჯგუფი *</label><select name="preferred_group" required><option value="">აირჩიეთ ჯგუფი</option><option value="2-3">2–3 წელი</option><option value="3-4">3–4 წელი</option><option value="4-5">4–5 წელი</option><option value="5-6">5–6 წელი</option></select></div>
-<div class="field"><label>სასწავლო წელი *</label><select name="academic_year" required><option value="2026">2026–2027</option><option value="2027">2027–2028</option></select></div>
-<div class="field full"><label>სასურველი ფორმატი</label><select name="wants_tour"><option value="0">ბავშვის რეგისტრაცია</option><option value="1">გაცნობითი ვიზიტის დაგეგმვა</option></select></div>
-<div class="field full"><label>სასურველი ვიზიტის თარიღი</label><input name="preferred_tour_date" type="date"></div>
-<div class="field full"><label>დამატებითი ინფორმაცია</label><textarea name="comment" placeholder="მოგვწერეთ, თუ გაქვთ რაიმე მნიშვნელოვანი კითხვა ან ინფორმაცია"></textarea></div>
+
+<footer class="site-footer">
+    <div class="content-width footer-row"><span>© 2026 ინეს ბაღი · ლერმონტოვის 53, ბათუმი</span><a href="tel:+995555411831">+995 555 41 18 31</a></div>
+</footer>
+
+<div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal-card compact">
+        <button class="modal-close" type="button" data-close-login aria-label="დახურვა">×</button>
+        <div id="loginStepOne">
+            <span class="section-badge mint">შესვლა / რეგისტრაცია</span>
+            <h2 id="loginTitle">შესვლა ტელეფონით</h2>
+            <p id="loginLead">შეიყვანეთ სახელი და ტელეფონის ნომერი.</p>
+            <form class="final-form" id="otpRequest">
+                <label><span>სახელი და გვარი *</span><input name="name" required placeholder="სახელი და გვარი"></label>
+                <label><span>ტელეფონის ნომერი *</span><input name="phone" required type="tel" placeholder="5XX XX XX XX"></label>
+                <div class="demo-auth-note" id="demoAuthNote" hidden></div>
+                <button class="primary-button full" id="loginSubmit" type="submit">გაგრძელება</button>
+            </form>
+        </div>
+        <div id="loginStepTwo" hidden>
+            <span class="section-badge butter">დადასტურება</span>
+            <h2>შეიყვანეთ SMS კოდი</h2>
+            <p>კოდი გამოგზავნილია ნომერზე <strong id="otpPhone"></strong></p>
+            <form class="final-form" id="otpVerify"><label><span>6-ნიშნა კოდი *</span><input name="code" required inputmode="numeric" maxlength="6" placeholder="000000"></label><div class="login-code" id="debugCode" hidden></div><button class="primary-button full" type="submit">დადასტურება</button></form>
+        </div>
+        <div class="form-status" id="loginStatus" aria-live="polite"></div>
+    </div>
 </div>
-<p class="form-note">ფორმის გაგზავნით ეთანხმებით, რომ ადმინისტრაცია დაგიკავშირდეთ მითითებულ ნომერზე.</p>
-<div aria-live="polite" class="form-status" id="registrationStatus"></div>
-<button class="btn" style="width:100%" type="submit">ფორმის გაგზავნა →</button>
-</form></div><div class="success" id="success"><div class="success-icon">✓</div><h2>გმადლობთ!</h2><p id="successMessage">თქვენი ინფორმაცია მიღებულია. ჩვენი ადმინისტრაცია დაგიკავშირდებათ დეტალების შესათანხმებლად.</p><button class="btn light" id="doneBtn">დახურვა</button></div></div></div>
-<div aria-labelledby="loginTitle" aria-modal="true" class="modal" id="loginModal" role="dialog">
-<div class="modal-box compact">
-<button aria-label="დახურვა" class="close" id="closeLoginModal">×</button>
-<div id="loginStepOne">
-<span class="eyebrow">მშობელთა კლუბი</span>
-<h2 id="loginTitle">შესვლა ტელეფონით</h2>
-<p class="lead" style="font-size:14px">შეიყვანეთ სახელი და ტელეფონის ნომერი. გამოგიგზავნით 6-ნიშნა კოდს.</p>
-<form class="login-grid" id="otpRequest">
-<div class="field"><label>სახელი და გვარი *</label><input name="name" placeholder="სახელი და გვარი" required></div>
-<div class="field"><label>ტელეფონის ნომერი *</label><input name="phone" placeholder="5XX XX XX XX" required type="tel"></div>
-<button class="btn" type="submit">კოდის გაგზავნა →</button>
-</form>
-</div>
-<div hidden id="loginStepTwo">
-<span class="eyebrow">დადასტურება</span>
-<h2>შეიყვანეთ SMS კოდი</h2>
-<form class="login-grid" id="otpVerify">
-<div class="field"><label>6-ნიშნა კოდი *</label><input inputmode="numeric" maxlength="6" name="code" placeholder="000000" required></div>
-<button class="btn" type="submit">დადასტურება →</button>
-</form>
-<div class="login-code" hidden id="debugCode"></div>
-</div>
-<div aria-live="polite" class="form-status" id="loginStatus"></div>
-</div>
-</div>
+
 <script>
-window.ines={routes:{admission:@json(route('admissions.store')),request:@json(route('auth.request')),verify:@json(route('auth.verify'))}};
+window.ines = {
+    routes: {
+        admission: @json(route('admissions.store')),
+        request: @json(route('auth.request')),
+        verify: @json(route('auth.verify')),
+        demoStatus: @json(route('auth.demo.status')),
+        demoLogin: @json(route('auth.demo.login'))
+    }
+};
 </script>
 <script src="{{ asset('js/site.js') }}"></script>
 </body>
