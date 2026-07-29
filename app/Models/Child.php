@@ -29,4 +29,9 @@ class Child extends Model
     {
         return $this->hasMany(Enrollment::class);
     }
+
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class)->latest('attendance_date');
+    }
 }
