@@ -4,15 +4,21 @@ use App\Http\Controllers\Admin\AdmissionController as AdminAdmissionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\Admin\ChildController as AdminChildController;
+use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
 use App\Http\Controllers\PhoneOtpController;
+use App\Http\Controllers\PublicContentController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'site')->name('home');
+
+Route::get('/content/public', [PublicContentController::class, 'index'])->name('content.public');
+Route::get('/content/items/{item}/image', [PublicContentController::class, 'itemImage'])->name('content.item-image');
+Route::get('/content/blog/{post}/cover', [PublicContentController::class, 'blogCover'])->name('content.blog-cover');
 
 Route::post('/admissions', [AdmissionApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
@@ -36,6 +42,15 @@ Route::post('/logout', [PhoneOtpController::class, 'logout'])
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
+
+        Route::get('/content', [AdminContentController::class, 'index'])->name('content.index');
+        Route::put('/content/texts', [AdminContentController::class, 'updateTexts'])->name('content.texts.update');
+        Route::post('/content/items/{type}', [AdminContentController::class, 'storeItem'])->name('content.items.store');
+        Route::patch('/content/items/{item}', [AdminContentController::class, 'updateItem'])->name('content.items.update');
+        Route::delete('/content/items/{item}', [AdminContentController::class, 'destroyItem'])->name('content.items.destroy');
+        Route::post('/content/blog', [AdminContentController::class, 'storeBlog'])->name('content.blog.store');
+        Route::patch('/content/blog/{post}', [AdminContentController::class, 'updateBlog'])->name('content.blog.update');
+        Route::delete('/content/blog/{post}', [AdminContentController::class, 'destroyBlog'])->name('content.blog.destroy');
 
         Route::get('/admissions', [AdminAdmissionController::class, 'index'])->name('admissions.index');
         Route::get('/admissions/{application}', [AdminAdmissionController::class, 'show'])->name('admissions.show');
