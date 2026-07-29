@@ -15,6 +15,48 @@ use Illuminate\Validation\ValidationException;
 
 class PhoneOtpController extends Controller
 {
+    public function mode(): JsonResponse
+    {
+        return response()->json([
+            'demo_enabled' => (bool) config('services.demo_auth.enabled', false),
+            'demo_login_url' => route('auth.demo'),
+            'admin_phone' => config('services.demo_auth.admin_phone', '555411831'),
+        ]);
+    }
+
+    public function demoLogin(Request $request): JsonResponse
+    {
+        abort_unless((bool) config('services.demo_auth.enabled', false), 404);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+            'phone' => ['required', 'regex:/^(?:\+?995)?5\d{8}$/'],
+        ]);
+
+        $phone = $this->normalizePhone($validated['phone']);
+        $adminPhone = $this->normalizePhone((string) config('services.demo_auth.admin_phone', '555411831'));
+        $isDemoAdmin = hash_equals($adminPhone, $phone);
+        $user = User::firstOrNew(['phone' => $phone]);
+
+        if ($isDemoAdmin) {
+            $user->name = $user->exists ? $user->name : 'ადმინისტრატორი';
+            $user->role = 'admin';
+            $user->status = 'active';
+        } elseif (! $user->exists || in_array($user->role, ['member', 'parent'], true)) {
+            $user->name = $validated['name'];
+            $user->role = 'parent';
+            $user->status = 'active';
+        }
+
+        $user->phone_verified_at ??= now();
+        $user->save();
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return $this->loginResponse($user, true);
+    }
+
     public function request(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -90,6 +132,24 @@ class PhoneOtpController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
+        return $this->loginResponse($user);
+    }
+
+    public function logout(Request $request): JsonResponse|RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->route('home');
+    }
+
+    private function loginResponse(User $user, bool $demo = false): JsonResponse
+    {
         $redirectTo = match (true) {
             $user->hasRole('admin') => route('admin.dashboard'),
             $user->hasRole('finance') => route('admin.payments.index'),
@@ -105,21 +165,9 @@ class PhoneOtpController extends Controller
                 'role' => $user->role,
                 'status' => $user->status,
             ],
+            'demo' => $demo,
             'redirect_to' => $redirectTo,
         ]);
-    }
-
-    public function logout(Request $request): JsonResponse|RedirectResponse
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        if ($request->expectsJson()) {
-            return response()->json(['ok' => true]);
-        }
-
-        return redirect()->route('home');
     }
 
     private function normalizePhone(string $phone): string

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+<title id="title">ინეს ბაღი</title><desc id="desc">სივრცე ბედნიერი ბავშვობისთვის</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#A9D3C9"/><stop offset="1" stop-color="#8FC5AF"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#10303A" flood-opacity=".16"/></filter></defs>
+<rect width="1080" height="1080" rx="90" fill="#FBF7EC"/>
+<circle cx="870" cy="170" r="76" fill="#EFE6A9"/><circle cx="180" cy="180" r="28" fill="#E9A09A"/><circle cx="930" cy="420" r="24" fill="#D3BDD3"/>
+<path d="M160 920V450C160 230 330 105 540 105s380 125 380 345v470Z" fill="url(#bg)" filter="url(#shadow)"/>
+<path d="M240 920V590c0-155 120-270 300-270s300 115 300 270v330Z" fill="#FBF7EC"/>
+<path d="M455 920V665c0-64 40-112 85-112s85 48 85 112v255Z" fill="#10303A"/>
+<rect x="300" y="565" width="92" height="132" rx="46" fill="#D3BDD3"/><rect x="688" y="565" width="92" height="132" rx="46" fill="#EFE6A9"/>
+<path d="M330 820c-54-38-85-96-85-160 0-106 87-192 193-192 25 0 49 5 71 14-72 34-122 108-122 193 0 57 22 108 58 146-35 22-77 32-115-1Z" fill="#CCE8C4"/>
+<path d="M750 820c54-38 85-96 85-160 0-106-87-192-193-192-25 0-49 5-71 14 72 34 122 108 122 193 0 57-22 108-58 146 35 22 77 32 115-1Z" fill="#EFC49A"/>
+<g transform="translate(150 720)"><circle cx="0" cy="0" r="72" fill="#EFE6A9"/><circle cx="-20" cy="-10" r="7" fill="#10303A"/><circle cx="20" cy="-10" r="7" fill="#10303A"/><path d="M-24 22q24 24 48 0" fill="none" stroke="#10303A" stroke-width="8" stroke-linecap="round"/></g>
+<g transform="translate(930 720)"><circle cx="0" cy="0" r="72" fill="#D3BDD3"/><circle cx="-20" cy="-10" r="7" fill="#10303A"/><circle cx="20" cy="-10" r="7" fill="#10303A"/><path d="M-24 22q24 24 48 0" fill="none" stroke="#10303A" stroke-width="8" stroke-linecap="round"/></g>
+<path d="M95 340q75-85 150 0" fill="none" stroke="#E9A09A" stroke-width="18" stroke-linecap="round"/><path d="M835 330q75-85 150 0" fill="none" stroke="#7EB5C1" stroke-width="18" stroke-linecap="round"/>
+<text x="540" y="1000" text-anchor="middle" fill="#10303A" font-family="sans-serif" font-size="46" font-weight="700">სიყვარულით · ინეს ბაღი</text>
+</svg>

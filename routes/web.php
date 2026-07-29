@@ -18,6 +18,11 @@ Route::post('/admissions', [AdmissionApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('admissions.store');
 
+Route::get('/auth/mode', [PhoneOtpController::class, 'mode'])
+    ->name('auth.mode');
+Route::post('/auth/demo/login', [PhoneOtpController::class, 'demoLogin'])
+    ->middleware('throttle:20,1')
+    ->name('auth.demo');
 Route::post('/auth/phone/request', [PhoneOtpController::class, 'request'])
     ->middleware('throttle:10,1')
     ->name('auth.request');
