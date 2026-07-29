@@ -9,4 +9,5 @@ jobs:
         with: {php-version: '8.4', coverage: none}
       - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
+      - run: node --check public/js/site.js
       - run: php artisan test
