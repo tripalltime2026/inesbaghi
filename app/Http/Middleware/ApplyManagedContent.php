@@ -16,8 +16,10 @@ class ApplyManagedContent
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+        $isPublicSite = $request->routeIs('home');
+        $isParentPortal = $request->routeIs('parent.dashboard');
 
-        if (! $request->routeIs('home') || ! method_exists($response, 'getContent')) {
+        if ((! $isPublicSite && ! $isParentPortal) || ! method_exists($response, 'getContent')) {
             return $response;
         }
 
@@ -28,11 +30,14 @@ class ApplyManagedContent
 
         try {
             $html = (string) $response->getContent();
-            $html = $this->content->applyTextToHtml($html);
 
-            if (! str_contains($html, 'cms-public.js')) {
-                $script = '<script src="'.asset('js/cms-public.js').'" defer></script>';
-                $html = str_replace('</body>', $script."\n</body>", $html);
+            if ($isPublicSite) {
+                $html = $this->content->applyTextToHtml($html);
+                $html = $this->injectScript($html, 'js/cms-public.js');
+            }
+
+            if ($isParentPortal) {
+                $html = $this->injectScript($html, 'js/cms-portal.js');
             }
 
             $response->setContent($html);
@@ -41,5 +46,16 @@ class ApplyManagedContent
         }
 
         return $response;
+    }
+
+    private function injectScript(string $html, string $path): string
+    {
+        if (str_contains($html, $path)) {
+            return $html;
+        }
+
+        $script = '<script src="'.asset($path).'" defer></script>';
+
+        return str_replace('</body>', $script."\n</body>", $html);
     }
 }
