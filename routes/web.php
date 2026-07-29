@@ -1,8 +1,12 @@
 <?php
 
 use App\Http\Controllers\Admin\AdmissionController as AdminAdmissionController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ChildController as AdminChildController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
+use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\AdmissionApplicationController;
+use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
 use App\Http\Controllers\PhoneOtpController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,10 +27,24 @@ Route::post('/logout', [PhoneOtpController::class, 'logout'])
     ->name('logout');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/', AdminDashboardController::class)->name('dashboard');
+
     Route::get('/admissions', [AdminAdmissionController::class, 'index'])->name('admissions.index');
     Route::get('/admissions/{application}', [AdminAdmissionController::class, 'show'])->name('admissions.show');
     Route::patch('/admissions/{application}', [AdminAdmissionController::class, 'update'])->name('admissions.update');
     Route::post('/admissions/{application}/notes', [AdminAdmissionController::class, 'storeNote'])->name('admissions.notes.store');
     Route::post('/admissions/{application}/convert', [AdminAdmissionController::class, 'convert'])->name('admissions.convert');
+
+    Route::get('/children', [AdminChildController::class, 'index'])->name('children.index');
+    Route::get('/children/{child}', [AdminChildController::class, 'show'])->name('children.show');
+    Route::patch('/children/{child}', [AdminChildController::class, 'update'])->name('children.update');
+    Route::patch('/enrollments/{enrollment}', [AdminEnrollmentController::class, 'update'])->name('enrollments.update');
+
+    Route::get('/groups', [AdminGroupController::class, 'index'])->name('groups.index');
+    Route::get('/groups/{group}', [AdminGroupController::class, 'show'])->name('groups.show');
+    Route::patch('/groups/{group}', [AdminGroupController::class, 'update'])->name('groups.update');
 });
+
+Route::get('/parent', ParentDashboardController::class)
+    ->middleware(['auth', 'role:parent'])
+    ->name('parent.dashboard');
