@@ -32,7 +32,7 @@ class RuntimeSmokeTest extends TestCase
 
         $this->get('/admin')
             ->assertOk()
-            ->assertSee('ადმინისტრაცია');
+            ->assertSee('დღის მიმოხილვა');
 
         $this->post('/logout')->assertRedirect('/');
 
