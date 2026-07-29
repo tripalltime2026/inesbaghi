@@ -23,7 +23,7 @@ class RuntimeSmokeTest extends TestCase
 
         $this->getJson('/auth/mode')
             ->assertOk()
-            ->assertJsonPath('enabled', true);
+            ->assertJsonPath('demo_enabled', true);
 
         $this->postJson('/auth/demo/login', [
             'name' => 'ინეს ბაღის ადმინისტრატორი',
