@@ -1,5 +1,6 @@
 {
   "name":"tripalltime2026/inesbaghi",
+  "description":"Ines Baghi kindergarten management and parent community platform.",
   "type":"project",
   "license":"proprietary",
   "require":{"php":"^8.3","laravel/framework":"^13.0","laravel/tinker":"^2.10"},
