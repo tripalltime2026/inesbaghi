@@ -76,17 +76,27 @@ class AttendanceController extends Controller
         $action = $validated['action'] ?? 'save';
 
         DB::transaction(function () use ($request, $child, $validated, $date, $action) {
-            $record = AttendanceRecord::query()->lockForUpdate()->firstOrNew([
-                'child_id' => $child->id,
-                'attendance_date' => $date,
-            ]);
+            $record = AttendanceRecord::query()
+                ->where('child_id', $child->id)
+                ->whereDate('attendance_date', $date)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $record) {
+                $record = new AttendanceRecord([
+                    'child_id' => $child->id,
+                    'attendance_date' => $date,
+                ]);
+            }
 
             $record->kindergarten_group_id = $validated['group_id'];
             $record->recorded_by_user_id = $request->user()->id;
 
             if ($action === 'check_in') {
                 $record->status = 'present';
-                $record->checked_in_at ??= $this->actionTimestamp($date, '09:00');
+                if (! $record->checked_in_at) {
+                    $record->checked_in_at = $this->actionTimestamp($date, '09:00');
+                }
             } elseif ($action === 'check_out') {
                 if (! $record->checked_in_at) {
                     throw ValidationException::withMessages(['action' => 'წასვლამდე ბავშვის მოსვლა უნდა იყოს დაფიქსირებული.']);
