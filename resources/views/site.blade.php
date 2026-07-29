@@ -213,8 +213,8 @@ window.ines = {
         admission: @json(route('admissions.store')),
         request: @json(route('auth.request')),
         verify: @json(route('auth.verify')),
-        demoStatus: @json(route('auth.demo.status')),
-        demoLogin: @json(route('auth.demo.login'))
+        demoStatus: @json(route('auth.mode')),
+        demoLogin: @json(route('auth.demo'))
     }
 };
 </script>
