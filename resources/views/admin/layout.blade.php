@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-modules.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/operations.css') }}">
 </head>
 <body class="admin-body">
 @php
