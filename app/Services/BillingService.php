@@ -9,13 +9,18 @@ use Illuminate\Support\Facades\DB;
 
 class BillingService
 {
-    public function generate(string $period, string $dueDate, ?int $groupId = null, ?int $actorUserId = null): array
-    {
+    public function generate(
+        string $period,
+        string $dueDate,
+        ?int $groupId = null,
+        ?int $actorUserId = null,
+        ?string $ipAddress = null,
+    ): array {
         $periodStart = CarbonImmutable::createFromFormat('Y-m-d', $period.'-01')->startOfMonth();
         $periodEnd = $periodStart->endOfMonth();
         $dueAt = CarbonImmutable::parse($dueDate)->endOfDay();
 
-        return DB::transaction(function () use ($period, $periodStart, $periodEnd, $dueAt, $groupId, $actorUserId) {
+        return DB::transaction(function () use ($period, $periodStart, $periodEnd, $dueAt, $groupId, $actorUserId, $ipAddress) {
             $enrollments = Enrollment::query()
                 ->with('group')
                 ->where('status', 'active')
@@ -59,7 +64,7 @@ class BillingService
                     'created' => $created,
                     'skipped' => $skipped,
                 ], JSON_THROW_ON_ERROR),
-                'ip_address' => request()?->ip(),
+                'ip_address' => $ipAddress,
                 'created_at' => now(),
             ]);
 
