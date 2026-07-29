@@ -19,7 +19,9 @@ class RuntimeSmokeTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('სიყვარულით')
-            ->assertSee('ჩარიცხვის განაცხადი');
+            ->assertSee('ჩარიცხვის განაცხადი')
+            ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('viewport-fit=cover', false);
 
         $this->getJson('/auth/mode')
             ->assertOk()
@@ -30,7 +32,10 @@ class RuntimeSmokeTest extends TestCase
             'phone' => '555411831',
         ])->assertOk()->assertJsonPath('user.role', 'admin');
 
-        $this->get('/admin')->assertOk();
+        $this->get('/admin')
+            ->assertOk()
+            ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('viewport-fit=cover', false);
 
         $this->post('/logout')->assertRedirect('/');
 
@@ -39,6 +44,9 @@ class RuntimeSmokeTest extends TestCase
             'phone' => '555123456',
         ])->assertOk()->assertJsonPath('user.role', 'parent');
 
-        $this->get('/parent')->assertOk();
+        $this->get('/parent')
+            ->assertOk()
+            ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('viewport-fit=cover', false);
     }
 }
