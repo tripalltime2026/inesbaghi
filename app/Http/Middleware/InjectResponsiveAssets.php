@@ -41,6 +41,10 @@ class InjectResponsiveAssets
             $headAssets[] = '<link rel="stylesheet" href="/css/experience-v2.css?v=20260729b">';
         }
 
+        if (! str_contains($content, '/css/home-mobile-v3.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/home-mobile-v3.css?v=20260729c">';
+        }
+
         if ($headAssets !== []) {
             $content = str_replace('</head>', '    '.implode("\n    ", $headAssets)."\n</head>", $content);
         }
