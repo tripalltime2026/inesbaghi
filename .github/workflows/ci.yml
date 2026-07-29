@@ -11,6 +11,8 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: node --check public/js/site.js
       - run: node --check public/js/portal.js
+      - run: node --check public/js/cms-public.js
+      - run: node --check public/js/cms-portal.js
       - name: Validate zero-config demo bootstrap
         run: env -u APP_KEY DEMO_AUTH_ENABLED=true DB_CONNECTION=sqlite SESSION_DRIVER=file CACHE_STORE=file php artisan about --only=environment
       - name: Compile all Blade views
