@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class SiteItem extends Model
 {
-    public const TYPES = ['group', 'team', 'faq', 'gallery'];
+    public const TYPES = [
+        'group',
+        'team',
+        'faq',
+        'gallery',
+        'club_post',
+        'club_event',
+        'club_poll',
+        'club_topic',
+    ];
 
     protected $fillable = [
         'type',
