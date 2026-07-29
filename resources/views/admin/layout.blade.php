@@ -7,6 +7,7 @@
     <title>@yield('title', 'ადმინისტრაცია') — ინეს ბაღი</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-modules.css') }}">
 </head>
 <body class="admin-body">
 <div class="admin-shell">
@@ -19,9 +20,9 @@
         <nav class="admin-nav" aria-label="ადმინისტრაციის ნავიგაცია">
             <a class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">მიმოხილვა</a>
             <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}">ჩარიცხვის განაცხადები</a>
-            <span class="disabled">ბავშვები <small>მალე</small></span>
-            <span class="disabled">ჯგუფები <small>მალე</small></span>
-            <span class="disabled">გადახდები <small>მალე</small></span>
+            <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}">ბავშვები</a>
+            <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}">ჯგუფები</a>
+            <span class="disabled">გადახდები <small>შემდეგი</small></span>
         </nav>
 
         <div class="admin-user">
