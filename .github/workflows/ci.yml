@@ -10,4 +10,5 @@ jobs:
       - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
       - run: node --check public/js/site.js
+      - run: node --check public/js/portal.js
       - run: php artisan test
