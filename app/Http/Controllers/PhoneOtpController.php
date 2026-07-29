@@ -90,6 +90,12 @@ class PhoneOtpController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
+        $redirectTo = match (true) {
+            $user->hasRole('admin') => route('admin.dashboard'),
+            $user->hasRole('parent') => route('parent.dashboard'),
+            default => route('home'),
+        };
+
         return response()->json([
             'user' => [
                 'name' => $user->name,
@@ -97,7 +103,7 @@ class PhoneOtpController extends Controller
                 'role' => $user->role,
                 'status' => $user->status,
             ],
-            'redirect_to' => $user->hasRole('admin') ? route('admin.dashboard') : route('home'),
+            'redirect_to' => $redirectTo,
         ]);
     }
 
