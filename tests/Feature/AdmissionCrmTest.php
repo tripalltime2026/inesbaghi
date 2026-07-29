@@ -108,7 +108,7 @@ class AdmissionCrmTest extends TestCase
         $this->assertDatabaseHas('enrollments', [
             'child_id' => $application->converted_child_id,
             'status' => 'pending',
-            'starts_on' => '2026-09-01',
+            'starts_on' => '2026-09-01 00:00:00',
         ]);
 
         $childCount = \App\Models\Child::count();
