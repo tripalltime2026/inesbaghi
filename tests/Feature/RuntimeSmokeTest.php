@@ -22,6 +22,7 @@ class RuntimeSmokeTest extends TestCase
             ->assertSee('ჩარიცხვის განაცხადი')
             ->assertSee('/css/mobile.css?v=20260729', false)
             ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/css/home-mobile-v3.css?v=20260729c', false)
             ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('/js/experience-v2-compat.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
@@ -41,6 +42,7 @@ class RuntimeSmokeTest extends TestCase
             ->assertSee('პლატფორმის მართვა')
             ->assertSee('მენიუში ძებნა')
             ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/css/home-mobile-v3.css?v=20260729c', false)
             ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('/js/experience-v2-compat.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
@@ -55,6 +57,7 @@ class RuntimeSmokeTest extends TestCase
         $this->get('/parent')
             ->assertOk()
             ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/css/home-mobile-v3.css?v=20260729c', false)
             ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('/js/experience-v2-compat.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
