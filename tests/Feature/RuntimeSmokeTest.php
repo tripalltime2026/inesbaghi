@@ -21,6 +21,8 @@ class RuntimeSmokeTest extends TestCase
             ->assertSee('სიყვარულით')
             ->assertSee('ჩარიცხვის განაცხადი')
             ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
 
         $this->getJson('/auth/mode')
@@ -34,7 +36,11 @@ class RuntimeSmokeTest extends TestCase
 
         $this->get('/admin')
             ->assertOk()
-            ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('მართვის ცენტრი')
+            ->assertSee('პლატფორმის მართვა')
+            ->assertSee('მენიუში ძებნა')
+            ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
 
         $this->post('/logout')->assertRedirect('/');
@@ -46,7 +52,8 @@ class RuntimeSmokeTest extends TestCase
 
         $this->get('/parent')
             ->assertOk()
-            ->assertSee('/css/mobile.css?v=20260729', false)
+            ->assertSee('/css/experience-v2.css?v=20260729b', false)
+            ->assertSee('/js/experience-v2.js?v=20260729b', false)
             ->assertSee('viewport-fit=cover', false);
     }
 }
