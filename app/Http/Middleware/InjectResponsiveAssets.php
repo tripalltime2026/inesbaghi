@@ -45,8 +45,17 @@ class InjectResponsiveAssets
             $content = str_replace('</head>', '    '.implode("\n    ", $headAssets)."\n</head>", $content);
         }
 
-        if (! str_contains($content, '/js/experience-v2.js') && str_contains($content, '</body>')) {
-            $content = str_replace('</body>', '    <script src="/js/experience-v2.js?v=20260729b" defer></script>'."\n</body>", $content);
+        if (str_contains($content, '</body>')) {
+            $scripts = [];
+            if (! str_contains($content, '/js/experience-v2.js')) {
+                $scripts[] = '<script src="/js/experience-v2.js?v=20260729b" defer></script>';
+            }
+            if (! str_contains($content, '/js/experience-v2-compat.js')) {
+                $scripts[] = '<script src="/js/experience-v2-compat.js?v=20260729b" defer></script>';
+            }
+            if ($scripts !== []) {
+                $content = str_replace('</body>', '    '.implode("\n    ", $scripts)."\n</body>", $content);
+            }
         }
 
         $response->setContent($content);
