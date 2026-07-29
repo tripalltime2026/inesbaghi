@@ -1,0 +1,973 @@
+/* Mobile experience layer loaded after the page-specific stylesheets. */
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        touch-action: manipulation;
+    }
+
+    .menu-toggle,
+    .pill,
+    .primary-button,
+    .secondary-button,
+    .group-tabs button,
+    .choice,
+    .club-tabs button,
+    .event-actions button,
+    .forum-head button,
+    .forum-layout aside button,
+    .poll-card button,
+    .profile-logout,
+    .logout-button,
+    .admin-tabs a,
+    .site-return,
+    .primary,
+    .secondary,
+    .danger-button,
+    .filter-bar button,
+    .ops-filters button,
+    .ops-form-inline button {
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 760px) {
+    html {
+        scroll-padding-top: 76px;
+    }
+
+    body {
+        min-width: 320px;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Public website */
+    .site-header {
+        min-height: 64px;
+        padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+        gap: 8px;
+    }
+
+    .brand-lockup {
+        min-width: 0;
+        gap: 9px;
+    }
+
+    .brand-lockup > span:last-child {
+        min-width: 0;
+    }
+
+    .brand-lockup strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .site-actions {
+        gap: 6px;
+        margin-left: auto;
+    }
+
+    .site-actions .pill.navy {
+        min-height: 42px;
+        padding-inline: 14px;
+    }
+
+    .menu-toggle {
+        display: grid;
+        place-items: center;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+    }
+
+    .site-nav {
+        left: 12px;
+        right: 12px;
+        top: calc(64px + env(safe-area-inset-top));
+        max-height: calc(100dvh - 86px - env(safe-area-inset-top));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 10px;
+        border-radius: 22px;
+    }
+
+    .site-nav button {
+        min-height: 48px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+    }
+
+    .site-nav button:hover,
+    .site-nav button.active {
+        background: rgba(169, 211, 201, .35);
+    }
+
+    .content-width {
+        width: calc(100% - 28px);
+    }
+
+    .public-page {
+        min-height: auto;
+        padding: 24px 0 52px;
+    }
+
+    .hero-shell {
+        gap: 24px;
+        padding-top: 2px;
+    }
+
+    .hero-copy h1,
+    .page-intro h1 {
+        margin: 12px 0 15px;
+        font-size: clamp(31px, 9vw, 40px);
+        line-height: 1.16;
+    }
+
+    .hero-copy p,
+    .page-intro p {
+        margin-block: 0;
+        font-size: 15px;
+        line-height: 1.72;
+    }
+
+    .button-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .button-row > * {
+        width: 100%;
+        min-height: 50px;
+        padding: 13px 18px;
+        border-radius: 18px;
+        text-align: center;
+    }
+
+    .hero-art {
+        height: clamp(220px, 68vw, 300px);
+        border-radius: 28px 28px 8px 8px;
+    }
+
+    .home-offers {
+        padding-top: 38px;
+    }
+
+    .home-offers > h2,
+    .latest-band h2,
+    .schedule-card h2 {
+        font-size: 22px;
+        margin-bottom: 15px;
+    }
+
+    .offer-grid,
+    .method-grid,
+    .team-grid,
+    .gallery-grid,
+    .blog-grid,
+    .contact-grid {
+        gap: 12px;
+    }
+
+    .offer-card {
+        min-height: 0;
+        padding: 20px;
+        border-radius: 20px 20px 6px 6px;
+    }
+
+    .offer-card > span {
+        margin-bottom: 13px;
+    }
+
+    .latest-band {
+        margin-top: 40px;
+        padding: 34px 0;
+    }
+
+    .latest-grid {
+        gap: 24px;
+    }
+
+    .mini-post-grid {
+        display: grid;
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(230px, 82vw);
+        gap: 12px;
+        overflow-x: auto;
+        padding: 2px 2px 10px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mini-post-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mini-post-grid article {
+        scroll-snap-align: start;
+        min-height: 190px;
+    }
+
+    .page-intro {
+        padding-top: 2px;
+        margin-bottom: 24px;
+    }
+
+    .prose-card,
+    .schedule-card,
+    .final-form,
+    .locked-card,
+    .admission-note,
+    .story-card,
+    .method-card,
+    .team-card,
+    .contact-grid article {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .prose-card p {
+        line-height: 1.78;
+    }
+
+    .method-card {
+        min-height: 0;
+    }
+
+    .method-card h3 {
+        margin-top: 15px;
+        font-size: 19px;
+    }
+
+    .group-tabs {
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding: 2px 1px 8px;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .group-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .group-tabs button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        scroll-snap-align: start;
+    }
+
+    .group-detail {
+        gap: 14px;
+        margin-top: 12px;
+    }
+
+    .group-summary {
+        min-height: 0;
+        padding: 21px;
+        border-radius: 20px;
+    }
+
+    .group-summary h2 {
+        font-size: 25px;
+    }
+
+    .group-meta {
+        margin-top: 20px;
+    }
+
+    .schedule-row {
+        display: grid;
+        grid-template-columns: 78px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 0;
+        font-size: 13px;
+    }
+
+    .gallery-art,
+    .blog-art {
+        height: 160px;
+    }
+
+    .faq-item button {
+        min-height: 54px;
+        gap: 14px;
+        padding: 16px 18px;
+        font-size: 13px;
+    }
+
+    .faq-answer {
+        padding: 0 18px 18px;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .contact-grid .map-card {
+        min-height: 170px;
+    }
+
+    .final-form {
+        gap: 15px;
+    }
+
+    .final-form input,
+    .final-form textarea,
+    .final-form select {
+        min-height: 48px;
+        padding: 13px 14px;
+        border-radius: 14px;
+    }
+
+    .final-form textarea {
+        min-height: 120px;
+    }
+
+    .choice-row {
+        gap: 8px;
+    }
+
+    .choice {
+        min-height: 46px;
+        padding: 10px 13px;
+        border-radius: 14px;
+    }
+
+    .switch-row {
+        min-height: 52px;
+    }
+
+    .admission-note {
+        order: -1;
+    }
+
+    .site-footer {
+        padding: 22px 0 calc(22px + env(safe-area-inset-bottom));
+    }
+
+    .footer-row {
+        gap: 9px;
+        line-height: 1.6;
+    }
+
+    .modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-card,
+    .modal-card.compact {
+        width: 100%;
+        max-height: 92dvh;
+        padding: 26px 18px calc(20px + env(safe-area-inset-bottom));
+        border-radius: 28px 28px 0 0;
+    }
+
+    .modal-card h2 {
+        padding-right: 32px;
+        font-size: 25px;
+    }
+
+    .modal-close {
+        top: 14px;
+        right: 14px;
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Parent club */
+    .club-header {
+        min-height: 64px;
+        padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+        gap: 8px;
+    }
+
+    .club-brand {
+        min-width: 0;
+        gap: 9px;
+    }
+
+    .club-head-actions {
+        gap: 6px;
+        margin-left: auto;
+    }
+
+    .club-head-actions form {
+        display: block !important;
+    }
+
+    .club-head-actions .logout-button {
+        min-width: 54px;
+        min-height: 42px;
+        padding: 0 9px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1px solid var(--border, rgba(16, 48, 58, .12));
+        text-decoration: none;
+    }
+
+    .club-main {
+        width: calc(100% - 24px);
+        padding: 24px 0 calc(52px + env(safe-area-inset-bottom));
+    }
+
+    .club-title-row {
+        gap: 14px;
+    }
+
+    .club-title-row h1 {
+        margin: 5px 0;
+        font-size: clamp(27px, 8vw, 34px);
+    }
+
+    .club-title-row p {
+        line-height: 1.65;
+    }
+
+    .role-chips {
+        gap: 7px;
+    }
+
+    .role-chip {
+        padding: 8px 10px;
+        line-height: 1.45;
+    }
+
+    .club-tabs {
+        position: sticky;
+        top: calc(63px + env(safe-area-inset-top));
+        z-index: 20;
+        margin: 20px -12px 18px;
+        padding: 8px 12px 10px;
+        background: rgba(251, 247, 236, .96);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border, rgba(16, 48, 58, .12));
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .club-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .club-tabs button {
+        min-height: 44px;
+        padding-inline: 15px;
+        scroll-snap-align: start;
+    }
+
+    .feed-layout,
+    .feed-list,
+    .event-list,
+    .poll-list {
+        gap: 12px;
+    }
+
+    .club-post,
+    .event-card,
+    .poll-card,
+    .profile-card,
+    .notification-card,
+    .child-record,
+    .empty-profile,
+    .next-event,
+    .active-poll {
+        border-radius: 18px;
+    }
+
+    .post-art {
+        height: 155px;
+    }
+
+    .post-body {
+        padding: 17px;
+    }
+
+    .post-meta {
+        gap: 8px;
+    }
+
+    .visibility-chip {
+        line-height: 1.35;
+    }
+
+    .post-body h2,
+    .event-card h2,
+    .poll-card h2,
+    .profile-card h2,
+    .notification-card h2,
+    .child-record h2 {
+        line-height: 1.5;
+    }
+
+    .post-actions {
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+
+    .club-sidebar {
+        gap: 12px;
+    }
+
+    .event-card {
+        gap: 0;
+    }
+
+    .event-art {
+        height: 120px;
+    }
+
+    .event-card > div:nth-child(2) {
+        padding: 17px 17px 10px;
+    }
+
+    .event-meta {
+        flex-wrap: wrap;
+        line-height: 1.5;
+    }
+
+    .event-actions {
+        gap: 8px;
+        padding: 0 17px 17px;
+    }
+
+    .event-actions button {
+        min-height: 46px;
+    }
+
+    .forum-layout {
+        gap: 14px;
+    }
+
+    .forum-layout aside {
+        display: flex;
+        grid-template-columns: none;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 7px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .forum-layout aside::-webkit-scrollbar {
+        display: none;
+    }
+
+    .forum-layout aside > strong {
+        display: none;
+    }
+
+    .forum-layout aside button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    .forum-head {
+        gap: 12px;
+    }
+
+    .forum-head button {
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    .topic-list article {
+        padding: 15px;
+    }
+
+    .poll-card,
+    .profile-card,
+    .notification-card,
+    .child-record,
+    .empty-profile {
+        padding: 18px;
+    }
+
+    .poll-meta {
+        align-items: flex-start;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .poll-card button {
+        min-height: 48px;
+        padding: 13px;
+    }
+
+    .notification-card label {
+        min-height: 52px;
+        gap: 12px;
+    }
+
+    .child-record-head {
+        align-items: flex-start;
+    }
+
+    .child-record-head > span {
+        flex: 0 0 54px;
+        width: 54px;
+        height: 54px;
+    }
+
+    .record-metrics,
+    .record-columns {
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .record-metrics > div {
+        padding: 14px;
+    }
+
+    .record-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 13px 0;
+    }
+
+    .record-row > div:last-child {
+        max-width: 145px;
+    }
+
+    /* Administration */
+    .admin-global-header {
+        min-height: 64px;
+        padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+        gap: 8px;
+    }
+
+    .admin-global-brand {
+        min-width: 0;
+        gap: 9px;
+    }
+
+    .admin-global-actions {
+        gap: 5px;
+        margin-left: auto;
+    }
+
+    .admin-global-actions form {
+        display: block !important;
+    }
+
+    .admin-global-actions form button {
+        min-width: 54px;
+        min-height: 42px;
+        padding: 0 9px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1px solid var(--admin-border, rgba(16, 48, 58, .12));
+        text-decoration: none;
+    }
+
+    .admin-main-shell {
+        width: calc(100% - 24px);
+        padding: 24px 0 calc(52px + env(safe-area-inset-bottom));
+    }
+
+    .admin-title-row {
+        gap: 12px;
+    }
+
+    .admin-title-row h1 {
+        margin: 5px 0;
+        font-size: clamp(27px, 8vw, 34px);
+        line-height: 1.2;
+    }
+
+    .admin-subtitle {
+        line-height: 1.6;
+    }
+
+    .admin-tabs {
+        position: sticky;
+        top: calc(63px + env(safe-area-inset-top));
+        z-index: 20;
+        margin: 18px -12px 16px;
+        padding: 8px 12px 10px;
+        background: rgba(251, 247, 236, .96);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--admin-border, rgba(16, 48, 58, .12));
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .admin-tabs a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        padding-inline: 15px;
+        scroll-snap-align: start;
+    }
+
+    .metric-grid,
+    .metric-grid.small,
+    .ops-summary-grid {
+        gap: 10px;
+    }
+
+    .metric-card,
+    .pipeline-card,
+    .panel,
+    .ops-summary-grid article,
+    .ops-panel,
+    .detail-heading {
+        padding: 17px;
+        border-radius: 17px;
+    }
+
+    .metric-card {
+        min-height: 118px;
+    }
+
+    .metric-card strong {
+        font-size: 29px;
+    }
+
+    .panel-heading,
+    .detail-heading,
+    .ops-panel-head {
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .panel-heading h2,
+    .detail-heading h2 {
+        font-size: 21px;
+    }
+
+    .table-wrap,
+    .ops-table-wrap {
+        margin-inline: -12px;
+        border-radius: 15px;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-inline: contain;
+    }
+
+    .admin-table,
+    .ops-table {
+        min-width: 760px;
+    }
+
+    .admin-table th,
+    .admin-table td,
+    .ops-table th,
+    .ops-table td {
+        padding: 12px;
+    }
+
+    .filter-bar,
+    .ops-filters,
+    .ops-form-inline {
+        gap: 11px;
+        padding: 16px;
+        border-radius: 17px;
+    }
+
+    .filter-bar input,
+    .filter-bar select,
+    .admin-form input,
+    .admin-form select,
+    .note-form textarea,
+    .ops-filters input,
+    .ops-filters select,
+    .ops-form-inline input,
+    .ops-form-inline select {
+        min-height: 48px;
+        padding: 12px 13px;
+    }
+
+    .detail-grid {
+        gap: 14px;
+    }
+
+    .detail-list div {
+        padding: 13px 0;
+    }
+
+    .note-form textarea {
+        min-height: 110px;
+    }
+
+    .primary,
+    .secondary,
+    .danger-button {
+        min-height: 46px;
+    }
+
+    .flash {
+        padding: 13px 15px;
+        line-height: 1.55;
+    }
+
+    .pagination {
+        gap: 12px;
+        padding: 18px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .site-actions .pill.navy {
+        max-width: 78px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .brand-lockup strong,
+    .club-brand strong,
+    .admin-global-brand strong {
+        font-size: 14px;
+    }
+
+    .brand-arch,
+    .club-arch,
+    .admin-brand-arch {
+        width: 29px;
+        height: 36px;
+    }
+
+    .content-width {
+        width: calc(100% - 24px);
+    }
+
+    .hero-copy h1,
+    .page-intro h1 {
+        font-size: clamp(29px, 9.5vw, 35px);
+    }
+
+    .hero-art {
+        height: 220px;
+    }
+
+    .choice-row {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .club-head-actions .head-pill,
+    .admin-global-actions .header-pill.butter,
+    .admin-global-actions .header-pill.mint {
+        display: none;
+    }
+
+    .club-head-actions .head-pill.navy {
+        display: none;
+    }
+
+    .admin-global-actions .header-pill.navy {
+        max-width: 72px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-inline: 10px;
+    }
+
+    .club-main,
+    .admin-main-shell {
+        width: calc(100% - 20px);
+    }
+
+    .club-tabs,
+    .admin-tabs {
+        margin-inline: -10px;
+        padding-inline: 10px;
+    }
+
+    .metric-grid,
+    .metric-grid.small,
+    .ops-summary-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    .metric-card,
+    .ops-summary-grid article {
+        min-height: 106px;
+        padding: 14px;
+    }
+
+    .metric-card strong,
+    .ops-summary-grid strong {
+        font-size: 25px;
+    }
+
+    .panel-heading,
+    .ops-panel-head,
+    .forum-head {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .panel-heading > *,
+    .ops-panel-head > *,
+    .forum-head button {
+        width: 100%;
+    }
+
+    .record-row {
+        grid-template-columns: 1fr;
+    }
+
+    .record-row > div:last-child {
+        max-width: none;
+        text-align: left;
+    }
+}
+
+@media (max-width: 380px) {
+    .metric-grid,
+    .metric-grid.small,
+    .ops-summary-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .site-actions .pill.navy {
+        display: none;
+    }
+
+    .admin-global-actions .header-pill.navy {
+        display: none;
+    }
+}
