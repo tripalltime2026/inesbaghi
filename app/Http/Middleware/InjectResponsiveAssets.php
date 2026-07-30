@@ -45,6 +45,11 @@ class InjectResponsiveAssets
             $headAssets[] = '<link rel="stylesheet" href="/css/home-mobile-v3.css?v=20260729c">';
         }
 
+        $isParentClub = str_contains($content, 'class="club-body"');
+        if ($isParentClub && ! str_contains($content, '/css/parent-forum.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/parent-forum.css?v=20260730">';
+        }
+
         if ($headAssets !== []) {
             $content = str_replace('</head>', '    '.implode("\n    ", $headAssets)."\n</head>", $content);
         }
@@ -56,6 +61,9 @@ class InjectResponsiveAssets
             }
             if (! str_contains($content, '/js/experience-v2-compat.js')) {
                 $scripts[] = '<script src="/js/experience-v2-compat.js?v=20260729b" defer></script>';
+            }
+            if ($isParentClub && ! str_contains($content, '/js/parent-forum.js')) {
+                $scripts[] = '<script src="/js/parent-forum.js?v=20260730" defer></script>';
             }
             if ($scripts !== []) {
                 $content = str_replace('</body>', '    '.implode("\n    ", $scripts)."\n</body>", $content);
