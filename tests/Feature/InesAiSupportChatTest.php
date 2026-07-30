@@ -7,6 +7,7 @@ use App\Models\SupportConversation;
 use App\Models\SupportKnowledgeArticle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class InesAiSupportChatTest extends TestCase
@@ -16,6 +17,7 @@ class InesAiSupportChatTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Carbon::setTestNow('2026-07-30 20:00:00');
 
         config([
             'services.ines_ai.enabled' => false,
@@ -45,6 +47,12 @@ class InesAiSupportChatTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     public function test_public_site_renders_ines_ai_widget(): void
     {
         $this->get('/')
@@ -62,7 +70,7 @@ class InesAiSupportChatTest extends TestCase
         $token = $created->json('conversation.token');
 
         $this->postJson("/support/chat/conversations/{$token}/messages", [
-            'body' => '3-4 წლის ჯგუფში არის ადგილი?',
+            'body' => 'არის ადგილი ჯგუფში?',
         ])->assertCreated()
             ->assertJsonPath('conversation.status', 'ai_active')
             ->assertJsonFragment(['body' => 'რომელი სასწავლო წლისთვის განიხილავთ ჩარიცხვას — 2026-2027 თუ 2027-2028?']);
@@ -72,16 +80,40 @@ class InesAiSupportChatTest extends TestCase
         ])->assertCreated()
             ->assertJsonFragment(['body' => 'ბავშვის დაბადების წელი რომელია? ამის მიხედვით შესაბამის ასაკობრივ ჯგუფს და ადგილის სტატუსს შევამოწმებ.']);
 
-        $this->postJson("/support/chat/conversations/{$token}/messages", [
+        $response = $this->postJson("/support/chat/conversations/{$token}/messages", [
             'body' => '2023',
         ])->assertCreated()
-            ->assertJsonPath('conversation.status', 'ai_active')
-            ->assertJsonFragment(['body' => '2026-2027 სასწავლო წლის 3–4 წლის ჯგუფი ჯგუფში ამჟამად თავისუფალი ადგილი ჩანს. საბოლოო დადასტურებისთვის შეგიძლიათ შეავსოთ განაცხადი ან დაგეგმოთ გაცნობითი ვიზიტი.']);
+            ->assertJsonPath('conversation.status', 'ai_active');
+
+        $latestBody = collect($response->json('conversation.messages'))->last()['body'];
+        $this->assertStringContainsString('2026-2027', $latestBody);
+        $this->assertStringContainsString('3–4 წლის ჯგუფი', $latestBody);
+        $this->assertStringContainsString('თავისუფალი ადგილი ჩანს', $latestBody);
+        $this->assertStringContainsString('საბოლოო დადასტურებისთვის', $latestBody);
 
         $conversation = SupportConversation::where('public_token', $token)->firstOrFail();
         $this->assertSame('2026-2027', $conversation->context['academic_year']);
         $this->assertSame(2023, $conversation->context['birth_year']);
         $this->assertSame('3-4', $conversation->context['group_slug']);
+    }
+
+    public function test_named_group_skips_birth_year_and_checks_live_availability(): void
+    {
+        $token = $this->postJson('/support/chat/conversations')->json('conversation.token');
+
+        $this->postJson("/support/chat/conversations/{$token}/messages", [
+            'body' => '3-4 წლის ჯგუფში არის ადგილი?',
+        ])->assertCreated()
+            ->assertJsonFragment(['body' => 'რომელი სასწავლო წლისთვის განიხილავთ ჩარიცხვას — 2026-2027 თუ 2027-2028?']);
+
+        $response = $this->postJson("/support/chat/conversations/{$token}/messages", [
+            'body' => '2026-2027',
+        ])->assertCreated();
+
+        $latestBody = collect($response->json('conversation.messages'))->last()['body'];
+        $this->assertStringContainsString('3–4 წლის ჯგუფი', $latestBody);
+        $this->assertStringContainsString('თავისუფალი ადგილი ჩანს', $latestBody);
+        $this->assertStringNotContainsString('დაბადების წელი', $latestBody);
     }
 
     public function test_ines_ai_answers_minimum_age_and_kindergarten_identity_from_approved_knowledge(): void
@@ -97,8 +129,9 @@ class InesAiSupportChatTest extends TestCase
             'body' => 'რით გამოირჩევა ინეს ბაღი?',
         ])->assertCreated();
 
-        $this->assertStringContainsString('ბავშვზე ორიენტირებული', $response->json('conversation.messages')[4]['body']);
-        $this->assertStringContainsString('ეკომეგობრული', $response->json('conversation.messages')[4]['body']);
+        $latestBody = collect($response->json('conversation.messages'))->last()['body'];
+        $this->assertStringContainsString('ბავშვზე ორიენტირებული', $latestBody);
+        $this->assertStringContainsString('ეკომეგობრული', $latestBody);
     }
 
     public function test_human_handoff_is_visible_to_admin_and_admin_reply_returns_to_widget(): void
