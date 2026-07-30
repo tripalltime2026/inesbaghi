@@ -54,6 +54,10 @@ class InjectResponsiveAssets
             $headAssets[] = '<link rel="stylesheet" href="/css/privacy-compliance.css?v=20260730b">';
         }
 
+        if (! str_contains($content, '/css/access-control.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/access-control.css?v=20260730">';
+        }
+
         $isParentClub = str_contains($content, 'class="club-body"');
         if ($isParentClub && ! str_contains($content, '/css/parent-forum.css')) {
             $headAssets[] = '<link rel="stylesheet" href="/css/parent-forum.css?v=20260730">';
@@ -73,6 +77,9 @@ class InjectResponsiveAssets
             }
             if (! str_contains($content, '/js/privacy-compliance.js')) {
                 $scripts[] = '<script src="/js/privacy-compliance.js?v=20260730b" defer></script>';
+            }
+            if ($isPublicSite && ! str_contains($content, '/js/auth-access-control.js')) {
+                $scripts[] = '<script src="/js/auth-access-control.js?v=20260730" defer></script>';
             }
             if ($isParentClub && ! str_contains($content, '/js/parent-forum.js')) {
                 $scripts[] = '<script src="/js/parent-forum.js?v=20260730" defer></script>';
