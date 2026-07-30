@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Child;
+use App\Models\Enrollment;
+use App\Models\KindergartenGroup;
 use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -50,6 +54,10 @@ class PhoneOtpController extends Controller
 
         $user->phone_verified_at ??= now();
         $user->save();
+
+        if (! $isDemoAdmin) {
+            $this->ensureDemoFamily($user);
+        }
 
         Auth::login($user, true);
         $request->session()->regenerate();
@@ -168,6 +176,53 @@ class PhoneOtpController extends Controller
             'demo' => $demo,
             'redirect_to' => $redirectTo,
         ]);
+    }
+
+    private function ensureDemoFamily(User $user): void
+    {
+        if ($user->children()->exists()) {
+            return;
+        }
+
+        DB::transaction(function () use ($user): void {
+            if ($user->children()->exists()) {
+                return;
+            }
+
+            $group = KindergartenGroup::firstOrCreate(
+                ['slug' => '3-4'],
+                [
+                    'name' => '3-4 წელი',
+                    'age_min_months' => 36,
+                    'age_max_months' => 47,
+                    'capacity' => 20,
+                    'monthly_fee' => 600,
+                    'academic_year' => '2026-2027',
+                    'is_active' => true,
+                ],
+            );
+
+            $child = Child::create([
+                'first_name' => 'დემო',
+                'last_name' => 'ბავშვი '.$user->id,
+                'birth_date' => now()->subYears(4)->startOfYear(),
+                'birth_year' => now()->subYears(4)->year,
+            ]);
+
+            $user->children()->attach($child->id, [
+                'relationship' => 'მშობელი',
+                'is_primary' => true,
+                'can_pick_up' => true,
+            ]);
+
+            Enrollment::create([
+                'child_id' => $child->id,
+                'kindergarten_group_id' => $group->id,
+                'status' => 'active',
+                'starts_on' => now()->startOfMonth(),
+                'enrolled_at' => now(),
+            ]);
+        });
     }
 
     private function normalizePhone(string $phone): string
