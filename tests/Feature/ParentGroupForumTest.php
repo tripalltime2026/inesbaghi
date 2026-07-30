@@ -7,6 +7,7 @@ use App\Models\Enrollment;
 use App\Models\ForumTopic;
 use App\Models\KindergartenGroup;
 use App\Models\User;
+use App\Support\PrivacyPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -86,10 +87,17 @@ class ParentGroupForumTest extends TestCase
         $this->postJson('/auth/demo/login', [
             'name' => 'დემო მშობელი',
             'phone' => '555222333',
+            'privacy_accepted' => true,
+            'marketing_consent' => false,
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
         ])->assertOk()->assertJsonPath('user.role', 'parent');
 
         $this->assertDatabaseHas('kindergarten_groups', ['slug' => '3-4']);
         $this->assertDatabaseHas('enrollments', ['status' => 'active']);
+        $this->assertDatabaseHas('privacy_consents', [
+            'consent_type' => 'account_privacy_acknowledgement',
+            'policy_version' => PrivacyPolicy::VERSION,
+        ]);
 
         $this->get('/parent')
             ->assertOk()
