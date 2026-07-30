@@ -53,6 +53,9 @@ Route::post('/logout', [PhoneOtpController::class, 'logout'])
 Route::get('/account', AccountController::class)
     ->middleware('auth')
     ->name('account.status');
+Route::patch('/account/preferences', [AccountController::class, 'updatePreferences'])
+    ->middleware('auth')
+    ->name('account.preferences.update');
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
