@@ -33,6 +33,7 @@ class InjectResponsiveAssets
         $isPublicSite = str_contains($content, 'class="final-site"');
         if ($isPublicSite) {
             $content = $this->injectPublicLegalControls($content);
+            $content = $this->injectInesAiWidget($content);
         }
 
         $headAssets = [];
@@ -58,6 +59,10 @@ class InjectResponsiveAssets
             $headAssets[] = '<link rel="stylesheet" href="/css/access-control.css?v=20260730">';
         }
 
+        if ($isPublicSite && ! str_contains($content, '/css/ines-ai-chat.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/ines-ai-chat.css?v=20260730">';
+        }
+
         $isParentClub = str_contains($content, 'class="club-body"');
         if ($isParentClub && ! str_contains($content, '/css/parent-forum.css')) {
             $headAssets[] = '<link rel="stylesheet" href="/css/parent-forum.css?v=20260730">';
@@ -80,6 +85,9 @@ class InjectResponsiveAssets
             }
             if ($isPublicSite && ! str_contains($content, '/js/auth-access-control.js')) {
                 $scripts[] = '<script src="/js/auth-access-control.js?v=20260730" defer></script>';
+            }
+            if ($isPublicSite && ! str_contains($content, '/js/ines-ai-chat.js')) {
+                $scripts[] = '<script src="/js/ines-ai-chat.js?v=20260730" defer></script>';
             }
             if ($isParentClub && ! str_contains($content, '/js/parent-forum.js')) {
                 $scripts[] = '<script src="/js/parent-forum.js?v=20260730" defer></script>';
@@ -152,5 +160,35 @@ HTML;
         }
 
         return $content;
+    }
+
+    private function injectInesAiWidget(string $content): string
+    {
+        if (str_contains($content, 'data-ines-ai-widget') || ! str_contains($content, '</body>')) {
+            return $content;
+        }
+
+        $widget = <<<'HTML'
+<div data-ines-ai-widget>
+    <button class="ines-ai-launcher" type="button" data-ines-ai-open aria-expanded="false" aria-controls="inesAiPanel"><span>✦</span><span>Ines AI</span></button>
+    <section class="ines-ai-panel" id="inesAiPanel" data-ines-ai-panel aria-hidden="true" aria-label="Ines AI ჩატი">
+        <header class="ines-ai-head"><span class="ines-ai-avatar">IA</span><div class="ines-ai-head-copy"><strong>Ines AI</strong><small><i class="ines-ai-status-dot"></i>ინეს ბაღის ციფრული ასისტენტი</small></div><button class="ines-ai-close" type="button" data-ines-ai-close aria-label="ჩატის დახურვა">×</button></header>
+        <div class="ines-ai-state" data-ines-ai-state>Ines AI მზადაა</div>
+        <div class="ines-ai-error" data-ines-ai-error></div>
+        <div class="ines-ai-messages" data-ines-ai-messages aria-live="polite"></div>
+        <div class="ines-ai-typing" data-ines-ai-typing>Ines AI ამზადებს პასუხს…</div>
+        <div class="ines-ai-quick" data-ines-ai-quick></div>
+        <div class="ines-ai-contact" data-ines-ai-contact>
+            <form data-ines-ai-contact-form><div class="ines-ai-contact-grid"><input name="name" placeholder="სახელი და გვარი" autocomplete="name"><input name="phone" placeholder="5XX XX XX XX" inputmode="tel" autocomplete="tel"></div><button type="submit">საკონტაქტო ინფორმაციის შენახვა</button></form>
+        </div>
+        <form class="ines-ai-compose" data-ines-ai-form>
+            <div class="ines-ai-compose-row"><textarea data-ines-ai-input rows="1" maxlength="2000" placeholder="მოგვწერეთ კითხვა…" aria-label="შეტყობინება"></textarea><button class="ines-ai-send" type="submit" aria-label="გაგზავნა">➤</button></div>
+            <div class="ines-ai-actions"><button class="ines-ai-human" type="button" data-ines-ai-human>ადმინისტრატორთან დაკავშირება</button><span class="ines-ai-privacy">არ გამოგზავნოთ სამედიცინო ან პირადობის მონაცემები</span></div>
+        </form>
+    </section>
+</div>
+HTML;
+
+        return str_replace('</body>', $widget."\n</body>", $content);
     }
 }
