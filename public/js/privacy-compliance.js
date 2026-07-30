@@ -3,7 +3,6 @@
 
   const POLICY_VERSION = '2026-07-30';
   const q = (selector, root = document) => root.querySelector(selector);
-  const qa = (selector, root = document) => [...root.querySelectorAll(selector)];
 
   function consentRow(name, text, options = {}) {
     const label = document.createElement('label');
@@ -20,57 +19,69 @@
 
   function installAdmissionConsent() {
     const form = q('#registrationForm');
-    if (!form || q('[data-admission-privacy]', form)) return;
+    if (!form) return;
 
-    const stack = consentStack();
-    stack.dataset.admissionPrivacy = 'true';
-    stack.append(
-      consentRow('guardian_authority_confirmed', 'ვადასტურებ, რომ ვარ ბავშვის მშობელი ან სხვა კანონიერი წარმომადგენელი და უფლებამოსილი ვარ ბავშვის მონაცემების მიწოდებაზე.', { required: true }),
-      consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვეთანხმები განაცხადის განხილვისთვის აუცილებელი ჩემი და ბავშვის მონაცემების დამუშავებას.', { required: true }),
-      consentRow('special_category_consent', 'ვაძლევ წერილობით ელექტრონულ თანხმობას ჩემ მიერ ნებაყოფლობით მითითებული ბავშვის ჯანმრთელობის ან სხვა განსაკუთრებული კატეგორიის მონაცემების დამუშავებაზე ბავშვის უსაფრთხოებისა და ინდივიდუალური საჭიროებების გათვალისწინებისთვის.', { required: true }),
-      consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები, ღონისძიებების ინფორმაცია და შეთავაზებები მითითებულ ნომერზე.'),
+    let stack = q('[data-admission-privacy]', form);
+    if (!stack) {
+      stack = consentStack();
+      stack.dataset.admissionPrivacy = 'true';
+      stack.append(
+        consentRow('guardian_authority_confirmed', 'ვადასტურებ, რომ ვარ ბავშვის მშობელი ან სხვა კანონიერი წარმომადგენელი და უფლებამოსილი ვარ ბავშვის მონაცემების მიწოდებაზე.', { required: true }),
+        consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ განაცხადის განხილვისთვის აუცილებელი ჩემი და ბავშვის მონაცემების დამუშავებას.', { required: true }),
+        consentRow('special_category_consent', 'ვაძლევ წერილობით ელექტრონულ თანხმობას ჩემ მიერ ნებაყოფლობით მითითებული ბავშვის ჯანმრთელობის ან სხვა განსაკუთრებული კატეგორიის მონაცემების დამუშავებაზე ბავშვის უსაფრთხოებისა და ინდივიდუალური საჭიროებების გათვალისწინებისთვის.', { required: true }),
+        consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები, ღონისძიებების ინფორმაცია და შეთავაზებები მითითებულ ნომერზე.'),
+      );
+      const note = document.createElement('p');
+      note.className = 'legal-consent-summary';
+      note.textContent = 'სარეკლამო შეტყობინებების მიღება არჩევითია. ფოტო/ვიდეომასალის გამოყენება საჭიროებს ცალკე თანხმობას და ჩარიცხვის პირობა არ არის.';
+      stack.appendChild(note);
+      const error = document.createElement('p');
+      error.className = 'legal-field-error';
+      error.textContent = 'გასაგრძელებლად მონიშნეთ ყველა სავალდებულო დადასტურება.';
+      stack.appendChild(error);
+      const formNote = q('.form-note', form);
+      (formNote || q('#registrationStatus', form))?.insertAdjacentElement('beforebegin', stack);
+    }
+
+    enforceRequiredConsent(
+      form,
+      ['guardian_authority_confirmed', 'privacy_accepted', 'special_category_consent'],
+      q('.legal-field-error', stack),
     );
-    const note = document.createElement('p');
-    note.className = 'legal-consent-summary';
-    note.textContent = 'სარეკლამო შეტყობინებების მიღება არჩევითია. ფოტო/ვიდეომასალის გამოყენება საჭიროებს ცალკე თანხმობას და ჩარიცხვის პირობა არ არის.';
-    stack.appendChild(note);
-    const error = document.createElement('p');
-    error.className = 'legal-field-error';
-    error.textContent = 'გასაგრძელებლად მონიშნეთ ყველა სავალდებულო დადასტურება.';
-    stack.appendChild(error);
-
-    const formNote = q('.form-note', form);
-    (formNote || q('#registrationStatus', form))?.insertAdjacentElement('beforebegin', stack);
-    enforceRequiredConsent(form, ['guardian_authority_confirmed', 'privacy_accepted', 'special_category_consent'], error);
   }
 
   function installAccountConsent() {
     const form = q('#otpRequest');
-    if (!form || q('[data-account-privacy]', form)) return;
+    if (!form) return;
 
-    const stack = consentStack();
-    stack.dataset.accountPrivacy = 'true';
-    stack.append(
-      consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნის/ავტორიზაციისა და მშობელთა კლუბის მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.', { required: true }),
-      consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე.'),
-    );
-    const error = document.createElement('p');
-    error.className = 'legal-field-error';
-    error.textContent = 'გასაგრძელებლად უნდა გაეცნოთ და დაადასტუროთ კონფიდენციალურობის პირობები.';
-    stack.appendChild(error);
+    let stack = q('[data-account-privacy]', form);
+    if (!stack) {
+      stack = consentStack();
+      stack.dataset.accountPrivacy = 'true';
+      stack.append(
+        consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნის/ავტორიზაციისა და მშობელთა კლუბის მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.', { required: true }),
+        consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე.'),
+      );
+      const error = document.createElement('p');
+      error.className = 'legal-field-error';
+      error.textContent = 'გასაგრძელებლად უნდა გაეცნოთ და დაადასტუროთ კონფიდენციალურობის პირობები.';
+      stack.appendChild(error);
+      q('#demoAuthNote', form)?.insertAdjacentElement('beforebegin', stack);
+    }
 
-    q('#demoAuthNote', form)?.insertAdjacentElement('beforebegin', stack);
-    enforceRequiredConsent(form, ['privacy_accepted'], error);
+    enforceRequiredConsent(form, ['privacy_accepted'], q('.legal-field-error', stack));
   }
 
   function enforceRequiredConsent(form, names, error) {
+    if (!error || form.dataset.privacyValidationBound === 'true') return;
+    form.dataset.privacyValidationBound = 'true';
     form.addEventListener('submit', (event) => {
-      const missing = names.some((name) => !q(`[name="${name}"]`, form)?.checked);
-      error.classList.toggle('show', missing);
-      if (!missing) return;
+      const missingName = names.find((name) => !q(`[name="${name}"]`, form)?.checked);
+      error.classList.toggle('show', Boolean(missingName));
+      if (!missingName) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      q(`[name="${names.find((name) => !q(`[name="${name}"]`, form)?.checked)}"]`, form)?.focus();
+      q(`[name="${missingName}"]`, form)?.focus();
     }, true);
     names.forEach((name) => q(`[name="${name}"]`, form)?.addEventListener('change', () => error.classList.remove('show')));
   }
@@ -117,13 +128,14 @@
   }
 
   function installFooterLinks() {
-    const footer = q('.site-footer .footer-row');
-    if (!footer || q('.legal-footer-links', footer)) return;
+    const siteFooter = q('.site-footer');
+    const footerRow = q('.footer-row', siteFooter || document);
+    if (!siteFooter || !footerRow || q('.legal-footer-links', siteFooter)) return;
     const links = document.createElement('nav');
     links.className = 'legal-footer-links';
     links.setAttribute('aria-label', 'სამართლებრივი ინფორმაცია');
     links.innerHTML = '<a href="/privacy">კონფიდენციალურობა</a><a href="/terms">სარგებლობის პირობები</a><a href="/privacy/request">მონაცემთა მოთხოვნა</a><span>შპს ინეს ბაღი · ს/კ 445602465</span>';
-    footer.insertAdjacentElement('afterend', links);
+    footerRow.insertAdjacentElement('afterend', links);
   }
 
   function installCookieNotice() {
