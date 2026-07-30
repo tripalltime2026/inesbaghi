@@ -23,6 +23,19 @@ class User extends Authenticatable
         return $this->status === 'active' && in_array($this->role, $roles, true);
     }
 
+    public function hasVerifiedParentAccess(): bool
+    {
+        if ($this->status !== 'active' || $this->role !== 'parent' || $this->phone_verified_at === null) {
+            return false;
+        }
+
+        return $this->children()
+            ->whereHas('enrollments', fn ($enrollments) => $enrollments
+                ->where('status', 'active')
+                ->whereHas('group', fn ($groups) => $groups->where('is_active', true)))
+            ->exists();
+    }
+
     public function children(): BelongsToMany
     {
         return $this->belongsToMany(Child::class, 'child_guardians')
