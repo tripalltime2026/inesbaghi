@@ -85,6 +85,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
 
 Route::prefix('parent')->name('parent.')->middleware(['auth', 'role:parent'])->group(function () {
     Route::get('/', ParentDashboardController::class)->name('dashboard');
+    Route::get('/forum/data', [ParentForumController::class, 'index'])->name('forum.index');
     Route::post('/forum/topics', [ParentForumController::class, 'storeTopic'])
         ->middleware('throttle:10,1')
         ->name('forum.topics.store');
