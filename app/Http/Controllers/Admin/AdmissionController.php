@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdmissionController extends Controller
@@ -66,6 +67,8 @@ class AdmissionController extends Controller
     public function update(Request $request, AdmissionApplication $application): RedirectResponse
     {
         $validated = $request->validate([
+            'child_name' => ['nullable', 'string', 'min:2', 'max:120'],
+            'birth_year' => ['nullable', 'integer', 'between:2018,2026'],
             'status' => ['required', Rule::in(array_keys(AdmissionApplication::STATUSES))],
             'assigned_to_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'follow_up_at' => ['nullable', 'date'],
@@ -82,6 +85,7 @@ class AdmissionController extends Controller
             'old_status' => $oldStatus,
             'new_status' => $application->status,
             'assigned_to_user_id' => $application->assigned_to_user_id,
+            'child_name_completed' => filled($application->child_name),
         ]);
 
         return back()->with('success', 'განაცხადი განახლდა.');
@@ -111,6 +115,12 @@ class AdmissionController extends Controller
 
             if ($locked->converted_at) {
                 return false;
+            }
+
+            if (blank($locked->child_name)) {
+                throw ValidationException::withMessages([
+                    'child_name' => 'ჩარიცხვად გარდაქმნამდე შეავსეთ ბავშვის სახელი და გვარი.',
+                ]);
             }
 
             $guardian = User::firstOrCreate(
