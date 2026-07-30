@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AdmissionController as AdminAdmissionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\BillingController as AdminBillingController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\Admin\PrivacyController as AdminPrivacyController;
+use App\Http\Controllers\Admin\RegisteredUserController as AdminRegisteredUserController;
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
@@ -34,8 +36,7 @@ Route::post('/admissions', [AdmissionApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('admissions.store');
 
-Route::get('/auth/mode', [PhoneOtpController::class, 'mode'])
-    ->name('auth.mode');
+Route::get('/auth/mode', [PhoneOtpController::class, 'mode'])->name('auth.mode');
 Route::post('/auth/demo/login', [PhoneOtpController::class, 'demoLogin'])
     ->middleware('throttle:20,1')
     ->name('auth.demo');
@@ -49,6 +50,11 @@ Route::post('/logout', [PhoneOtpController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/marketing', [AccountController::class, 'updateMarketing'])->name('account.marketing');
+});
+
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
@@ -61,6 +67,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::post('/content/blog', [AdminContentController::class, 'storeBlog'])->name('content.blog.store');
         Route::patch('/content/blog/{post}', [AdminContentController::class, 'updateBlog'])->name('content.blog.update');
         Route::delete('/content/blog/{post}', [AdminContentController::class, 'destroyBlog'])->name('content.blog.destroy');
+
+        Route::get('/users', [AdminRegisteredUserController::class, 'index'])->name('users.index');
 
         Route::get('/privacy', [AdminPrivacyController::class, 'index'])->name('privacy.index');
         Route::patch('/privacy/requests/{dataRequest}', [AdminPrivacyController::class, 'update'])->name('privacy.requests.update');
@@ -95,7 +103,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     });
 });
 
-Route::prefix('parent')->name('parent.')->middleware(['auth', 'role:parent'])->group(function () {
+Route::prefix('parent')->name('parent.')->middleware(['auth', 'verified.parent'])->group(function () {
     Route::get('/', ParentDashboardController::class)->name('dashboard');
     Route::get('/forum/data', [ParentForumController::class, 'index'])->name('forum.index');
     Route::post('/forum/topics', [ParentForumController::class, 'storeTopic'])
