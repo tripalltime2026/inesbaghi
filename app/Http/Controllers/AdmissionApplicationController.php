@@ -17,7 +17,7 @@ class AdmissionApplicationController extends Controller
         $validated = $request->validate([
             'parent_name' => ['required', 'string', 'min:2', 'max:120'],
             'phone' => ['required', 'regex:/^(?:\+?995)?5\d{8}$/'],
-            'child_name' => ['required', 'string', 'min:2', 'max:120'],
+            'child_name' => ['nullable', 'string', 'min:2', 'max:120'],
             'birth_year' => ['nullable', 'integer', 'between:2018,2026'],
             'preferred_group' => ['required', 'in:2-3,3-4,4-5,5-6'],
             'academic_year' => ['required', 'in:2026,2027'],
@@ -35,7 +35,7 @@ class AdmissionApplicationController extends Controller
             $application = AdmissionApplication::create([
                 'parent_name' => $validated['parent_name'],
                 'phone' => $this->normalizePhone($validated['phone']),
-                'child_name' => $validated['child_name'],
+                'child_name' => $validated['child_name'] ?? null,
                 'birth_year' => $validated['birth_year'] ?? null,
                 'preferred_group' => $validated['preferred_group'],
                 'academic_year' => $validated['academic_year'],
