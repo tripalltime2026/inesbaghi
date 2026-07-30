@@ -1,0 +1,233 @@
+/* Mobile polish v4 — compact first screen, safe floating controls and clearer navigation. */
+@media (max-width: 900px) {
+  body.final-site {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .final-site .mobile-app-nav {
+    left: 12px;
+    right: 12px;
+    bottom: max(9px, env(safe-area-inset-bottom));
+    gap: 3px;
+    padding: 6px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.94);
+    box-shadow: 0 14px 38px rgba(16,48,58,.19);
+  }
+
+  .final-site .mobile-app-nav a,
+  .final-site .mobile-app-nav button {
+    min-height: 50px;
+    border-radius: 14px;
+    font-size: 8px;
+  }
+
+  .final-site .mobile-app-nav i {
+    font-size: 17px;
+  }
+
+  .final-site .ines-ai-launcher {
+    right: 16px;
+    bottom: calc(82px + max(10px, env(safe-area-inset-bottom)));
+    min-width: 52px;
+    min-height: 52px;
+    padding: 8px;
+    border-radius: 18px;
+    box-shadow: 0 14px 34px rgba(20,54,48,.24);
+  }
+
+  .final-site .ines-ai-launcher span:first-child {
+    width: 34px;
+    height: 34px;
+  }
+
+  .final-site .ines-ai-launcher span:last-child {
+    display: none;
+  }
+
+  .final-site:has(.ines-ai-panel.open) .mobile-app-nav {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .final-site .site-footer {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .final-site .site-header {
+    min-height: 61px;
+    padding: max(8px, env(safe-area-inset-top)) 11px 8px;
+  }
+
+  .final-site .brand-lockup {
+    gap: 7px;
+  }
+
+  .final-site .brand-arch {
+    width: 35px;
+    height: 40px;
+  }
+
+  .final-site .brand-lockup strong {
+    font-size: 15px;
+  }
+
+  .final-site .brand-lockup small {
+    display: none;
+  }
+
+  .final-site .site-actions .pill.navy {
+    min-height: 40px;
+    padding-inline: 13px;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+
+  .final-site .menu-toggle {
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+
+  .final-site .public-page[data-page="home"] {
+    padding-top: 6px;
+    padding-bottom: 24px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-shell {
+    width: calc(100% - 18px);
+  }
+
+  .final-site .public-page[data-page="home"] .hero-art {
+    height: clamp(188px, 52vw, 226px);
+    border-radius: 25px 25px 12px 12px;
+    box-shadow: 0 14px 38px rgba(16,48,58,.12);
+  }
+
+  .final-site .public-page[data-page="home"] .hero-art img {
+    transform: scale(1.035);
+    object-position: center 43%;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy {
+    width: calc(100% - 12px);
+    margin-top: -28px;
+    padding: 17px 15px 14px;
+    border-radius: 24px 24px 18px 18px;
+    box-shadow: 0 14px 36px rgba(16,48,58,.12);
+  }
+
+  .final-site .public-page[data-page="home"] .section-badge {
+    min-height: 25px;
+    padding: 4px 10px;
+    font-size: 8px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy h1 {
+    max-width: 270px;
+    margin: 8px 0 8px;
+    font-size: clamp(29px, 8.2vw, 35px);
+    line-height: 1.03;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy > p {
+    font-size: 12px;
+    line-height: 1.58;
+    -webkit-line-clamp: 3;
+  }
+
+  .final-site .public-page[data-page="home"] .experience-trust-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 11px;
+  }
+
+  .final-site .public-page[data-page="home"] .experience-trust-row span {
+    min-height: 40px;
+    padding: 6px 5px;
+    border-radius: 12px;
+    font-size: 7.5px;
+  }
+
+  .final-site .public-page[data-page="home"] .experience-trust-row span:nth-child(3) {
+    display: none;
+  }
+
+  .final-site .public-page[data-page="home"] .button-row {
+    gap: 4px;
+    margin-top: 11px;
+  }
+
+  .final-site .public-page[data-page="home"] .button-row .secondary-button {
+    min-height: 46px;
+    border-radius: 15px;
+    font-size: 11px;
+  }
+
+  .final-site .public-page[data-page="home"] .button-row .primary-button {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .final-site .public-page[data-page="home"] .home-offers {
+    padding-top: 26px;
+  }
+
+  .final-site .public-page[data-page="home"] .home-offers > h2 {
+    font-size: 19px;
+  }
+
+  .seo-page-body .seo-site-header {
+    min-height: 61px;
+  }
+
+  .seo-page-body .seo-main-nav {
+    top: calc(61px + env(safe-area-inset-top));
+  }
+
+  .seo-page-body .seo-page-main {
+    padding-top: 18px;
+  }
+
+  .seo-page-body .seo-hero {
+    gap: 16px;
+    padding: 20px 16px;
+    border-radius: 24px;
+  }
+
+  .seo-page-body .seo-hero h1 {
+    font-size: clamp(28px, 8vw, 36px);
+    line-height: 1.08;
+  }
+
+  .seo-page-body .seo-hero p {
+    font-size: 13px;
+    line-height: 1.65;
+  }
+}
+
+@media (max-width: 390px) {
+  .final-site .site-actions .pill.navy {
+    padding-inline: 11px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-art {
+    height: 184px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy {
+    padding-inline: 14px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy h1 {
+    font-size: 28px;
+  }
+
+  .final-site .ines-ai-launcher {
+    right: 14px;
+  }
+}
