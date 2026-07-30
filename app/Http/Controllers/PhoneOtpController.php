@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Child;
-use App\Models\Enrollment;
-use App\Models\KindergartenGroup;
 use App\Models\OtpCode;
+use App\Models\PrivacyConsent;
 use App\Models\User;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
@@ -13,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -47,29 +44,43 @@ class PhoneOtpController extends Controller
         $phone = $this->normalizePhone($validated['phone']);
         $adminPhone = $this->normalizePhone((string) config('services.demo_auth.admin_phone', '555411831'));
         $isDemoAdmin = hash_equals($adminPhone, $phone);
+        $user = User::where('phone', $phone)->first();
+        $privacyRequired = ! $isDemoAdmin && ! $this->hasCurrentAccountPrivacy($user);
 
-        if (! $isDemoAdmin) {
+        if ($privacyRequired) {
             $this->assertPrivacyAcceptance($request);
         }
 
-        $user = User::firstOrNew(['phone' => $phone]);
-
-        if ($isDemoAdmin) {
-            $user->name = $user->exists ? $user->name : 'ადმინისტრატორი';
-            $user->role = 'admin';
-            $user->status = 'active';
-        } elseif (! $user->exists || in_array($user->role, ['member', 'parent'], true)) {
-            $user->name = $validated['name'];
-            $user->role = 'parent';
-            $user->status = 'active';
+        if (! $user) {
+            $user = User::create([
+                'name' => $isDemoAdmin ? 'ადმინისტრატორი' : $validated['name'],
+                'phone' => $phone,
+                'role' => $isDemoAdmin ? 'admin' : 'member',
+                'status' => 'active',
+                'phone_verified_at' => now(),
+            ]);
+        } elseif ($isDemoAdmin) {
+            $user->update([
+                'role' => 'admin',
+                'status' => 'active',
+                'phone_verified_at' => $user->phone_verified_at ?? now(),
+            ]);
+        } else {
+            $user->phone_verified_at ??= now();
+            if (! $user->name) {
+                $user->name = $validated['name'];
+            }
+            $user->save();
         }
 
-        $user->phone_verified_at ??= now();
-        $user->save();
-
-        if (! $isDemoAdmin) {
-            $this->recordAccountPrivacy($request, $recorder, $user, $request->boolean('marketing_consent'), ['demo' => true]);
-            $this->ensureDemoFamily($user);
+        if ($privacyRequired) {
+            $this->recordAccountPrivacy(
+                $request,
+                $recorder,
+                $user,
+                $request->boolean('marketing_consent'),
+                ['demo' => true, 'registration' => true],
+            );
         }
 
         Auth::login($user, true);
@@ -83,12 +94,19 @@ class PhoneOtpController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'phone' => ['required', 'regex:/^(?:\+?995)?5\d{8}$/'],
-            'privacy_accepted' => ['accepted'],
+            'privacy_accepted' => ['nullable', 'boolean'],
             'marketing_consent' => ['nullable', 'boolean'],
-            'privacy_policy_version' => ['required', Rule::in([PrivacyPolicy::VERSION])],
+            'privacy_policy_version' => ['nullable', 'string', 'max:32'],
         ]);
 
         $phone = $this->normalizePhone($validated['phone']);
+        $user = User::where('phone', $phone)->first();
+        $privacyRequired = ! $this->hasCurrentAccountPrivacy($user);
+
+        if ($privacyRequired) {
+            $this->assertPrivacyAcceptance($request);
+        }
+
         $key = 'otp:'.$phone.':'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($key, 3)) {
@@ -108,18 +126,20 @@ class PhoneOtpController extends Controller
         ]);
 
         $request->session()->put('privacy_registration.'.$otp->id, [
-            'policy_version' => PrivacyPolicy::VERSION,
-            'marketing_consent' => $request->boolean('marketing_consent'),
-            'accepted_at' => now()->toIso8601String(),
+            'required' => $privacyRequired,
+            'policy_version' => $privacyRequired ? PrivacyPolicy::VERSION : null,
+            'marketing_consent' => $privacyRequired && $request->boolean('marketing_consent'),
+            'accepted_at' => $privacyRequired ? now()->toIso8601String() : null,
         ]);
 
         Log::info('OTP requested', [
             'phone' => $phone,
             'otp_id' => $otp->id,
             'code' => app()->isLocal() ? $code : 'hidden',
+            'registration' => $privacyRequired,
         ]);
 
-        $payload = ['request_id' => $otp->id, 'expires_in' => 300];
+        $payload = ['request_id' => $otp->id, 'expires_in' => 300, 'registration' => $privacyRequired];
         if (app()->environment(['local', 'testing']) && config('app.debug')) {
             $payload['debug_code'] = $code;
         }
@@ -136,12 +156,16 @@ class PhoneOtpController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
+        $phone = $this->normalizePhone($validated['phone']);
         $privacy = $request->session()->get('privacy_registration.'.$validated['request_id']);
-        if (! is_array($privacy) || ($privacy['policy_version'] ?? null) !== PrivacyPolicy::VERSION) {
-            throw ValidationException::withMessages(['privacy_accepted' => 'რეგისტრაციის გასაგრძელებლად საჭიროა მოქმედი კონფიდენციალურობის პირობების დადასტურება.']);
+        if (! is_array($privacy)) {
+            throw ValidationException::withMessages(['phone' => 'შესვლის მოთხოვნა აღარ არის მოქმედი. თავიდან მოითხოვეთ კოდი.']);
         }
 
-        $phone = $this->normalizePhone($validated['phone']);
+        if (($privacy['required'] ?? false) && ($privacy['policy_version'] ?? null) !== PrivacyPolicy::VERSION) {
+            throw ValidationException::withMessages(['privacy_accepted' => 'ახალი ანგარიშის შესაქმნელად საჭიროა მოქმედი კონფიდენციალურობის პირობების დადასტურება.']);
+        }
+
         $otp = OtpCode::whereKey($validated['request_id'])->where('phone', $phone)->first();
 
         if (! $otp || ! $otp->usable() || $otp->attempts >= config('services.sms.otp_max_attempts', 5)) {
@@ -155,22 +179,34 @@ class PhoneOtpController extends Controller
 
         $otp->update(['consumed_at' => now()]);
 
-        $user = User::firstOrNew(['phone' => $phone]);
-        if (! $user->exists) {
-            $user->name = $validated['name'];
-            $user->role = 'member';
-            $user->status = 'pending';
-        }
-        $user->phone_verified_at ??= now();
-        $user->save();
+        $user = User::where('phone', $phone)->first();
+        $privacyRequired = (bool) ($privacy['required'] ?? false);
 
-        $this->recordAccountPrivacy(
-            $request,
-            $recorder,
-            $user,
-            (bool) ($privacy['marketing_consent'] ?? false),
-            ['otp_request_id' => $otp->id],
-        );
+        if (! $user) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'phone' => $phone,
+                'role' => 'member',
+                'status' => 'active',
+                'phone_verified_at' => now(),
+            ]);
+        } else {
+            $user->phone_verified_at ??= now();
+            $user->save();
+        }
+
+        if ($privacyRequired) {
+            $this->recordAccountPrivacy(
+                $request,
+                $recorder,
+                $user,
+                (bool) ($privacy['marketing_consent'] ?? false),
+                ['otp_request_id' => $otp->id, 'registration' => true],
+            );
+        } elseif (! $this->hasCurrentAccountPrivacy($user)) {
+            throw ValidationException::withMessages(['privacy_accepted' => 'ანგარიშის კონფიდენციალურობის დადასტურება აღარ არის მოქმედი. დაიწყეთ რეგისტრაცია თავიდან.']);
+        }
+
         $request->session()->forget('privacy_registration.'.$validated['request_id']);
 
         Auth::login($user, true);
@@ -198,8 +234,8 @@ class PhoneOtpController extends Controller
             $user->hasRole('admin') => route('admin.dashboard'),
             $user->hasRole('finance') => route('admin.payments.index'),
             $user->hasRole('teacher') => route('admin.attendance.index'),
-            $user->hasRole('parent') => route('parent.dashboard'),
-            default => route('home'),
+            $user->canAccessParentClub() => route('parent.dashboard'),
+            default => route('account.status'),
         };
 
         return response()->json([
@@ -208,6 +244,8 @@ class PhoneOtpController extends Controller
                 'phone' => $user->phone,
                 'role' => $user->role,
                 'status' => $user->status,
+                'membership' => $user->membershipLabel(),
+                'parent_club_access' => $user->canAccessParentClub(),
             ],
             'demo' => $demo,
             'redirect_to' => $redirectTo,
@@ -218,9 +256,23 @@ class PhoneOtpController extends Controller
     {
         if (! $request->boolean('privacy_accepted') || $request->input('privacy_policy_version') !== PrivacyPolicy::VERSION) {
             throw ValidationException::withMessages([
-                'privacy_accepted' => 'რეგისტრაციისთვის აუცილებელია კონფიდენციალურობის პოლიტიკის გაცნობა და დადასტურება.',
+                'privacy_accepted' => 'ახალი ანგარიშის რეგისტრაციისთვის გაეცანით და დაადასტურეთ კონფიდენციალურობის პოლიტიკა.',
             ]);
         }
+    }
+
+    private function hasCurrentAccountPrivacy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return PrivacyConsent::query()
+            ->where('user_id', $user->id)
+            ->where('consent_type', 'account_privacy_acknowledgement')
+            ->where('policy_version', PrivacyPolicy::VERSION)
+            ->whereNull('withdrawn_at')
+            ->exists();
     }
 
     private function recordAccountPrivacy(Request $request, PrivacyConsentRecorder $recorder, User $user, bool $marketing, array $metadata = []): void
@@ -246,53 +298,6 @@ class PhoneOtpController extends Controller
                 $metadata,
             );
         }
-    }
-
-    private function ensureDemoFamily(User $user): void
-    {
-        if ($user->children()->exists()) {
-            return;
-        }
-
-        DB::transaction(function () use ($user): void {
-            if ($user->children()->exists()) {
-                return;
-            }
-
-            $group = KindergartenGroup::firstOrCreate(
-                ['slug' => '3-4'],
-                [
-                    'name' => '3-4 წელი',
-                    'age_min_months' => 36,
-                    'age_max_months' => 47,
-                    'capacity' => 20,
-                    'monthly_fee' => 600,
-                    'academic_year' => '2026-2027',
-                    'is_active' => true,
-                ],
-            );
-
-            $child = Child::create([
-                'first_name' => 'დემო',
-                'last_name' => 'ბავშვი '.$user->id,
-                'birth_date' => now()->subYears(4)->startOfYear(),
-                'birth_year' => now()->subYears(4)->year,
-            ]);
-
-            $user->children()->attach($child->id, [
-                'relationship' => 'მშობელი',
-                'is_primary' => true,
-                'can_pick_up' => true,
-            ]);
-
-            Enrollment::create([
-                'child_id' => $child->id,
-                'kindergarten_group_id' => $group->id,
-                'status' => 'active',
-                'starts_on' => now()->startOfMonth(),
-                'enrolled_at' => now(),
-            ]);
-        });
     }
 
     private function normalizePhone(string $phone): string
