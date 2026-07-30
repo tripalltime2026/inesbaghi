@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BlogPost;
-use App\Models\SiteItem;
+use App\Support\PrivacyPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -96,6 +96,9 @@ class ContentManagementTest extends TestCase
         $this->postJson('/auth/demo/login', [
             'name' => 'დემო მშობელი',
             'phone' => '555123456',
+            'privacy_accepted' => true,
+            'marketing_consent' => false,
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
         ])->assertOk()->assertJsonPath('user.role', 'parent');
 
         $this->get('/parent')
