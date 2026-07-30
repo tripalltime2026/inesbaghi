@@ -19,7 +19,7 @@
     <form class="filter-bar" method="get" action="{{ route('admin.admissions.index') }}">
         <label>
             <span>ძიება</span>
-            <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="ბავშვი, მშობელი ან ტელეფონი">
+            <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="მშობელი, ტელეფონი ან ბავშვის სახელი">
         </label>
         <label>
             <span>სტატუსი</span>
@@ -61,13 +61,13 @@
     <div class="table-wrap">
         <table class="admin-table">
             <thead>
-            <tr><th>#</th><th>ბავშვი / მშობელი</th><th>ჯგუფი</th><th>ტური</th><th>სტატუსი</th><th>პასუხისმგებელი</th><th>შემოსულია</th><th></th></tr>
+            <tr><th>#</th><th>მშობელი / ბავშვი</th><th>ჯგუფი</th><th>ტური</th><th>სტატუსი</th><th>პასუხისმგებელი</th><th>შემოსულია</th><th></th></tr>
             </thead>
             <tbody>
             @forelse ($applications as $application)
                 <tr>
                     <td>{{ $application->id }}</td>
-                    <td><strong>{{ $application->child_name }}</strong><small>{{ $application->parent_name }} · {{ $application->phone }}</small></td>
+                    <td><strong>{{ $application->parent_name }}</strong><small>{{ $application->phone }} · {{ $application->child_name ?: 'ბავშვის მონაცემები დასაზუსტებელია' }}</small></td>
                     <td>{{ $application->preferred_group }} წელი<small>{{ $application->academic_year }} სასწ. წელი</small></td>
                     <td>
                         @if ($application->tour_scheduled_at)
