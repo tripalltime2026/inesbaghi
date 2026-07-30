@@ -87,7 +87,7 @@ class InesAiSupportChatTest extends TestCase
 
         $latestBody = collect($response->json('conversation.messages'))->last()['body'];
         $this->assertStringContainsString('2026-2027', $latestBody);
-        $this->assertStringContainsString('3–4 წლის ჯგუფი', $latestBody);
+        $this->assertStringContainsString('3–4 წლის ჯგუფში', $latestBody);
         $this->assertStringContainsString('თავისუფალი ადგილი ჩანს', $latestBody);
         $this->assertStringContainsString('საბოლოო დადასტურებისთვის', $latestBody);
 
@@ -111,7 +111,7 @@ class InesAiSupportChatTest extends TestCase
         ])->assertCreated();
 
         $latestBody = collect($response->json('conversation.messages'))->last()['body'];
-        $this->assertStringContainsString('3–4 წლის ჯგუფი', $latestBody);
+        $this->assertStringContainsString('3–4 წლის ჯგუფში', $latestBody);
         $this->assertStringContainsString('თავისუფალი ადგილი ჩანს', $latestBody);
         $this->assertStringNotContainsString('დაბადების წელი', $latestBody);
     }
