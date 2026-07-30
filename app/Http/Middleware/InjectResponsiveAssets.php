@@ -30,6 +30,11 @@ class InjectResponsiveAssets
             $content,
         );
 
+        $isPublicSite = str_contains($content, 'class="final-site"');
+        if ($isPublicSite) {
+            $content = $this->injectPublicLegalControls($content);
+        }
+
         $headAssets = [];
 
         if (! str_contains($content, '/css/mobile.css')) {
@@ -43,6 +48,10 @@ class InjectResponsiveAssets
 
         if (! str_contains($content, '/css/home-mobile-v3.css')) {
             $headAssets[] = '<link rel="stylesheet" href="/css/home-mobile-v3.css?v=20260729c">';
+        }
+
+        if (! str_contains($content, '/css/privacy-compliance.css')) {
+            $headAssets[] = '<link rel="stylesheet" href="/css/privacy-compliance.css?v=20260730">';
         }
 
         $isParentClub = str_contains($content, 'class="club-body"');
@@ -62,6 +71,9 @@ class InjectResponsiveAssets
             if (! str_contains($content, '/js/experience-v2-compat.js')) {
                 $scripts[] = '<script src="/js/experience-v2-compat.js?v=20260729b" defer></script>';
             }
+            if (! str_contains($content, '/js/privacy-compliance.js')) {
+                $scripts[] = '<script src="/js/privacy-compliance.js?v=20260730" defer></script>';
+            }
             if ($isParentClub && ! str_contains($content, '/js/parent-forum.js')) {
                 $scripts[] = '<script src="/js/parent-forum.js?v=20260730" defer></script>';
             }
@@ -74,5 +86,55 @@ class InjectResponsiveAssets
         $response->headers->remove('Content-Length');
 
         return $response;
+    }
+
+    private function injectPublicLegalControls(string $content): string
+    {
+        if (! str_contains($content, 'data-admission-privacy')) {
+            $admissionConsent = <<<'HTML'
+                <div class="legal-consent-stack" data-admission-privacy>
+                    <label class="legal-consent-box required"><input type="checkbox" name="guardian_authority_confirmed" value="1" required><span>ვადასტურებ, რომ ვარ ბავშვის მშობელი ან სხვა კანონიერი წარმომადგენელი და უფლებამოსილი ვარ ბავშვის მონაცემების მიწოდებაზე.</span></label>
+                    <label class="legal-consent-box required"><input type="checkbox" name="privacy_accepted" value="1" required><span>გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ განაცხადის განხილვისთვის აუცილებელი ჩემი და ბავშვის მონაცემების დამუშავებას.</span></label>
+                    <label class="legal-consent-box required"><input type="checkbox" name="special_category_consent" value="1" required><span>ვაძლევ წერილობით ელექტრონულ თანხმობას ჩემ მიერ ნებაყოფლობით მითითებული ბავშვის ჯანმრთელობის ან სხვა განსაკუთრებული კატეგორიის მონაცემების დამუშავებაზე ბავშვის უსაფრთხოებისა და ინდივიდუალური საჭიროებების გათვალისწინებისთვის.</span></label>
+                    <label class="legal-consent-box optional"><input type="checkbox" name="marketing_consent" value="1"><span>მსურს მივიღო ბაღის სიახლეები, ღონისძიებების ინფორმაცია და შეთავაზებები მითითებულ ნომერზე.</span></label>
+                    <p class="legal-consent-summary">სარეკლამო შეტყობინებების მიღება არჩევითია. ფოტო/ვიდეომასალის გამოყენება საჭიროებს ცალკე თანხმობას და ჩარიცხვის პირობა არ არის.</p>
+                    <p class="legal-field-error">გასაგრძელებლად მონიშნეთ ყველა სავალდებულო დადასტურება.</p>
+                </div>
+HTML;
+            $content = str_replace(
+                '                <p class="form-note">',
+                $admissionConsent."\n                <p class=\"form-note\">",
+                $content,
+            );
+        }
+
+        if (! str_contains($content, 'data-account-privacy')) {
+            $accountConsent = <<<'HTML'
+                <div class="legal-consent-stack" data-account-privacy>
+                    <label class="legal-consent-box required"><input type="checkbox" name="privacy_accepted" value="1" required><span>გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნის/ავტორიზაციისა და მშობელთა კლუბის მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.</span></label>
+                    <label class="legal-consent-box optional"><input type="checkbox" name="marketing_consent" value="1"><span>მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე.</span></label>
+                    <p class="legal-field-error">გასაგრძელებლად უნდა გაეცნოთ და დაადასტუროთ კონფიდენციალურობის პირობები.</p>
+                </div>
+HTML;
+            $content = str_replace(
+                '                <div class="demo-auth-note"',
+                $accountConsent."\n                <div class=\"demo-auth-note\"",
+                $content,
+            );
+        }
+
+        if (str_contains($content, 'class="site-footer"') && ! str_contains($content, 'aria-label="სამართლებრივი ინფორმაცია"')) {
+            $footerLinks = <<<'HTML'
+    <nav class="legal-footer-links" aria-label="სამართლებრივი ინფორმაცია"><a href="/privacy">კონფიდენციალურობა</a><a href="/terms">სარგებლობის პირობები</a><a href="/privacy/request">მონაცემთა მოთხოვნა</a><span>შპს ინეს ბაღი · ს/კ 445602465</span></nav>
+HTML;
+            $content = preg_replace_callback(
+                '/(<footer class="site-footer">.*?)(<\/footer>)/s',
+                fn (array $matches): string => $matches[1].$footerLinks.$matches[2],
+                $content,
+                1,
+            ) ?? $content;
+        }
+
+        return $content;
     }
 }

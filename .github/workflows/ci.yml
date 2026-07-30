@@ -16,6 +16,7 @@ jobs:
       - run: node --check public/js/experience-v2.js
       - run: node --check public/js/experience-v2-compat.js
       - run: node --check public/js/parent-forum.js
+      - run: node --check public/js/privacy-compliance.js
       - name: Validate zero-config demo bootstrap
         run: env -u APP_KEY DEMO_AUTH_ENABLED=true DB_CONNECTION=sqlite SESSION_DRIVER=file CACHE_STORE=file php artisan about --only=environment
       - name: Compile all Blade views

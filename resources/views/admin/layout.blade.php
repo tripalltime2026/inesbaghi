@@ -35,6 +35,7 @@
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები და მშობლები</a>
                 <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}"><span class="admin-nav-icon">◫</span>ჯგუფები</a>
                 <a class="{{ request('panel')==='approvals' ? 'active' : '' }}" href="{{ route('admin.dashboard',['panel'=>'approvals']) }}"><span class="admin-nav-icon">✓</span>დამტკიცებები</a>
+                <a class="{{ request()->routeIs('admin.privacy.*') ? 'active' : '' }}" href="{{ route('admin.privacy.index') }}"><span class="admin-nav-icon">◈</span>მონაცემთა დაცვა</a>
 
                 <span class="admin-nav-group-label">კონტენტი და კომუნიკაცია</span>
                 <a href="{{ route('admin.content.index') }}#cms-blog"><span class="admin-nav-icon">▤</span>ბლოგი და ქავერები</a>
@@ -52,7 +53,7 @@
                 <a class="{{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}" href="{{ route('admin.attendance.index') }}"><span class="admin-nav-icon">◉</span>დასწრება</a>
             @endif
         </nav>
-        <div class="admin-sidebar-footer"><a href="{{ route('home') }}" target="_blank" rel="noopener">საჯარო საიტის ნახვა ↗</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">გასვლა</button></form></div>
+        <div class="admin-sidebar-footer"><a href="{{ route('privacy') }}" target="_blank" rel="noopener">კონფიდენციალურობა ↗</a><a href="{{ route('home') }}" target="_blank" rel="noopener">საჯარო საიტის ნახვა ↗</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">გასვლა</button></form></div>
     </aside>
 
     <section class="admin-workspace">

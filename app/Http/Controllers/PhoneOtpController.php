@@ -7,6 +7,8 @@ use App\Models\Enrollment;
 use App\Models\KindergartenGroup;
 use App\Models\OtpCode;
 use App\Models\User;
+use App\Services\PrivacyConsentRecorder;
+use App\Support\PrivacyPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PhoneOtpController extends Controller
@@ -25,21 +28,30 @@ class PhoneOtpController extends Controller
             'demo_enabled' => (bool) config('services.demo_auth.enabled', false),
             'demo_login_url' => route('auth.demo'),
             'admin_phone' => config('services.demo_auth.admin_phone', '555411831'),
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
         ]);
     }
 
-    public function demoLogin(Request $request): JsonResponse
+    public function demoLogin(Request $request, PrivacyConsentRecorder $recorder): JsonResponse
     {
         abort_unless((bool) config('services.demo_auth.enabled', false), 404);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'phone' => ['required', 'regex:/^(?:\+?995)?5\d{8}$/'],
+            'privacy_accepted' => ['nullable', 'boolean'],
+            'marketing_consent' => ['nullable', 'boolean'],
+            'privacy_policy_version' => ['nullable', 'string', 'max:32'],
         ]);
 
         $phone = $this->normalizePhone($validated['phone']);
         $adminPhone = $this->normalizePhone((string) config('services.demo_auth.admin_phone', '555411831'));
         $isDemoAdmin = hash_equals($adminPhone, $phone);
+
+        if (! $isDemoAdmin) {
+            $this->assertPrivacyAcceptance($request);
+        }
+
         $user = User::firstOrNew(['phone' => $phone]);
 
         if ($isDemoAdmin) {
@@ -56,6 +68,7 @@ class PhoneOtpController extends Controller
         $user->save();
 
         if (! $isDemoAdmin) {
+            $this->recordAccountPrivacy($request, $recorder, $user, $request->boolean('marketing_consent'), ['demo' => true]);
             $this->ensureDemoFamily($user);
         }
 
@@ -70,6 +83,9 @@ class PhoneOtpController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'phone' => ['required', 'regex:/^(?:\+?995)?5\d{8}$/'],
+            'privacy_accepted' => ['accepted'],
+            'marketing_consent' => ['nullable', 'boolean'],
+            'privacy_policy_version' => ['required', Rule::in([PrivacyPolicy::VERSION])],
         ]);
 
         $phone = $this->normalizePhone($validated['phone']);
@@ -91,6 +107,12 @@ class PhoneOtpController extends Controller
             'request_ip' => $request->ip(),
         ]);
 
+        $request->session()->put('privacy_registration.'.$otp->id, [
+            'policy_version' => PrivacyPolicy::VERSION,
+            'marketing_consent' => $request->boolean('marketing_consent'),
+            'accepted_at' => now()->toIso8601String(),
+        ]);
+
         Log::info('OTP requested', [
             'phone' => $phone,
             'otp_id' => $otp->id,
@@ -105,7 +127,7 @@ class PhoneOtpController extends Controller
         return response()->json($payload);
     }
 
-    public function verify(Request $request): JsonResponse
+    public function verify(Request $request, PrivacyConsentRecorder $recorder): JsonResponse
     {
         $validated = $request->validate([
             'request_id' => ['required', 'integer'],
@@ -113,6 +135,11 @@ class PhoneOtpController extends Controller
             'phone' => ['required', 'string'],
             'code' => ['required', 'digits:6'],
         ]);
+
+        $privacy = $request->session()->get('privacy_registration.'.$validated['request_id']);
+        if (! is_array($privacy) || ($privacy['policy_version'] ?? null) !== PrivacyPolicy::VERSION) {
+            throw ValidationException::withMessages(['privacy_accepted' => 'რეგისტრაციის გასაგრძელებლად საჭიროა მოქმედი კონფიდენციალურობის პირობების დადასტურება.']);
+        }
 
         $phone = $this->normalizePhone($validated['phone']);
         $otp = OtpCode::whereKey($validated['request_id'])->where('phone', $phone)->first();
@@ -136,6 +163,15 @@ class PhoneOtpController extends Controller
         }
         $user->phone_verified_at ??= now();
         $user->save();
+
+        $this->recordAccountPrivacy(
+            $request,
+            $recorder,
+            $user,
+            (bool) ($privacy['marketing_consent'] ?? false),
+            ['otp_request_id' => $otp->id],
+        );
+        $request->session()->forget('privacy_registration.'.$validated['request_id']);
 
         Auth::login($user, true);
         $request->session()->regenerate();
@@ -176,6 +212,40 @@ class PhoneOtpController extends Controller
             'demo' => $demo,
             'redirect_to' => $redirectTo,
         ]);
+    }
+
+    private function assertPrivacyAcceptance(Request $request): void
+    {
+        if (! $request->boolean('privacy_accepted') || $request->input('privacy_policy_version') !== PrivacyPolicy::VERSION) {
+            throw ValidationException::withMessages([
+                'privacy_accepted' => 'რეგისტრაციისთვის აუცილებელია კონფიდენციალურობის პოლიტიკის გაცნობა და დადასტურება.',
+            ]);
+        }
+    }
+
+    private function recordAccountPrivacy(Request $request, PrivacyConsentRecorder $recorder, User $user, bool $marketing, array $metadata = []): void
+    {
+        $metadata = [...$metadata, 'phone' => $user->phone, 'policy_version' => PrivacyPolicy::VERSION];
+
+        $recorder->recordForUserIfMissing(
+            $request,
+            $user->id,
+            'account_privacy_acknowledgement',
+            PrivacyPolicy::ACCOUNT_ACKNOWLEDGEMENT,
+            'account_service_and_security',
+            $metadata,
+        );
+
+        if ($marketing) {
+            $recorder->recordForUserIfMissing(
+                $request,
+                $user->id,
+                'marketing_updates',
+                PrivacyPolicy::MARKETING_CONSENT,
+                'consent',
+                $metadata,
+            );
+        }
     }
 
     private function ensureDemoFamily(User $user): void

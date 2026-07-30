@@ -8,7 +8,9 @@ use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
+use App\Http\Controllers\Admin\PrivacyController as AdminPrivacyController;
 use App\Http\Controllers\AdmissionApplicationController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
 use App\Http\Controllers\Parent\ForumController as ParentForumController;
 use App\Http\Controllers\PhoneOtpController;
@@ -16,6 +18,13 @@ use App\Http\Controllers\PublicContentController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'site')->name('home');
+
+Route::get('/privacy', [LegalController::class, 'privacy'])->name('privacy');
+Route::get('/terms', [LegalController::class, 'terms'])->name('terms');
+Route::get('/privacy/request', [LegalController::class, 'requestForm'])->name('privacy.request');
+Route::post('/privacy/request', [LegalController::class, 'storeRequest'])
+    ->middleware('throttle:10,1')
+    ->name('privacy.request.store');
 
 Route::get('/content/public', [PublicContentController::class, 'index'])->name('content.public');
 Route::get('/content/items/{item}/image', [PublicContentController::class, 'itemImage'])->name('content.item-image');
@@ -52,6 +61,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::post('/content/blog', [AdminContentController::class, 'storeBlog'])->name('content.blog.store');
         Route::patch('/content/blog/{post}', [AdminContentController::class, 'updateBlog'])->name('content.blog.update');
         Route::delete('/content/blog/{post}', [AdminContentController::class, 'destroyBlog'])->name('content.blog.destroy');
+
+        Route::get('/privacy', [AdminPrivacyController::class, 'index'])->name('privacy.index');
+        Route::patch('/privacy/requests/{dataRequest}', [AdminPrivacyController::class, 'update'])->name('privacy.requests.update');
 
         Route::get('/admissions', [AdminAdmissionController::class, 'index'])->name('admissions.index');
         Route::get('/admissions/{application}', [AdminAdmissionController::class, 'show'])->name('admissions.show');
