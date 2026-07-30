@@ -99,6 +99,7 @@ class PublicSeo
     <link rel="alternate" hreflang="{$language}" href="{$canonical}">
     <link rel="alternate" hreflang="x-default" href="{$canonical}">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+    <link rel="stylesheet" href="/css/seo-pages.css?v=20260730">
     <meta property="og:locale" content="{$locale}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="{$siteName}">
