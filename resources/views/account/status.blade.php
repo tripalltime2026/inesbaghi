@@ -20,6 +20,8 @@
         </div>
     </header>
 
+    @if(session('success'))<div class="account-flash">{{ session('success') }}</div>@endif
+
     <section class="account-hero">
         <p class="account-kicker">{{ $user->membershipLabel() }}</p>
         <h1>გამარჯობა, {{ $user->name }}</h1>
@@ -71,6 +73,14 @@
                 <div><span>როლი</span><strong>{{ $user->membershipLabel() }}</strong></div>
                 <div><span>კლუბის წვდომა</span><strong>{{ $clubAccess ? 'დაშვებულია' : 'დახურულია' }}</strong></div>
             </div>
+
+            <form class="account-preferences" method="post" action="{{ route('account.preferences.update') }}">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="marketing_consent" value="0">
+                <label><input type="checkbox" name="marketing_consent" value="1" @checked($marketingConsent)><span><strong>სიახლეები და ღონისძიებები</strong><small>მარკეტინგული და საინფორმაციო შეტყობინებების მიღება არჩევითია. პარამეტრის შეცვლა ნებისმიერ დროს შეგიძლიათ.</small></span></label>
+                <button type="submit">პარამეტრის შენახვა</button>
+            </form>
 
             <h2 style="margin-top:24px">განაცხადები</h2>
             @forelse($applications as $application)
