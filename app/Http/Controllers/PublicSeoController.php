@@ -54,7 +54,7 @@ class PublicSeoController extends Controller
             'Disallow: /account',
             'Disallow: /auth/',
             'Disallow: /support/chat/',
-            'Disallow: /content/',
+            'Disallow: /content/public',
             '',
             "Sitemap: {$baseUrl}/sitemap.xml",
             '',
