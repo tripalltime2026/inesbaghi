@@ -32,31 +32,11 @@ class User extends Authenticatable
 
     public function hasLinkedChild(): bool
     {
-        if ($this->relationLoaded('children')) {
-            return $this->children->isNotEmpty();
-        }
-
         return $this->children()->exists();
     }
 
     public function hasActiveEnrollment(): bool
     {
-        if ($this->relationLoaded('children')) {
-            return $this->children->contains(function (Child $child): bool {
-                if (! $child->relationLoaded('enrollments')) {
-                    return $child->enrollments()
-                        ->where('status', 'active')
-                        ->whereHas('group', fn ($query) => $query->where('is_active', true))
-                        ->exists();
-                }
-
-                return $child->enrollments->contains(
-                    fn (Enrollment $enrollment): bool => $enrollment->status === 'active'
-                        && $enrollment->group?->is_active === true,
-                );
-            });
-        }
-
         return $this->children()
             ->whereHas('enrollments', fn ($query) => $query
                 ->where('status', 'active')
