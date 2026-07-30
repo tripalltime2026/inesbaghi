@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\PrivacyPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,6 +21,7 @@ class DemoAuthTest extends TestCase
             ->assertJson([
                 'demo_enabled' => true,
                 'admin_phone' => '555411831',
+                'privacy_policy_version' => PrivacyPolicy::VERSION,
             ]);
     }
 
@@ -52,6 +54,9 @@ class DemoAuthTest extends TestCase
         $response = $this->postJson('/auth/demo/login', [
             'name' => 'ნინო ბერიძე',
             'phone' => '555123456',
+            'privacy_accepted' => true,
+            'marketing_consent' => false,
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
         ]);
 
         $response->assertOk()
@@ -63,6 +68,11 @@ class DemoAuthTest extends TestCase
         $this->assertAuthenticatedAs($parent);
         $this->assertSame('ნინო ბერიძე', $parent->name);
         $this->assertNotNull($parent->phone_verified_at);
+        $this->assertDatabaseHas('privacy_consents', [
+            'user_id' => $parent->id,
+            'consent_type' => 'account_privacy_acknowledgement',
+            'policy_version' => PrivacyPolicy::VERSION,
+        ]);
     }
 
     public function test_existing_staff_role_is_not_downgraded_by_demo_login(): void
@@ -79,6 +89,9 @@ class DemoAuthTest extends TestCase
         $this->postJson('/auth/demo/login', [
             'name' => 'სხვა სახელი',
             'phone' => '555222333',
+            'privacy_accepted' => true,
+            'marketing_consent' => false,
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
         ])->assertOk()
             ->assertJsonPath('user.role', 'teacher')
             ->assertJsonPath('redirect_to', route('admin.attendance.index'));
