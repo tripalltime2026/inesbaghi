@@ -51,7 +51,7 @@ class InjectResponsiveAssets
         }
 
         if (! str_contains($content, '/css/privacy-compliance.css')) {
-            $headAssets[] = '<link rel="stylesheet" href="/css/privacy-compliance.css?v=20260730">';
+            $headAssets[] = '<link rel="stylesheet" href="/css/privacy-compliance.css?v=20260730b">';
         }
 
         $isParentClub = str_contains($content, 'class="club-body"');
@@ -72,7 +72,7 @@ class InjectResponsiveAssets
                 $scripts[] = '<script src="/js/experience-v2-compat.js?v=20260729b" defer></script>';
             }
             if (! str_contains($content, '/js/privacy-compliance.js')) {
-                $scripts[] = '<script src="/js/privacy-compliance.js?v=20260730" defer></script>';
+                $scripts[] = '<script src="/js/privacy-compliance.js?v=20260730b" defer></script>';
             }
             if ($isParentClub && ! str_contains($content, '/js/parent-forum.js')) {
                 $scripts[] = '<script src="/js/parent-forum.js?v=20260730" defer></script>';
@@ -110,10 +110,12 @@ HTML;
 
         if (! str_contains($content, 'data-account-privacy')) {
             $accountConsent = <<<'HTML'
-                <div class="legal-consent-stack" data-account-privacy>
-                    <label class="legal-consent-box required"><input type="checkbox" name="privacy_accepted" value="1" required><span>გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნის/ავტორიზაციისა და მშობელთა კლუბის მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.</span></label>
-                    <label class="legal-consent-box optional"><input type="checkbox" name="marketing_consent" value="1"><span>მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე.</span></label>
-                    <p class="legal-field-error">გასაგრძელებლად უნდა გაეცნოთ და დაადასტუროთ კონფიდენციალურობის პირობები.</p>
+                <button class="registration-consent-toggle" type="button" data-account-registration-toggle>ახალი მომხმარებელი ხართ? რეგისტრაციის პირობები</button>
+                <div class="legal-consent-stack account-registration-consent" data-account-privacy hidden>
+                    <p class="legal-consent-summary"><strong>ეს ნაწილი საჭიროა მხოლოდ ახალი ანგარიშის შექმნისას.</strong> უკვე რეგისტრირებულ მომხმარებელს ხელახალი თანხმობა არ მოეთხოვება.</p>
+                    <label class="legal-consent-box required"><input type="checkbox" name="privacy_accepted" value="1"><span>გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნისა და მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.</span></label>
+                    <label class="legal-consent-box optional"><input type="checkbox" name="marketing_consent" value="1"><span>მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე. ეს არჩევითია და მოგვიანებით ანგარიშიდან შეიცვლება.</span></label>
+                    <p class="legal-field-error">ახალი ანგარიშის შესაქმნელად დაადასტურეთ კონფიდენციალურობის პირობები.</p>
                 </div>
 HTML;
             $content = str_replace(
