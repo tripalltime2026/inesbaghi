@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\Admin\PrivacyController as AdminPrivacyController;
+use App\Http\Controllers\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\Admin\UserRegistryController as AdminUserRegistryController;
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\LegalController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Parent\DashboardController as ParentDashboardController
 use App\Http\Controllers\Parent\ForumController as ParentForumController;
 use App\Http\Controllers\PhoneOtpController;
 use App\Http\Controllers\PublicContentController;
+use App\Http\Controllers\SupportChatController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'site')->name('home');
@@ -35,6 +37,27 @@ Route::get('/content/blog/{post}/cover', [PublicContentController::class, 'blogC
 Route::post('/admissions', [AdmissionApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('admissions.store');
+
+Route::prefix('support/chat')->name('support.chat.')->group(function () {
+    Route::get('/bootstrap', [SupportChatController::class, 'bootstrap'])
+        ->middleware('throttle:60,1')
+        ->name('bootstrap');
+    Route::post('/conversations', [SupportChatController::class, 'storeConversation'])
+        ->middleware('throttle:20,1')
+        ->name('conversations.store');
+    Route::get('/conversations/{conversation}', [SupportChatController::class, 'show'])
+        ->middleware('throttle:60,1')
+        ->name('conversations.show');
+    Route::post('/conversations/{conversation}/messages', [SupportChatController::class, 'storeMessage'])
+        ->middleware('throttle:30,1')
+        ->name('messages.store');
+    Route::post('/conversations/{conversation}/human', [SupportChatController::class, 'requestHuman'])
+        ->middleware('throttle:10,1')
+        ->name('human');
+    Route::patch('/conversations/{conversation}/contact', [SupportChatController::class, 'updateContact'])
+        ->middleware('throttle:10,1')
+        ->name('contact.update');
+});
 
 Route::get('/auth/mode', [PhoneOtpController::class, 'mode'])
     ->name('auth.mode');
@@ -73,6 +96,18 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::get('/privacy', [AdminPrivacyController::class, 'index'])->name('privacy.index');
         Route::patch('/privacy/requests/{dataRequest}', [AdminPrivacyController::class, 'update'])->name('privacy.requests.update');
         Route::get('/users', AdminUserRegistryController::class)->name('users.index');
+
+        Route::prefix('support')->name('support.')->group(function () {
+            Route::get('/', [AdminSupportController::class, 'index'])->name('index');
+            Route::post('/knowledge', [AdminSupportController::class, 'storeKnowledge'])->name('knowledge.store');
+            Route::patch('/knowledge/{article}', [AdminSupportController::class, 'updateKnowledge'])->name('knowledge.update');
+            Route::delete('/knowledge/{article}', [AdminSupportController::class, 'destroyKnowledge'])->name('knowledge.destroy');
+            Route::post('/messages/{message}/knowledge', [AdminSupportController::class, 'promoteMessage'])->name('messages.knowledge');
+            Route::get('/{conversation}', [AdminSupportController::class, 'show'])->name('show');
+            Route::post('/{conversation}/messages', [AdminSupportController::class, 'storeMessage'])->name('messages.store');
+            Route::patch('/{conversation}', [AdminSupportController::class, 'update'])->name('update');
+            Route::post('/{conversation}/draft', [AdminSupportController::class, 'draft'])->name('draft');
+        });
 
         Route::get('/admissions', [AdminAdmissionController::class, 'index'])->name('admissions.index');
         Route::get('/admissions/{application}', [AdminAdmissionController::class, 'show'])->name('admissions.show');
