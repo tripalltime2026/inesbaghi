@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('css/admin-modules.css') }}">
     <link rel="stylesheet" href="{{ asset('css/operations.css') }}">
     <link rel="stylesheet" href="{{ asset('css/cms-admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
@@ -28,10 +29,12 @@
         <label class="admin-nav-search"><span>⌕</span><input type="search" data-admin-nav-search placeholder="მენიუში ძებნა" aria-label="მენიუში ძებნა"></label>
         <nav class="admin-tabs admin-nav-stack" aria-label="ადმინისტრაციული მოდულები">
             @if(auth()->user()->hasRole('admin'))
+                @php($waitingSupportCount = \App\Models\SupportConversation::query()->where('status', 'waiting_admin')->count())
                 <span class="admin-nav-group-label">მთავარი მართვა</span>
                 <a class="{{ request()->routeIs('admin.dashboard') && !request('panel') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><span class="admin-nav-icon">⌂</span>მიმოხილვა</a>
                 <a class="{{ request()->routeIs('admin.content.*') ? 'active' : '' }}" href="{{ route('admin.content.index') }}"><span class="admin-nav-icon">✦</span>პლატფორმის მართვა</a>
                 <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="admin-nav-icon">◎</span>მომხმარებელთა რეესტრი</a>
+                <a class="{{ request()->routeIs('admin.support.*') ? 'active' : '' }}" href="{{ route('admin.support.index') }}"><span class="admin-nav-icon">◇</span>მხარდაჭერის ჩატები @if($waitingSupportCount)<small>{{ $waitingSupportCount }}</small>@endif</a>
                 <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}"><span class="admin-nav-icon">＋</span>ჩარიცხვები</a>
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები და მშობლები</a>
                 <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}"><span class="admin-nav-icon">◫</span>ჯგუფები</a>
