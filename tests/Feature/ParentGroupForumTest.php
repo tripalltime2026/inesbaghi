@@ -77,7 +77,7 @@ class ParentGroupForumTest extends TestCase
         $this->assertDatabaseCount('forum_topics', 0);
     }
 
-    public function test_demo_parent_gets_a_group_and_forum_assets(): void
+    public function test_registered_member_does_not_receive_fake_group_or_forum_access(): void
     {
         config([
             'services.demo_auth.enabled' => true,
@@ -85,29 +85,24 @@ class ParentGroupForumTest extends TestCase
         ]);
 
         $this->postJson('/auth/demo/login', [
-            'name' => 'დემო მშობელი',
+            'name' => 'დემო მომხმარებელი',
             'phone' => '555222333',
             'privacy_accepted' => true,
             'marketing_consent' => false,
             'privacy_policy_version' => PrivacyPolicy::VERSION,
-        ])->assertOk()->assertJsonPath('user.role', 'parent');
+        ])->assertOk()
+            ->assertJsonPath('user.role', 'member')
+            ->assertJsonPath('user.parent_club_access', false)
+            ->assertJsonPath('redirect_to', route('account.status'));
 
-        $this->assertDatabaseHas('kindergarten_groups', ['slug' => '3-4']);
-        $this->assertDatabaseHas('enrollments', ['status' => 'active']);
-        $this->assertDatabaseHas('privacy_consents', [
-            'consent_type' => 'account_privacy_acknowledgement',
-            'policy_version' => PrivacyPolicy::VERSION,
-        ]);
+        $this->assertDatabaseCount('kindergarten_groups', 0);
+        $this->assertDatabaseCount('children', 0);
+        $this->assertDatabaseCount('enrollments', 0);
 
-        $this->get('/parent')
+        $this->get('/parent')->assertRedirect(route('account.status'));
+        $this->get('/account')
             ->assertOk()
-            ->assertSee('/css/parent-forum.css?v=20260730', false)
-            ->assertSee('/js/parent-forum.js?v=20260730', false);
-
-        $this->getJson('/parent/forum/data')
-            ->assertOk()
-            ->assertJsonPath('can_create', true)
-            ->assertJsonFragment(['name' => '3-4 წელი']);
+            ->assertSee('მხოლოდ რეგისტრაცია საკმარისი არ არის');
     }
 
     private function group(string $slug, string $name, int $minimumAge): KindergartenGroup
