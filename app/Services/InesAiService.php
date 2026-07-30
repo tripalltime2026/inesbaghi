@@ -21,7 +21,7 @@ class InesAiService
         if ($this->matches($normalized, ['ადმინისტრატორი', 'ოპერატორი', 'ადამიანთან', 'თანამშრომელთან', 'დამაკავშირეთ', 'დამაკავშირე'])) {
             return $this->result(
                 'თქვენი შეტყობინება ადმინისტრატორს გადავეცი. პასუხს ამავე ჩატში მიიღებთ.',
-                $context,
+                $this->clearFlow($context),
                 true,
                 'ადმინისტრატორთან დაკავშირება',
             );
@@ -30,14 +30,10 @@ class InesAiService
         if ($this->isSensitiveOrDecisionRequest($normalized)) {
             return $this->result(
                 'ამ საკითხზე ზუსტი პასუხი ადმინისტრაციის დადასტურებას საჭიროებს. შეტყობინებას გადავცემ და პასუხს ამავე ჩატში მიიღებთ.',
-                $context,
+                $this->clearFlow($context),
                 true,
                 'ადმინისტრაციული საკითხი',
             );
-        }
-
-        if ($this->isAvailabilityIntent($normalized) || ($context['flow'] ?? null) === 'availability') {
-            return $this->availabilityResponse($context);
         }
 
         if ($this->matches($normalized, ['რომელი ასაკიდან', 'რამდენი წლიდან', 'რა ასაკიდან', 'მიღება იწყება', 'ასაკობრივი ჯგუფ'])) {
@@ -49,36 +45,40 @@ class InesAiService
                 ? 'teaching_style'
                 : 'kindergarten_identity';
 
-            return $this->result($this->knowledge($key), $context, false, 'ბაღის შესახებ');
+            return $this->result($this->knowledge($key), $this->clearFlow($context), false, 'ბაღის შესახებ');
         }
 
         if ($this->matches($normalized, ['ვიზიტი', 'ტური', 'დათვალიერება', 'მოსვლა'])) {
             return $this->result(
                 $this->knowledge('introductory_visit').' გსურთ, ადმინისტრატორს გადავცე ვიზიტის მოთხოვნა?',
-                array_merge($context, ['suggested_action' => 'visit']),
+                array_merge($this->clearFlow($context), ['suggested_action' => 'visit']),
                 false,
                 'გაცნობითი ვიზიტი',
             );
         }
 
         if ($this->matches($normalized, ['დოკუმენტ', 'საბუთ'])) {
-            return $this->result($this->knowledge('documents'), $context, false, 'საჭირო დოკუმენტები');
+            return $this->result($this->knowledge('documents'), $this->clearFlow($context), false, 'საჭირო დოკუმენტები');
         }
 
         if ($this->matches($normalized, ['ჩარიცხვა', 'რეგისტრაცია', 'განაცხად'])) {
             return $this->result(
                 $this->knowledge('admission_process').' მითხარით, ჩარიცხვა მიმდინარე თუ მომდევნო სასწავლო წლისთვის გსურთ?',
-                array_merge($context, ['flow' => 'availability', 'awaiting' => 'academic_year']),
+                array_merge($this->clearFlow($context), ['flow' => 'availability', 'awaiting' => 'academic_year']),
                 false,
                 'ჩარიცხვა',
             );
+        }
+
+        if ($this->isAvailabilityIntent($normalized) || ($context['flow'] ?? null) === 'availability') {
+            return $this->availabilityResponse($context);
         }
 
         $enhanced = $this->openAiResponse($conversation, $message, $context);
         if ($enhanced !== null) {
             return $this->result(
                 $enhanced,
-                $context,
+                $this->clearFlow($context),
                 str_contains($this->normalize($enhanced), 'ადმინისტრატორს გადავცემ'),
                 'ზოგადი კითხვა',
                 ['provider' => 'openai'],
@@ -87,7 +87,7 @@ class InesAiService
 
         return $this->result(
             'ამ კითხვაზე ზუსტი პასუხის მოსამზადებლად ადმინისტრატორის დახმარებაა საჭირო. შეტყობინებას გადავცემ და პასუხს ამავე ჩატში მიიღებთ.',
-            $context,
+            $this->clearFlow($context),
             true,
             'ზოგადი კითხვა',
         );
@@ -158,7 +158,7 @@ class InesAiService
             ->first();
 
         if (! $group) {
-            unset($context['awaiting']);
+            $context = $this->clearFlow($context);
 
             return $this->result(
                 "{$academicYear} სასწავლო წლის {$groupSlug} წლის ჯგუფის საბოლოო ადგილები სისტემაში ჯერ არ არის გამოქვეყნებული. ადმინისტრატორს გადავცემ, რომ ხელმისაწვდომობა დაგიდასტუროთ.",
@@ -171,16 +171,17 @@ class InesAiService
         $active = $group->enrollments()->where('status', 'active')->count();
         $pending = $group->enrollments()->where('status', 'pending')->count();
         $available = max(0, (int) $group->capacity - $active);
-        unset($context['awaiting']);
+        $groupLabel = preg_replace('/\s*ჯგუფი$/u', '', trim($group->name)) ?: trim($group->name);
+        $context = $this->clearFlow($context);
 
         if ($available === 0) {
-            $body = "{$academicYear} სასწავლო წლის {$group->name} ჯგუფში ამჟამად თავისუფალი ადგილი აღარ ჩანს. შეგიძლიათ დატოვოთ განაცხადი მოლოდინის სიაში ან მოითხოვოთ ადმინისტრატორთან დაკავშირება.";
+            $body = "{$academicYear} სასწავლო წლის {$groupLabel} ჯგუფში ამჟამად თავისუფალი ადგილი აღარ ჩანს. შეგიძლიათ დატოვოთ განაცხადი მოლოდინის სიაში ან მოითხოვოთ ადმინისტრატორთან დაკავშირება.";
         } elseif ($pending >= $available) {
-            $body = "{$academicYear} სასწავლო წლის {$group->name} ჯგუფში ადგილი ჯერ კიდევ ჩანს, თუმცა მოთხოვნა მაღალია და {$pending} განაცხადი განხილვის პროცესშია. ადგილის გარანტია მხოლოდ ადმინისტრაციის დადასტურების შემდეგ მოქმედებს.";
+            $body = "{$academicYear} სასწავლო წლის {$groupLabel} ჯგუფში ადგილი ჯერ კიდევ ჩანს, თუმცა მოთხოვნა მაღალია და {$pending} განაცხადი განხილვის პროცესშია. ადგილის გარანტია მხოლოდ ადმინისტრაციის დადასტურების შემდეგ მოქმედებს.";
         } elseif (config('services.ines_ai.show_exact_availability')) {
-            $body = "{$academicYear} სასწავლო წლის {$group->name} ჯგუფში ამჟამად {$available} თავისუფალი ადგილი ჩანს. საბოლოო დადასტურებისთვის შეგიძლიათ შეავსოთ განაცხადი ან დაგეგმოთ ვიზიტი.";
+            $body = "{$academicYear} სასწავლო წლის {$groupLabel} ჯგუფში ამჟამად {$available} თავისუფალი ადგილი ჩანს. საბოლოო დადასტურებისთვის შეგიძლიათ შეავსოთ განაცხადი ან დაგეგმოთ ვიზიტი.";
         } else {
-            $body = "{$academicYear} სასწავლო წლის {$group->name} ჯგუფში ამჟამად თავისუფალი ადგილი ჩანს. საბოლოო დადასტურებისთვის შეგიძლიათ შეავსოთ განაცხადი ან დაგეგმოთ გაცნობითი ვიზიტი.";
+            $body = "{$academicYear} სასწავლო წლის {$groupLabel} ჯგუფში ამჟამად თავისუფალი ადგილი ჩანს. საბოლოო დადასტურებისთვის შეგიძლიათ შეავსოთ განაცხადი ან დაგეგმოთ გაცნობითი ვიზიტი.";
         }
 
         return $this->result($body, $context, false, 'ჯგუფში ადგილის შემოწმება', [
@@ -204,7 +205,7 @@ class InesAiService
         if ($groups->isEmpty()) {
             return $this->result(
                 'მიღების ასაკობრივი პირობები ადმინისტრატორთან უნდა დაზუსტდეს. შეტყობინებას გადავცემ.',
-                $context,
+                $this->clearFlow($context),
                 true,
                 'მიღების ასაკი',
             );
@@ -219,7 +220,7 @@ class InesAiService
 
         return $this->result(
             "მიღება იწყება {$minimumLabel}. ამჟამად მოქმედი ასაკობრივი ჯგუფებია: {$labels}. მითხარით ბავშვის დაბადების წელი და სასწავლო წელი, რათა შესაბამისი ჯგუფი და ადგილი შევამოწმო.",
-            array_merge($context, ['flow' => 'availability', 'awaiting' => 'academic_year']),
+            array_merge($this->clearFlow($context), ['flow' => 'availability', 'awaiting' => 'academic_year']),
             false,
             'მიღების ასაკი',
         );
@@ -418,6 +419,13 @@ PROMPT;
     {
         $start = (int) Str::before($this->currentAcademicYear(), '-');
         return ($start + 1).'-'.($start + 2);
+    }
+
+    private function clearFlow(array $context): array
+    {
+        unset($context['flow'], $context['awaiting']);
+
+        return $context;
     }
 
     private function normalize(string $value): string
