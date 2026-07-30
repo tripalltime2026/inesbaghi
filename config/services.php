@@ -10,4 +10,11 @@ return [
         'admin_phone' => env('DEMO_ADMIN_PHONE', '555411831'),
         'auto_migrate' => filter_var(env('DEMO_AUTO_MIGRATE', true), FILTER_VALIDATE_BOOL),
     ],
+    'ines_ai' => [
+        'enabled' => filter_var(env('INES_AI_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('INES_AI_MODEL', 'gpt-5-mini'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com'),
+        'show_exact_availability' => filter_var(env('INES_AI_SHOW_EXACT_AVAILABILITY', false), FILTER_VALIDATE_BOOL),
+    ],
 ];
