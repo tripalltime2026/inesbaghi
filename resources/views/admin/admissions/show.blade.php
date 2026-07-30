@@ -8,7 +8,7 @@
     <div class="detail-heading">
         <div>
             <a class="back-link" href="{{ route('admin.admissions.index') }}">← ყველა განაცხადი</a>
-            <h2>{{ $application->child_name }}</h2>
+            <h2>{{ $application->child_name ?: 'ბავშვის მონაცემები დასაზუსტებელია' }}</h2>
             <p>{{ $application->parent_name }} · {{ $application->phone }}</p>
         </div>
         <span class="status status-{{ $application->status }} large">{{ $statuses[$application->status] ?? $application->status }}</span>
@@ -22,7 +22,7 @@
             <dl class="detail-list">
                 <div><dt>მშობელი / მეურვე</dt><dd>{{ $application->parent_name }}</dd></div>
                 <div><dt>ტელეფონი</dt><dd><a href="tel:{{ $application->phone }}">{{ $application->phone }}</a></dd></div>
-                <div><dt>ბავშვი</dt><dd>{{ $application->child_name }}</dd></div>
+                <div><dt>ბავშვი</dt><dd>{{ $application->child_name ?: 'ჯერ არ არის მითითებული' }}</dd></div>
                 <div><dt>დაბადების წელი</dt><dd>{{ $application->birth_year ?? 'არ არის მითითებული' }}</dd></div>
                 <div><dt>სასურველი ჯგუფი</dt><dd>{{ $application->preferred_group }} წელი</dd></div>
                 <div><dt>სასწავლო წელი</dt><dd>{{ $application->academic_year }}</dd></div>
@@ -63,6 +63,8 @@
             <form class="admin-form" method="post" action="{{ route('admin.admissions.update', $application) }}">
                 @csrf
                 @method('PATCH')
+                <label><span>ბავშვის სახელი და გვარი</span><input name="child_name" value="{{ old('child_name', $application->child_name) }}" placeholder="შეავსეთ რეალურ ჩარიცხვამდე"></label>
+                <label><span>დაბადების წელი</span><input name="birth_year" type="number" min="2018" max="2026" value="{{ old('birth_year', $application->birth_year) }}" placeholder="მაგ. 2022"></label>
                 <label><span>სტატუსი</span>
                     <select name="status" required>
                         @foreach ($statuses as $key => $label)<option value="{{ $key }}" @selected(old('status', $application->status) === $key)>{{ $label }}</option>@endforeach
@@ -84,6 +86,9 @@
                 @if ($application->converted_at)
                     <p>გარდაქმნილია {{ $application->converted_at->format('d.m.Y H:i') }}.</p>
                     <span class="status status-enrolled">ბავშვი #{{ $application->converted_child_id }}</span>
+                @elseif (! $application->child_name)
+                    <p>ჯერ შეავსეთ ბავშვის სახელი და გვარი ზემოთ, შეინახეთ ცვლილება და შემდეგ შექმენით ბავშვის პროფილი.</p>
+                    <button class="danger-button" type="button" disabled>გარდაქმნა და ჩარიცხვა</button>
                 @else
                     <p>შეიქმნება მშობლის პროფილი, ბავშვის ჩანაწერი და pending ჩარიცხვა შესაბამის ჯგუფში.</p>
                     <form method="post" action="{{ route('admin.admissions.convert', $application) }}" onsubmit="return confirm('ნამდვილად გსურთ განაცხადის ჩარიცხვად გარდაქმნა?')">
