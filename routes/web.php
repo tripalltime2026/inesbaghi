@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
+use App\Http\Controllers\Parent\ForumController as ParentForumController;
 use App\Http\Controllers\PhoneOtpController;
 use App\Http\Controllers\PublicContentController;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     });
 });
 
-Route::get('/parent', ParentDashboardController::class)
-    ->middleware(['auth', 'role:parent'])
-    ->name('parent.dashboard');
+Route::prefix('parent')->name('parent.')->middleware(['auth', 'role:parent'])->group(function () {
+    Route::get('/', ParentDashboardController::class)->name('dashboard');
+    Route::post('/forum/topics', [ParentForumController::class, 'storeTopic'])
+        ->middleware('throttle:10,1')
+        ->name('forum.topics.store');
+    Route::post('/forum/topics/{topic}/comments', [ParentForumController::class, 'storeComment'])
+        ->middleware('throttle:30,1')
+        ->name('forum.comments.store');
+});
