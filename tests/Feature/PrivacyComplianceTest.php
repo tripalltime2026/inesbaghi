@@ -61,7 +61,7 @@ class PrivacyComplianceTest extends TestCase
         $this->assertSame(64, strlen(PrivacyConsent::first()->consent_text_hash));
     }
 
-    public function test_demo_parent_registration_requires_privacy_acknowledgement_and_records_it(): void
+    public function test_demo_member_registration_requires_privacy_once_and_records_optional_marketing(): void
     {
         config([
             'services.demo_auth.enabled' => true,
@@ -69,17 +69,19 @@ class PrivacyComplianceTest extends TestCase
         ]);
 
         $this->postJson('/auth/demo/login', [
-            'name' => 'მშობელი',
+            'name' => 'მომხმარებელი',
             'phone' => '555200001',
         ])->assertUnprocessable()->assertJsonValidationErrors('privacy_accepted');
 
         $this->postJson('/auth/demo/login', [
-            'name' => 'მშობელი',
+            'name' => 'მომხმარებელი',
             'phone' => '555200001',
             'privacy_accepted' => true,
             'marketing_consent' => true,
             'privacy_policy_version' => PrivacyPolicy::VERSION,
-        ])->assertOk()->assertJsonPath('user.role', 'parent');
+        ])->assertOk()
+            ->assertJsonPath('user.role', 'member')
+            ->assertJsonPath('redirect_to', route('account.status'));
 
         $user = User::where('phone', '+995555200001')->firstOrFail();
 
@@ -93,6 +95,50 @@ class PrivacyComplianceTest extends TestCase
             'consent_type' => 'marketing_updates',
             'legal_basis' => 'consent',
         ]);
+
+        $before = PrivacyConsent::count();
+        $this->postJson('/auth/demo/login', [
+            'name' => 'მომხმარებელი',
+            'phone' => '555200001',
+        ])->assertOk();
+        $this->assertSame($before, PrivacyConsent::count());
+    }
+
+    public function test_marketing_preference_is_changed_from_account_without_reaccepting_privacy(): void
+    {
+        $user = User::create([
+            'name' => 'ნინო მომხმარებელი',
+            'phone' => '+995555200010',
+            'role' => 'member',
+            'status' => 'active',
+            'phone_verified_at' => now(),
+        ]);
+        PrivacyConsent::create([
+            'user_id' => $user->id,
+            'consent_type' => 'account_privacy_acknowledgement',
+            'policy_version' => PrivacyPolicy::VERSION,
+            'legal_basis' => 'account_service_and_security',
+            'consent_text_hash' => PrivacyPolicy::textHash(PrivacyPolicy::ACCOUNT_ACKNOWLEDGEMENT),
+            'accepted_at' => now(),
+        ]);
+
+        $this->actingAs($user)->patch('/account/preferences', [
+            'marketing_consent' => true,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertDatabaseHas('privacy_consents', [
+            'user_id' => $user->id,
+            'consent_type' => 'marketing_updates',
+            'withdrawn_at' => null,
+        ]);
+
+        $this->actingAs($user)->patch('/account/preferences', [
+            'marketing_consent' => false,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertNotNull(PrivacyConsent::where('user_id', $user->id)
+            ->where('consent_type', 'marketing_updates')
+            ->firstOrFail()->withdrawn_at);
     }
 
     public function test_data_subject_request_is_registered_and_optional_consent_can_be_withdrawn(): void

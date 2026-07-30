@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\BlogPost;
+use App\Models\Child;
+use App\Models\Enrollment;
+use App\Models\KindergartenGroup;
+use App\Models\User;
 use App\Support\PrivacyPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -91,7 +95,7 @@ class ContentManagementTest extends TestCase
             ]);
     }
 
-    public function test_parent_portal_loads_managed_club_content(): void
+    public function test_parent_portal_loads_managed_club_content_for_active_parent(): void
     {
         $this->postJson('/auth/demo/login', [
             'name' => 'დემო მშობელი',
@@ -99,7 +103,28 @@ class ContentManagementTest extends TestCase
             'privacy_accepted' => true,
             'marketing_consent' => false,
             'privacy_policy_version' => PrivacyPolicy::VERSION,
-        ])->assertOk()->assertJsonPath('user.role', 'parent');
+        ])->assertOk()->assertJsonPath('user.role', 'member');
+
+        $parent = User::where('phone', '+995555123456')->firstOrFail();
+        $group = KindergartenGroup::create([
+            'name' => '3-4 წელი',
+            'slug' => '3-4',
+            'age_min_months' => 36,
+            'age_max_months' => 47,
+            'capacity' => 20,
+            'monthly_fee' => 600,
+            'academic_year' => '2026-2027',
+            'is_active' => true,
+        ]);
+        $child = Child::create(['first_name' => 'დემო', 'last_name' => 'ბავშვი', 'birth_year' => 2022]);
+        $parent->children()->attach($child->id, ['relationship' => 'მშობელი', 'is_primary' => true, 'can_pick_up' => true]);
+        Enrollment::create([
+            'child_id' => $child->id,
+            'kindergarten_group_id' => $group->id,
+            'status' => 'active',
+            'starts_on' => now()->startOfMonth(),
+            'enrolled_at' => now(),
+        ]);
 
         $this->get('/parent')
             ->assertOk()

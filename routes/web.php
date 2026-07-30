@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AdmissionController as AdminAdmissionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\BillingController as AdminBillingController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
 use App\Http\Controllers\Admin\PrivacyController as AdminPrivacyController;
+use App\Http\Controllers\Admin\UserRegistryController as AdminUserRegistryController;
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
@@ -48,6 +50,12 @@ Route::post('/auth/phone/verify', [PhoneOtpController::class, 'verify'])
 Route::post('/logout', [PhoneOtpController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
+Route::get('/account', AccountController::class)
+    ->middleware('auth')
+    ->name('account.status');
+Route::patch('/account/preferences', [AccountController::class, 'updatePreferences'])
+    ->middleware('auth')
+    ->name('account.preferences.update');
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
@@ -64,6 +72,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
 
         Route::get('/privacy', [AdminPrivacyController::class, 'index'])->name('privacy.index');
         Route::patch('/privacy/requests/{dataRequest}', [AdminPrivacyController::class, 'update'])->name('privacy.requests.update');
+        Route::get('/users', AdminUserRegistryController::class)->name('users.index');
 
         Route::get('/admissions', [AdminAdmissionController::class, 'index'])->name('admissions.index');
         Route::get('/admissions/{application}', [AdminAdmissionController::class, 'show'])->name('admissions.show');
@@ -95,7 +104,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     });
 });
 
-Route::prefix('parent')->name('parent.')->middleware(['auth', 'role:parent'])->group(function () {
+Route::prefix('parent')->name('parent.')->middleware(['auth', 'parent.club'])->group(function () {
     Route::get('/', ParentDashboardController::class)->name('dashboard');
     Route::get('/forum/data', [ParentForumController::class, 'index'])->name('forum.index');
     Route::post('/forum/topics', [ParentForumController::class, 'storeTopic'])

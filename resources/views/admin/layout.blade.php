@@ -31,6 +31,7 @@
                 <span class="admin-nav-group-label">მთავარი მართვა</span>
                 <a class="{{ request()->routeIs('admin.dashboard') && !request('panel') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><span class="admin-nav-icon">⌂</span>მიმოხილვა</a>
                 <a class="{{ request()->routeIs('admin.content.*') ? 'active' : '' }}" href="{{ route('admin.content.index') }}"><span class="admin-nav-icon">✦</span>პლატფორმის მართვა</a>
+                <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="admin-nav-icon">◎</span>მომხმარებელთა რეესტრი</a>
                 <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}"><span class="admin-nav-icon">＋</span>ჩარიცხვები</a>
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები და მშობლები</a>
                 <a class="{{ request()->routeIs('admin.groups.*') ? 'active' : '' }}" href="{{ route('admin.groups.index') }}"><span class="admin-nav-icon">◫</span>ჯგუფები</a>

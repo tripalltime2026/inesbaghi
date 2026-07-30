@@ -29,4 +29,39 @@ class User extends Authenticatable
             ->withPivot(['relationship', 'is_primary', 'can_pick_up'])
             ->withTimestamps();
     }
+
+    public function hasLinkedChild(): bool
+    {
+        return $this->children()->exists();
+    }
+
+    public function hasActiveEnrollment(): bool
+    {
+        return $this->children()
+            ->whereHas('enrollments', fn ($query) => $query
+                ->where('status', 'active')
+                ->whereHas('group', fn ($groupQuery) => $groupQuery->where('is_active', true)))
+            ->exists();
+    }
+
+    public function canAccessParentClub(): bool
+    {
+        return $this->status === 'active'
+            && $this->phone_verified_at !== null
+            && $this->hasLinkedChild()
+            && $this->hasActiveEnrollment();
+    }
+
+    public function membershipLabel(): string
+    {
+        if ($this->canAccessParentClub()) {
+            return 'დადასტურებული მშობელი';
+        }
+
+        if ($this->hasLinkedChild()) {
+            return 'ბავშვთან დაკავშირებული მომხმარებელი';
+        }
+
+        return 'რეგისტრირებული მომხმარებელი';
+    }
 }

@@ -55,21 +55,68 @@
     if (!form) return;
 
     let stack = q('[data-account-privacy]', form);
+    let toggle = q('[data-account-registration-toggle]', form);
+
     if (!stack) {
+      toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'registration-consent-toggle';
+      toggle.dataset.accountRegistrationToggle = 'true';
+      toggle.textContent = 'ახალი მომხმარებელი ხართ? რეგისტრაციის პირობები';
+
       stack = consentStack();
+      stack.classList.add('account-registration-consent');
       stack.dataset.accountPrivacy = 'true';
+      stack.hidden = true;
       stack.append(
-        consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნის/ავტორიზაციისა და მშობელთა კლუბის მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.', { required: true }),
-        consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე.'),
+        consentRow('privacy_accepted', 'გავეცანი <a href="/privacy" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="/terms" target="_blank" rel="noopener">სარგებლობის პირობებს</a>. ვადასტურებ ანგარიშის შექმნისა და მომსახურებისთვის აუცილებელი მონაცემების დამუშავებას.'),
+        consentRow('marketing_consent', 'მსურს მივიღო ბაღის სიახლეები და ღონისძიებების ინფორმაცია მითითებულ ნომერზე. ეს არჩევითია და მოგვიანებით ანგარიშიდან შეიცვლება.'),
       );
+      const note = document.createElement('p');
+      note.className = 'legal-consent-summary';
+      note.innerHTML = '<strong>ეს ნაწილი საჭიროა მხოლოდ ახალი ანგარიშის შექმნისას.</strong> უკვე რეგისტრირებულ მომხმარებელს ხელახალი თანხმობა არ მოეთხოვება.';
+      stack.prepend(note);
       const error = document.createElement('p');
       error.className = 'legal-field-error';
-      error.textContent = 'გასაგრძელებლად უნდა გაეცნოთ და დაადასტუროთ კონფიდენციალურობის პირობები.';
+      error.textContent = 'ახალი ანგარიშის შესაქმნელად დაადასტურეთ კონფიდენციალურობის პირობები.';
       stack.appendChild(error);
+
       q('#demoAuthNote', form)?.insertAdjacentElement('beforebegin', stack);
+      stack.insertAdjacentElement('beforebegin', toggle);
     }
 
-    enforceRequiredConsent(form, ['privacy_accepted'], q('.legal-field-error', stack));
+    const privacyInput = q('[name="privacy_accepted"]', stack);
+    privacyInput?.removeAttribute('required');
+    stack.hidden = true;
+    stack.dataset.registrationRequired = 'false';
+
+    const setRegistrationRequired = (required, focus = false) => {
+      stack.hidden = !required;
+      stack.dataset.registrationRequired = required ? 'true' : 'false';
+      if (privacyInput) privacyInput.required = required;
+      toggle?.classList.toggle('active', required);
+      if (toggle) toggle.textContent = required ? 'რეგისტრაციის პირობების დამალვა' : 'ახალი მომხმარებელი ხართ? რეგისტრაციის პირობები';
+      if (required && focus) {
+        stack.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        privacyInput?.focus({ preventScroll: true });
+      }
+    };
+
+    toggle?.addEventListener('click', () => setRegistrationRequired(stack.hidden, false));
+    form.addEventListener('submit', (event) => {
+      if (stack.dataset.registrationRequired !== 'true' || privacyInput?.checked) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      q('.legal-field-error', stack)?.classList.add('show');
+      privacyInput?.focus();
+    }, true);
+    privacyInput?.addEventListener('change', () => q('.legal-field-error', stack)?.classList.remove('show'));
+
+    window.inesPrivacy = {
+      ...(window.inesPrivacy || {}),
+      requireAccountConsent: () => setRegistrationRequired(true, true),
+      hideAccountConsent: () => setRegistrationRequired(false, false),
+    };
   }
 
   function enforceRequiredConsent(form, names, error) {
