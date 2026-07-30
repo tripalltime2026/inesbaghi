@@ -97,6 +97,13 @@ class InjectResponsiveAssets
 
     private function injectPublicLegalControls(string $content): string
     {
+        $content = preg_replace(
+            '/\s*<label><span>ბავშვის სახელი და გვარი \*<\/span><input name="child_name"[^>]*><\/label>/u',
+            '',
+            $content,
+            1,
+        ) ?? $content;
+
         if (! str_contains($content, 'data-admission-privacy')) {
             $admissionConsent = <<<'HTML'
                 <div class="legal-consent-stack" data-admission-privacy>
