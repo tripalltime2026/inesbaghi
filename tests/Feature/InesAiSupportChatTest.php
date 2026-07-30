@@ -118,14 +118,15 @@ class InesAiSupportChatTest extends TestCase
 
     public function test_ines_ai_answers_minimum_age_and_kindergarten_identity_from_approved_knowledge(): void
     {
-        $token = $this->postJson('/support/chat/conversations')->json('conversation.token');
+        $ageToken = $this->postJson('/support/chat/conversations')->json('conversation.token');
 
-        $this->postJson("/support/chat/conversations/{$token}/messages", [
+        $this->postJson("/support/chat/conversations/{$ageToken}/messages", [
             'body' => 'რომელი ასაკიდან არის მიღება?',
         ])->assertCreated()
             ->assertJsonFragment(['body' => 'მიღება იწყება 2 წლიდან. ამჟამად მოქმედი ასაკობრივი ჯგუფებია: 2-3 წლის, 3-4 წლის. მითხარით ბავშვის დაბადების წელი და სასწავლო წელი, რათა შესაბამისი ჯგუფი და ადგილი შევამოწმო.']);
 
-        $response = $this->postJson("/support/chat/conversations/{$token}/messages", [
+        $identityToken = $this->postJson('/support/chat/conversations')->json('conversation.token');
+        $response = $this->postJson("/support/chat/conversations/{$identityToken}/messages", [
             'body' => 'რით გამოირჩევა ინეს ბაღი?',
         ])->assertCreated();
 
