@@ -34,7 +34,7 @@ class PlatformTest extends TestCase
         ]);
     }
 
-    public function test_phone_cannot_become_admin_from_client(): void
+    public function test_phone_registration_cannot_become_admin_from_client(): void
     {
         $request = $this->postJson('/auth/phone/request', [
             'name' => 'თორნიკე',
@@ -49,12 +49,15 @@ class PlatformTest extends TestCase
             'name' => 'თორნიკე',
             'phone' => '555411831',
             'code' => $request->json('debug_code'),
-        ])->assertOk()->assertJsonPath('user.status', 'pending');
+        ])->assertOk()
+            ->assertJsonPath('user.role', 'member')
+            ->assertJsonPath('user.status', 'active')
+            ->assertJsonPath('redirect_to', route('account.status'));
 
         $this->assertDatabaseHas('users', [
             'phone' => '+995555411831',
             'role' => 'member',
-            'status' => 'pending',
+            'status' => 'active',
         ]);
     }
 }
