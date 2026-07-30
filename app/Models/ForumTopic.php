@@ -41,6 +41,6 @@ class ForumTopic extends Model
 
     public function comments(): HasMany
     {
-        return $this->hasMany(ForumComment::class)->oldest();
+        return $this->hasMany(ForumComment::class);
     }
 }
