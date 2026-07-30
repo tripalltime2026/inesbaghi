@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Parent;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\ForumTopic;
+use App\Models\KindergartenGroup;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -13,7 +15,56 @@ use Illuminate\Validation\Rule;
 
 class ForumController extends Controller
 {
-    public function storeTopic(Request $request): RedirectResponse
+    public function index(Request $request): JsonResponse
+    {
+        $groupIds = $this->accessibleGroupIds($request->user());
+
+        $groups = KindergartenGroup::query()
+            ->whereIn('id', $groupIds)
+            ->where('is_active', true)
+            ->orderBy('age_min_months')
+            ->get(['id', 'name', 'slug']);
+
+        $topics = ForumTopic::query()
+            ->whereIn('kindergarten_group_id', $groupIds)
+            ->with([
+                'group:id,name,slug',
+                'author:id,name',
+                'comments.author:id,name',
+            ])
+            ->withCount('comments')
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (ForumTopic $topic) => [
+                'id' => $topic->id,
+                'group_id' => $topic->kindergarten_group_id,
+                'group_name' => $topic->group?->name,
+                'category' => $topic->category,
+                'category_label' => ForumTopic::CATEGORIES[$topic->category] ?? $topic->category,
+                'title' => $topic->title,
+                'body' => $topic->body,
+                'author' => $topic->author?->name ?? 'მშობელი',
+                'created_at' => $topic->created_at?->format('d.m.Y H:i'),
+                'comments_count' => $topic->comments_count,
+                'is_locked' => $topic->is_locked,
+                'comments' => $topic->comments->map(fn ($comment) => [
+                    'id' => $comment->id,
+                    'body' => $comment->body,
+                    'author' => $comment->author?->name ?? 'მშობელი',
+                    'created_at' => $comment->created_at?->format('d.m.Y H:i'),
+                ])->values(),
+            ]);
+
+        return response()->json([
+            'groups' => $groups,
+            'categories' => ForumTopic::CATEGORIES,
+            'topics' => $topics,
+            'can_create' => $groupIds->isNotEmpty(),
+        ]);
+    }
+
+    public function storeTopic(Request $request): JsonResponse|RedirectResponse
     {
         $groupIds = $this->accessibleGroupIds($request->user());
         abort_if($groupIds->isEmpty(), 403, 'თემის შესაქმნელად ბავშვის აქტიური ჯგუფი უნდა იყოს დაკავშირებული.');
@@ -30,11 +81,19 @@ class ForumController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'topic_id' => $topic->id,
+                'message' => 'თემა შეიქმნა და მხოლოდ არჩეული ჯგუფის მშობლებს გამოუჩნდებათ.',
+            ], 201);
+        }
+
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
             ->with('success', 'თემა შეიქმნა და მხოლოდ არჩეული ჯგუფის მშობლებს გამოუჩნდებათ.');
     }
 
-    public function storeComment(Request $request, ForumTopic $topic): RedirectResponse
+    public function storeComment(Request $request, ForumTopic $topic): JsonResponse|RedirectResponse
     {
         $groupIds = $this->accessibleGroupIds($request->user());
         abort_unless($groupIds->contains($topic->kindergarten_group_id), 404);
@@ -44,10 +103,18 @@ class ForumController extends Controller
             'body' => ['required', 'string', 'min:2', 'max:2000'],
         ]);
 
-        $topic->comments()->create([
+        $comment = $topic->comments()->create([
             'user_id' => $request->user()->id,
             'body' => $validated['body'],
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'comment_id' => $comment->id,
+                'message' => 'კომენტარი დაემატა.',
+            ], 201);
+        }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
             ->with('success', 'კომენტარი დაემატა.');
