@@ -18,10 +18,25 @@ use App\Http\Controllers\Parent\DashboardController as ParentDashboardController
 use App\Http\Controllers\Parent\ForumController as ParentForumController;
 use App\Http\Controllers\PhoneOtpController;
 use App\Http\Controllers\PublicContentController;
+use App\Http\Controllers\PublicSeoController;
 use App\Http\Controllers\SupportChatController;
+use App\Http\Middleware\NoIndexPrivateArea;
+use App\Http\Middleware\PublicSeo;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'site')->name('home');
+Route::middleware(PublicSeo::class)->group(function () {
+    Route::get('/', [PublicSeoController::class, 'home'])->name('home');
+    Route::get('/chven-shesakheb', [PublicSeoController::class, 'show'])->defaults('page', 'about')->name('public.about');
+    Route::get('/metodologia', [PublicSeoController::class, 'show'])->defaults('page', 'methodology')->name('public.methodology');
+    Route::get('/jgufebi', [PublicSeoController::class, 'show'])->defaults('page', 'groups')->name('public.groups');
+    Route::get('/gundi', [PublicSeoController::class, 'show'])->defaults('page', 'team')->name('public.team');
+    Route::get('/blogi', [PublicSeoController::class, 'show'])->defaults('page', 'blog')->name('public.blog');
+    Route::get('/kitkhva-pasukhi', [PublicSeoController::class, 'show'])->defaults('page', 'faq')->name('public.faq');
+    Route::get('/kontakti', [PublicSeoController::class, 'show'])->defaults('page', 'contact')->name('public.contact');
+    Route::get('/charetskhva', [PublicSeoController::class, 'show'])->defaults('page', 'admission')->name('public.admission');
+});
+Route::get('/sitemap.xml', [PublicSeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [PublicSeoController::class, 'robots'])->name('robots');
 
 Route::get('/privacy', [LegalController::class, 'privacy'])->name('privacy');
 Route::get('/terms', [LegalController::class, 'terms'])->name('terms');
@@ -74,13 +89,13 @@ Route::post('/logout', [PhoneOtpController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 Route::get('/account', AccountController::class)
-    ->middleware('auth')
+    ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.status');
 Route::patch('/account/preferences', [AccountController::class, 'updatePreferences'])
-    ->middleware('auth')
+    ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.preferences.update');
 
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', NoIndexPrivateArea::class])->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
 
@@ -139,7 +154,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     });
 });
 
-Route::prefix('parent')->name('parent.')->middleware(['auth', 'parent.club'])->group(function () {
+Route::prefix('parent')->name('parent.')->middleware(['auth', 'parent.club', NoIndexPrivateArea::class])->group(function () {
     Route::get('/', ParentDashboardController::class)->name('dashboard');
     Route::get('/forum/data', [ParentForumController::class, 'index'])->name('forum.index');
     Route::post('/forum/topics', [ParentForumController::class, 'storeTopic'])
