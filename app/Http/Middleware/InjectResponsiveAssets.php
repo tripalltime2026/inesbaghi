@@ -141,7 +141,7 @@ HTML;
 
         if (str_contains($content, 'class="site-footer"') && ! str_contains($content, 'aria-label="სამართლებრივი ინფორმაცია"')) {
             $footerLinks = <<<'HTML'
-    <nav class="legal-footer-links" aria-label="სამართლებრივი ინფორმაცია"><a href="/privacy">კონფიდენციალურობა</a><a href="/terms">სარგებლობის პირობები</a><a href="/privacy/request">მონაცემთა მოთხოვნა</a><span>შპს ინეს ბაღი · ს/კ 445602465</span></nav>
+    <nav class="legal-footer-links" aria-label="სამართლებრივი ინფორმაცია"><a href="/privacy">კონფიდენციალურობა</a><a href="/terms">სარგებლობის პირობები</a><a href="/privacy/request">მონაცემთა მოთხოვნა</a></nav>
 HTML;
             $content = preg_replace_callback(
                 '/(<footer class="site-footer">.*?)(<\/footer>)/s',
