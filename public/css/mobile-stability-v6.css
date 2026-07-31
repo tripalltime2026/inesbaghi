@@ -1,0 +1,63 @@
+/* Mobile rendering safety layer — keeps public content visible and navigation tappable on iOS Safari. */
+@media (max-width: 900px) {
+  body.final-site {
+    overflow-x: hidden;
+  }
+
+  .final-site #publicApp {
+    min-height: calc(100dvh - 150px);
+  }
+
+  .final-site .public-page {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .final-site .public-page.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .final-site .public-page[hidden],
+  .final-site .public-page:not(.active) {
+    display: none !important;
+  }
+
+  .final-site .experience-reveal,
+  .final-site .experience-reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .final-site .mobile-app-nav {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .final-site .mobile-app-nav a,
+  .final-site .mobile-app-nav button,
+  .final-site [data-page-target],
+  .final-site [data-google-auth-link] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .final-site a.offer-card {
+    color: var(--navy);
+    text-decoration: none;
+  }
+
+  .final-site .google-auth-inline-error {
+    width: min(1180px, calc(100% - 28px));
+    margin: 14px auto 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f7dddd;
+    color: #7b2f2f;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.55;
+  }
+}

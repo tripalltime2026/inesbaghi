@@ -20,24 +20,24 @@ class MobileUxSecurityTest extends TestCase
 
     public function test_public_pages_load_the_latest_mobile_fix_assets(): void
     {
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('/css/mobile-fixes-v5.css?v=20260731a', false)
-            ->assertSee('/js/mobile-fixes-v5.js?v=20260731a', false);
-
-        $this->get('/chven-shesakheb')
-            ->assertOk()
-            ->assertSee('/css/mobile-fixes-v5.css?v=20260731a', false)
-            ->assertSee('/js/mobile-fixes-v5.js?v=20260731a', false);
+        foreach (['/', '/chven-shesakheb'] as $path) {
+            $this->get($path)
+                ->assertOk()
+                ->assertSee('/css/mobile-fixes-v5.css?v=20260731c', false)
+                ->assertSee('/css/mobile-stability-v6.css?v=20260731a', false)
+                ->assertSee('/js/mobile-fixes-v5.js?v=20260731c', false);
+        }
     }
 
     public function test_mobile_layout_prevents_footer_and_overlay_collisions(): void
     {
         $css = file_get_contents(public_path('css/mobile-fixes-v5.css'));
+        $stabilityCss = file_get_contents(public_path('css/mobile-stability-v6.css'));
         $mobileJs = file_get_contents(public_path('js/mobile-fixes-v5.js'));
         $siteJs = file_get_contents(public_path('js/site.js'));
 
         $this->assertIsString($css);
+        $this->assertIsString($stabilityCss);
         $this->assertIsString($mobileJs);
         $this->assertIsString($siteJs);
 
@@ -47,7 +47,12 @@ class MobileUxSecurityTest extends TestCase
         $this->assertStringContainsString('position: fixed', $css);
         $this->assertStringContainsString('font-size: 14px', $css);
 
+        $this->assertStringContainsString('.public-page.active', $stabilityCss);
+        $this->assertStringContainsString('.experience-reveal.is-visible', $stabilityCss);
+        $this->assertStringContainsString('opacity: 1 !important', $stabilityCss);
+
         $this->assertStringContainsString('data-mobile-key="ai"', $mobileJs);
+        $this->assertStringContainsString('activatePublicPage', $mobileJs);
         $this->assertStringContainsString('Ines AI', $mobileJs);
         $this->assertStringNotContainsString('დემო ადმინისტრატორი', $siteJs);
         $this->assertStringNotContainsString("admin_phone: '555411831'", $siteJs);

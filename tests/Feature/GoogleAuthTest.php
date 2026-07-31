@@ -20,15 +20,35 @@ class GoogleAuthTest extends TestCase
         config()->set('services.google.redirect', 'http://localhost/auth/google/callback');
     }
 
-    public function test_public_login_interface_contains_only_google(): void
+    public function test_public_login_actions_are_direct_google_links(): void
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('Google-ით გაგრძელება')
+            ->assertSee('data-google-auth-link', false)
+            ->assertSee('href="http://localhost/auth/google"', false)
             ->assertSee('/css/google-auth.css', false)
-            ->assertSee('/js/google-auth.js', false)
+            ->assertSee('/css/mobile-stability-v6.css', false)
+            ->assertSee('/js/mobile-fixes-v5.js', false)
+            ->assertDontSee('id="loginModal"', false)
             ->assertDontSee('შესვლა ტელეფონით')
-            ->assertDontSee('otpRequest', false);
+            ->assertDontSee('otpRequest', false)
+            ->assertDontSee('/js/google-auth.js', false);
+    }
+
+    public function test_mobile_safety_assets_keep_pages_visible_and_navigable(): void
+    {
+        $script = file_get_contents(public_path('js/mobile-fixes-v5.js'));
+        $styles = file_get_contents(public_path('css/mobile-stability-v6.css'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString('activatePublicPage', $script);
+        $this->assertStringContainsString('event.stopImmediatePropagation()', $script);
+        $this->assertStringContainsString("['home', 'groups', 'admission']", $script);
+
+        $this->assertIsString($styles);
+        $this->assertStringContainsString('.public-page.active', $styles);
+        $this->assertStringContainsString('.experience-reveal.is-visible', $styles);
+        $this->assertStringContainsString('opacity: 1 !important', $styles);
     }
 
     public function test_google_redirect_uses_state_and_pkce(): void
