@@ -27,11 +27,13 @@
             </div>
         @endif
 
-        <div class="profile-username"><span>შესვლის სახელი</span><strong>{{ $user->username }}</strong></div>
-
-        <form class="credentials-form" method="post" action="{{ route('account.profile.update') }}" style="margin-top:18px">
+        <form class="credentials-form" method="post" action="{{ route('account.profile.update') }}">
             @csrf
             @method('PATCH')
+            <label class="credentials-field">
+                <span>შესვლის სახელი</span>
+                <input name="username" value="{{ old('username', $user->username) }}" required minlength="2" maxlength="80" autocomplete="username" placeholder="მაგ. ნინო ბერიძე">
+            </label>
             <label class="credentials-field">
                 <span>სახელი და გვარი</span>
                 <input name="name" value="{{ old('name', $user->name) }}" required maxlength="120" autocomplete="name">
@@ -49,14 +51,16 @@
 
         <div class="credentials-divider"></div>
 
-        <h2 style="margin:0 0 12px;font:700 23px 'Noto Serif Georgian',serif">პაროლის შეცვლა</h2>
+        <h2 style="margin:0 0 12px;font:700 23px 'Noto Serif Georgian',serif">{{ $user->password ? 'პაროლის შეცვლა' : 'პაროლის დაყენება' }}</h2>
         <form class="credentials-form" method="post" action="{{ route('account.password.update') }}">
             @csrf
             @method('PATCH')
-            <label class="credentials-field"><span>მიმდინარე პაროლი</span><input name="current_password" type="password" required autocomplete="current-password"></label>
+            @if($user->password)
+                <label class="credentials-field"><span>მიმდინარე პაროლი</span><input name="current_password" type="password" required autocomplete="current-password"></label>
+            @endif
             <label class="credentials-field"><span>ახალი პაროლი</span><input name="password" type="password" required minlength="8" autocomplete="new-password"></label>
             <label class="credentials-field"><span>გაიმეორეთ ახალი პაროლი</span><input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password"></label>
-            <button class="credentials-submit" type="submit">პაროლის შეცვლა</button>
+            <button class="credentials-submit" type="submit">{{ $user->password ? 'პაროლის შეცვლა' : 'პაროლის შენახვა' }}</button>
         </form>
 
         <div class="profile-actions">
