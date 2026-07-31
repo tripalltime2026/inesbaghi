@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/operations.css') }}">
     <link rel="stylesheet" href="{{ asset('css/cms-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/family-management.css') }}">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
@@ -34,6 +35,7 @@
                 <a class="{{ request()->routeIs('admin.dashboard') && !request('panel') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><span class="admin-nav-icon">⌂</span>მიმოხილვა</a>
                 <a class="{{ request()->routeIs('admin.content.*') ? 'active' : '' }}" href="{{ route('admin.content.index') }}"><span class="admin-nav-icon">✦</span>პლატფორმის მართვა</a>
                 <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="admin-nav-icon">◎</span>მომხმარებელთა რეესტრი</a>
+                <a class="{{ request()->routeIs('admin.families.*') ? 'active' : '' }}" href="{{ route('admin.families.create') }}"><span class="admin-nav-icon">♧</span>ოჯახის რეგისტრაცია</a>
                 <a class="{{ request()->routeIs('admin.support.*') ? 'active' : '' }}" href="{{ route('admin.support.index') }}"><span class="admin-nav-icon">◇</span>მხარდაჭერის ჩატები @if($waitingSupportCount)<small>{{ $waitingSupportCount }}</small>@endif</a>
                 <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}"><span class="admin-nav-icon">＋</span>ჩარიცხვები</a>
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები და მშობლები</a>
