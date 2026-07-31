@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
 use App\Models\PrivacyConsent;
+use App\Models\User;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\RedirectResponse;
@@ -88,7 +89,7 @@ class AccountController extends Controller
         ]);
 
         $phone = $this->normalizePhone($validated['phone']);
-        $phoneOwner = \App\Models\User::query()
+        $phoneOwner = User::query()
             ->where('phone', $phone)
             ->whereKeyNot($user->id)
             ->exists();
@@ -119,8 +120,9 @@ class AccountController extends Controller
 
     public function updatePassword(Request $request): RedirectResponse
     {
+        $user = $request->user();
         $validated = $request->validate([
-            'current_password' => ['required', 'string'],
+            'current_password' => [$user->password ? 'required' : 'nullable', 'string'],
             'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
         ], [
             'current_password.required' => 'ჩაწერეთ მიმდინარე პაროლი.',
@@ -128,8 +130,7 @@ class AccountController extends Controller
             'password.confirmed' => 'ახალი პაროლები ერთმანეთს არ ემთხვევა.',
         ]);
 
-        $user = $request->user();
-        if (! $user->password || ! Hash::check($validated['current_password'], $user->password)) {
+        if ($user->password && ! Hash::check((string) ($validated['current_password'] ?? ''), $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => 'მიმდინარე პაროლი არასწორია.',
             ]);
@@ -137,7 +138,9 @@ class AccountController extends Controller
 
         $user->update(['password' => $validated['password']]);
 
-        return back()->with('success', 'პაროლი წარმატებით შეიცვალა.');
+        return back()->with('success', $user->wasChanged('password')
+            ? 'პაროლი წარმატებით შენახულია.'
+            : 'პაროლი განახლებულია.');
     }
 
     public function updatePreferences(Request $request, PrivacyConsentRecorder $recorder): RedirectResponse
