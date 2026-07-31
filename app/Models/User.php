@@ -33,7 +33,9 @@ class User extends Authenticatable
 
     public function hasVerifiedIdentity(): bool
     {
-        return filled($this->username) && filled($this->password);
+        return (filled($this->username) && filled($this->password))
+            || $this->phone_verified_at !== null
+            || $this->email_verified_at !== null;
     }
 
     public function children(): BelongsToMany
