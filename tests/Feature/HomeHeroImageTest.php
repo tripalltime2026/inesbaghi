@@ -34,13 +34,16 @@ class HomeHeroImageTest extends TestCase
 
         $this->assertTrue($hero->is_active);
         $this->assertNotNull($hero->image);
+        $this->assertSame('base64', $hero->meta['image_encoding'] ?? null);
+        $this->assertSame($png, base64_decode((string) $hero->image, true));
         $this->assertSame('image/png', $hero->image_mime);
         $this->assertSame('home-hero.png', $hero->image_name);
 
         $this->get(route('content.home-hero'))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png')
-            ->assertHeader('X-Content-Type-Options', 'nosniff');
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertContent($png);
 
         $this->get('/')
             ->assertOk()
@@ -60,6 +63,27 @@ class HomeHeroImageTest extends TestCase
             ->assertOk()
             ->assertDontSee('/content/home-hero?v=', false)
             ->assertSee('images/ines-final-hero.svg', false);
+    }
+
+    public function test_legacy_raw_image_content_is_still_served(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=');
+
+        SiteItem::create([
+            'type' => 'home_hero',
+            'title' => 'Legacy hero',
+            'image' => $png,
+            'image_mime' => 'image/png',
+            'image_name' => 'legacy.png',
+            'image_alt' => 'Legacy image',
+            'meta' => ['placement' => 'home_hero'],
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+
+        $this->get(route('content.home-hero'))
+            ->assertOk()
+            ->assertContent($png);
     }
 
     public function test_non_admin_cannot_change_the_home_hero_image(): void
