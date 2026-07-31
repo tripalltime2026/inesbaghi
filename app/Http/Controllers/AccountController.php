@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
+use App\Models\Child;
 use App\Models\PrivacyConsent;
 use App\Models\User;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -62,6 +64,11 @@ class AccountController extends Controller
     {
         return view('account.profile', [
             'user' => $request->user(),
+            'children' => $request->user()->children()
+                ->with(['enrollments.group'])
+                ->orderBy('first_name')
+                ->get(),
+            'guardianConfirmation' => PrivacyPolicy::GUARDIAN_CONFIRMATION,
         ]);
     }
 
@@ -139,6 +146,89 @@ class AccountController extends Controller
         return redirect()
             ->route('account.status')
             ->with('success', 'პროფილის ინფორმაცია შენახულია.');
+    }
+
+    public function storeChild(Request $request, PrivacyConsentRecorder $recorder): RedirectResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'min:2', 'max:100'],
+            'last_name' => ['nullable', 'string', 'max:100'],
+            'birth_date' => ['required', 'date', 'after_or_equal:2017-01-01', 'before_or_equal:today'],
+            'relationship' => ['required', Rule::in(['დედა', 'მამა', 'მშობელი', 'კანონიერი წარმომადგენელი'])],
+            'can_pick_up' => ['required', 'boolean'],
+            'guardian_confirmation' => ['accepted'],
+        ], [
+            'first_name.required' => 'ჩაწერეთ ბავშვის სახელი.',
+            'birth_date.required' => 'მიუთითეთ ბავშვის დაბადების თარიღი.',
+            'birth_date.after_or_equal' => 'შეამოწმეთ ბავშვის დაბადების თარიღი.',
+            'birth_date.before_or_equal' => 'დაბადების თარიღი მომავალში ვერ იქნება.',
+            'guardian_confirmation.accepted' => 'ბავშვის რეგისტრაციისთვის დაადასტურეთ, რომ მისი კანონიერი წარმომადგენელი ხართ.',
+        ]);
+
+        $user = $request->user();
+        $firstName = Str::of($validated['first_name'])->squish()->toString();
+        $lastName = Str::of((string) ($validated['last_name'] ?? ''))->squish()->toString();
+        $birthDate = (string) $validated['birth_date'];
+
+        $duplicate = $user->children()
+            ->get(['children.id', 'children.first_name', 'children.last_name', 'children.birth_date'])
+            ->contains(fn (Child $child): bool =>
+                mb_strtolower(trim($child->first_name)) === mb_strtolower($firstName)
+                && mb_strtolower(trim((string) $child->last_name)) === mb_strtolower($lastName)
+                && $child->birth_date?->toDateString() === $birthDate
+            );
+
+        if ($duplicate) {
+            throw ValidationException::withMessages([
+                'first_name' => 'ეს ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.',
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $recorder, $user, $validated, $firstName, $lastName, $birthDate): void {
+            $child = Child::create([
+                'first_name' => $firstName,
+                'last_name' => $lastName !== '' ? $lastName : null,
+                'birth_date' => $birthDate,
+                'birth_year' => (int) substr($birthDate, 0, 4),
+            ]);
+
+            $user->children()->attach($child->id, [
+                'relationship' => $validated['relationship'],
+                'is_primary' => true,
+                'can_pick_up' => (bool) $validated['can_pick_up'],
+            ]);
+
+            $recorder->record(
+                $request,
+                'child_profile_guardian_confirmation',
+                PrivacyPolicy::GUARDIAN_CONFIRMATION,
+                'consent',
+                $user->id,
+                Child::class,
+                $child->id,
+                [
+                    'source' => 'account_child_registration',
+                    'relationship' => $validated['relationship'],
+                ],
+            );
+
+            DB::table('audit_logs')->insert([
+                'actor_user_id' => $user->id,
+                'action' => 'child.created_by_guardian',
+                'subject_type' => Child::class,
+                'subject_id' => $child->id,
+                'metadata' => json_encode([
+                    'relationship' => $validated['relationship'],
+                    'can_pick_up' => (bool) $validated['can_pick_up'],
+                ], JSON_THROW_ON_ERROR),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        });
+
+        return redirect()
+            ->route('account.profile', ['#children'])
+            ->with('success', 'ბავშვის პროფილი შეიქმნა და თქვენს ანგარიშთან დაკავშირებულია. ჩარიცხვა ადმინისტრაციის დადასტურების შემდეგ გააქტიურდება.');
     }
 
     public function updatePassword(Request $request): RedirectResponse
