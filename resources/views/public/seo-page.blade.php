@@ -41,7 +41,7 @@
             @endphp
             <a class="pill navy" href="{{ $cabinetUrl }}">კაბინეტი</a>
         @else
-            <a class="pill navy" href="{{ route('home') }}">საიტზე დაბრუნება</a>
+            <a class="pill navy" href="{{ route('auth.credentials.login.form') }}">შესვლა</a>
         @endauth
     </div>
 </header>
