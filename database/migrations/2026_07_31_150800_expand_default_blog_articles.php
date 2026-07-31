@@ -18,7 +18,10 @@ return new class extends Migration
             $existing = DB::table('blog_posts')->where('slug', $article['slug'])->first();
 
             if (! $existing) {
-                DB::table('blog_posts')->insert(array_merge($article, [
+                $insert = $article;
+                unset($insert['old_body']);
+
+                DB::table('blog_posts')->insert(array_merge($insert, [
                     'status' => 'published',
                     'sort_order' => $index,
                     'created_at' => now(),
