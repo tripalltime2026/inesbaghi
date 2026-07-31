@@ -23,16 +23,18 @@ class MobileUxSecurityTest extends TestCase
         foreach (['/', '/chven-shesakheb'] as $path) {
             $this->get($path)
                 ->assertOk()
-                ->assertSee('/css/mobile-fixes-v5.css?v=20260731c', false)
+                ->assertSee('/css/mobile-fixes-v5.css?v=20260731d', false)
                 ->assertSee('/css/mobile-stability-v6.css?v=20260731a', false)
-                ->assertSee('/js/mobile-fixes-v5.js?v=20260731c', false);
+                ->assertSee('/css/mobile-stability-v7.css?v=20260731a', false)
+                ->assertSee('/js/mobile-fixes-v5.js?v=20260731d', false)
+                ->assertSee('password-mobile-nav', false);
         }
     }
 
-    public function test_mobile_layout_prevents_footer_and_overlay_collisions(): void
+    public function test_mobile_layout_uses_real_links_and_separates_ines_ai(): void
     {
         $css = file_get_contents(public_path('css/mobile-fixes-v5.css'));
-        $stabilityCss = file_get_contents(public_path('css/mobile-stability-v6.css'));
+        $stabilityCss = file_get_contents(public_path('css/mobile-stability-v7.css'));
         $mobileJs = file_get_contents(public_path('js/mobile-fixes-v5.js'));
         $siteJs = file_get_contents(public_path('js/site.js'));
 
@@ -42,18 +44,15 @@ class MobileUxSecurityTest extends TestCase
         $this->assertIsString($siteJs);
 
         $this->assertStringContainsString('.site-footer .seo-footer-nav', $css);
-        $this->assertStringContainsString('display: none !important', $css);
-        $this->assertStringContainsString('.final-site .ines-ai-launcher', $css);
-        $this->assertStringContainsString('position: fixed', $css);
-        $this->assertStringContainsString('font-size: 14px', $css);
+        $this->assertStringContainsString('.ines-ai-launcher', $stabilityCss);
+        $this->assertStringContainsString('bottom:calc(88px + env(safe-area-inset-bottom))', $stabilityCss);
+        $this->assertStringContainsString('[data-mobile-key="account"]', $stabilityCss);
 
-        $this->assertStringContainsString('.public-page.active', $stabilityCss);
-        $this->assertStringContainsString('.experience-reveal.is-visible', $stabilityCss);
-        $this->assertStringContainsString('opacity: 1 !important', $stabilityCss);
-
-        $this->assertStringContainsString('data-mobile-key="ai"', $mobileJs);
-        $this->assertStringContainsString('activatePublicPage', $mobileJs);
-        $this->assertStringContainsString('Ines AI', $mobileJs);
+        $this->assertStringContainsString("groups: '/jgufebi'", $mobileJs);
+        $this->assertStringContainsString("admission: '/charetskhva'", $mobileJs);
+        $this->assertStringContainsString("replaceWithLink", $mobileJs);
+        $this->assertStringNotContainsString('activatePublicPage', $mobileJs);
+        $this->assertStringNotContainsString('event.stopImmediatePropagation()', $mobileJs);
         $this->assertStringNotContainsString('დემო ადმინისტრატორი', $siteJs);
         $this->assertStringNotContainsString("admin_phone: '555411831'", $siteJs);
     }
