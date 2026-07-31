@@ -7,6 +7,7 @@ use App\Http\Middleware\InjectGoogleAnalytics;
 use App\Http\Middleware\InjectGoogleTagManager;
 use App\Http\Middleware\InjectMobileUxFixes;
 use App\Http\Middleware\InjectResponsiveAssets;
+use App\Http\Middleware\InjectSocialFooterLinks;
 use App\Http\Middleware\PasswordAuthentication;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             PasswordAuthentication::class,
             InjectMobileUxFixes::class,
             InjectResponsiveAssets::class,
+            InjectSocialFooterLinks::class,
             ApplyManagedContent::class,
         ]);
         $middleware->alias([
