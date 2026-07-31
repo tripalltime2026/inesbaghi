@@ -107,7 +107,7 @@
     display: none !important;
   }
 
-  /* The login sheet must stay above the app navigation and keep its submit action visible. */
+  /* The login sheet stays above all floating UI and always exposes its action. */
   .final-site .modal {
     z-index: 1400 !important;
     align-items: flex-end;
@@ -118,11 +118,11 @@
   .final-site .modal-card.compact {
     width: 100%;
     max-height: calc(100dvh - max(8px, env(safe-area-inset-top)));
-    padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+    padding: 24px 18px calc(104px + env(safe-area-inset-bottom));
     border-radius: 28px 28px 0 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scroll-padding-bottom: 86px;
+    scroll-padding-bottom: 118px;
   }
 
   .final-site .modal-card h2 {
@@ -156,15 +156,18 @@
 
   .final-site #otpRequest > .primary-button.full,
   .final-site #otpVerify > .primary-button.full {
-    position: sticky;
-    bottom: 0;
-    z-index: 6;
-    min-height: 54px;
-    margin-top: 6px;
+    position: fixed;
+    left: 18px;
+    right: 18px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 1450;
+    width: auto;
+    min-height: 56px;
+    margin: 0;
     border: 4px solid #fff;
     border-radius: 18px;
     font-size: 13px;
-    box-shadow: 0 12px 30px rgba(16,48,58,.24);
+    box-shadow: 0 12px 30px rgba(16,48,58,.28);
   }
 }
 
