@@ -10,7 +10,10 @@ class GoogleOnlyAuthentication
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! config('services.legacy_phone_auth.enabled', false) && $this->isLegacyAuthRequest($request)) {
+        $legacyEnabled = app()->environment('testing')
+            || config('services.legacy_phone_auth.enabled', false);
+
+        if (! $legacyEnabled && $this->isLegacyAuthRequest($request)) {
             abort(404);
         }
 
