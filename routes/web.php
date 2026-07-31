@@ -13,10 +13,10 @@ use App\Http\Controllers\Admin\PrivacyController as AdminPrivacyController;
 use App\Http\Controllers\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\Admin\UserRegistryController as AdminUserRegistryController;
 use App\Http\Controllers\AdmissionApplicationController;
+use App\Http\Controllers\CredentialsAuthController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
 use App\Http\Controllers\Parent\ForumController as ParentForumController;
-use App\Http\Controllers\PhoneOtpController;
 use App\Http\Controllers\PublicContentController;
 use App\Http\Controllers\PublicSeoController;
 use App\Http\Controllers\SupportChatController;
@@ -74,23 +74,45 @@ Route::prefix('support/chat')->name('support.chat.')->group(function () {
         ->name('contact.update');
 });
 
-Route::get('/auth/mode', [PhoneOtpController::class, 'mode'])
-    ->name('auth.mode');
-Route::post('/auth/demo/login', [PhoneOtpController::class, 'demoLogin'])
-    ->middleware('throttle:20,1')
+Route::middleware(NoIndexPrivateArea::class)->group(function () {
+    Route::get('/shesvla', [CredentialsAuthController::class, 'showLogin'])
+        ->name('auth.credentials.login.form');
+    Route::post('/shesvla', [CredentialsAuthController::class, 'login'])
+        ->middleware('throttle:10,1')
+        ->name('auth.credentials.login');
+    Route::get('/registratsia', [CredentialsAuthController::class, 'showRegister'])
+        ->name('auth.credentials.register.form');
+    Route::post('/registratsia', [CredentialsAuthController::class, 'register'])
+        ->middleware('throttle:6,1')
+        ->name('auth.credentials.register');
+});
+
+Route::get('/auth/mode', [CredentialsAuthController::class, 'mode'])->name('auth.mode');
+Route::post('/auth/demo/login', [CredentialsAuthController::class, 'unavailable'])
+    ->middleware('throttle:10,1')
     ->name('auth.demo');
-Route::post('/auth/phone/request', [PhoneOtpController::class, 'request'])
+Route::post('/auth/phone/request', [CredentialsAuthController::class, 'unavailable'])
     ->middleware('throttle:10,1')
     ->name('auth.request');
-Route::post('/auth/phone/verify', [PhoneOtpController::class, 'verify'])
+Route::post('/auth/phone/verify', [CredentialsAuthController::class, 'unavailable'])
     ->middleware('throttle:10,1')
     ->name('auth.verify');
-Route::post('/logout', [PhoneOtpController::class, 'logout'])
+Route::post('/logout', [CredentialsAuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
+
 Route::get('/account', AccountController::class)
     ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.status');
+Route::get('/account/profile', [AccountController::class, 'profile'])
+    ->middleware(['auth', NoIndexPrivateArea::class])
+    ->name('account.profile');
+Route::patch('/account/profile', [AccountController::class, 'updateProfile'])
+    ->middleware(['auth', NoIndexPrivateArea::class])
+    ->name('account.profile.update');
+Route::patch('/account/password', [AccountController::class, 'updatePassword'])
+    ->middleware(['auth', NoIndexPrivateArea::class])
+    ->name('account.password.update');
 Route::patch('/account/preferences', [AccountController::class, 'updatePreferences'])
     ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.preferences.update');

@@ -1,0 +1,22 @@
+/* Mobile stability v7 — real URLs, visible content and separated support controls. */
+.site-nav a{border:0;background:none;padding:8px 0;color:var(--slate);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none}.site-nav a:hover,.site-nav a.active{color:var(--navy)}a.offer-card{color:var(--navy);text-decoration:none}
+@media(max-width:900px){
+  body.final-site{padding-bottom:calc(88px + env(safe-area-inset-bottom));overflow-x:hidden}
+  .final-site .public-page.active{display:block!important;visibility:visible!important;opacity:1!important}
+  .final-site .experience-reveal,.final-site .experience-reveal.is-visible{opacity:1!important;transform:none!important;transition:none!important}
+  .final-site .mobile-app-nav{z-index:900!important;pointer-events:auto!important;touch-action:manipulation}
+  .final-site .mobile-app-nav a,.final-site .mobile-app-nav button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-decoration:none}
+  .final-site .mobile-app-nav [data-mobile-key="account"]{background:#dcefe8;color:#10303a}
+  .final-site .mobile-app-nav [data-mobile-key="account"].active{background:#10303a;color:#fff}
+  .final-site .ines-ai-launcher{display:grid!important;place-items:center;position:fixed!important;right:16px!important;bottom:calc(88px + env(safe-area-inset-bottom))!important;z-index:980!important;width:52px!important;height:52px!important;min-width:52px!important;padding:0!important;border:5px solid rgba(251,247,236,.96)!important;border-radius:50%!important;box-shadow:0 14px 34px rgba(16,48,58,.25)!important}
+  .final-site .ines-ai-launcher span:first-child{font-size:19px!important}
+  .final-site .ines-ai-launcher span:last-child{display:none!important}
+  body.mobile-chat-open .mobile-app-nav,body.mobile-chat-open .ines-ai-launcher{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+  .final-site .ines-ai-panel{z-index:1600!important}
+  .final-site .site-nav{z-index:1200}
+}
+@media(max-width:760px){
+  .site-nav a{display:block;text-align:left;padding:11px 10px;border-radius:11px}
+  .site-nav a:active{background:rgba(169,211,201,.28)}
+  .final-site .offer-card{display:flex!important}
+}

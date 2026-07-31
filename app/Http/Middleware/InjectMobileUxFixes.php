@@ -34,10 +34,13 @@ class InjectMobileUxFixes
 
         $styles = [];
         if (! str_contains($content, '/css/mobile-fixes-v5.css')) {
-            $styles[] = '<link rel="stylesheet" href="/css/mobile-fixes-v5.css?v=20260731c">';
+            $styles[] = '<link rel="stylesheet" href="/css/mobile-fixes-v5.css?v=20260731d">';
         }
         if (! str_contains($content, '/css/mobile-stability-v6.css')) {
             $styles[] = '<link rel="stylesheet" href="/css/mobile-stability-v6.css?v=20260731a">';
+        }
+        if (! str_contains($content, '/css/mobile-stability-v7.css')) {
+            $styles[] = '<link rel="stylesheet" href="/css/mobile-stability-v7.css?v=20260731a">';
         }
         if ($styles !== []) {
             $content = str_replace('</head>', '    '.implode("\n    ", $styles)."\n</head>", $content);
@@ -46,7 +49,7 @@ class InjectMobileUxFixes
         if (! str_contains($content, '/js/mobile-fixes-v5.js')) {
             $content = str_replace(
                 '</body>',
-                '    <script src="/js/mobile-fixes-v5.js?v=20260731c" defer></script>'."\n</body>",
+                '    <script src="/js/mobile-fixes-v5.js?v=20260731d" defer></script>'."\n</body>",
                 $content,
             );
         }

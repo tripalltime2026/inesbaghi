@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700;800&family=Noto+Serif+Georgian:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/site.css') }}">
     <link rel="stylesheet" href="{{ asset('css/seo-pages.css') }}">
+    @if($pageKey === 'admission')
+        <link rel="stylesheet" href="{{ asset('css/admission-form.css') }}">
+    @endif
 </head>
 <body class="final-site seo-page-body">
 <header class="site-header seo-site-header">
@@ -41,7 +44,7 @@
             @endphp
             <a class="pill navy" href="{{ $cabinetUrl }}">კაბინეტი</a>
         @else
-            <a class="pill navy" href="{{ route('home') }}">საიტზე დაბრუნება</a>
+            <a class="pill navy" href="{{ route('auth.credentials.login.form') }}">შესვლა</a>
         @endauth
     </div>
 </header>
@@ -57,7 +60,11 @@
             <h1>{{ $page['h1'] }}</h1>
             <p>{{ $page['lead'] }}</p>
             <div class="button-row">
-                <a class="primary-button" href="{{ route('public.admission') }}">ჩარიცხვა და ვიზიტი</a>
+                @if($pageKey === 'admission')
+                    <a class="primary-button" href="#admissionFormTitle">განაცხადის შევსება</a>
+                @else
+                    <a class="primary-button" href="{{ route('public.admission') }}">ჩარიცხვა და ვიზიტი</a>
+                @endif
                 <button class="secondary-button lavender" type="button" data-ines-ai-open>ჰკითხეთ Ines AI-ს</button>
             </div>
         </div>
@@ -65,6 +72,10 @@
             <img src="{{ asset('images/ines-final-hero.svg') }}" alt="ინეს ბაღი — კერძო საბავშვო ბაღი ბათუმში" width="1080" height="1080" decoding="async">
         </div>
     </section>
+
+    @if($pageKey === 'admission')
+        @include('public.partials.admission-form')
+    @endif
 
     @if(!empty($page['sections']))
         <section class="seo-content-grid content-width" aria-label="{{ $page['eyebrow'] }} — დეტალური ინფორმაცია">
@@ -95,7 +106,7 @@
             <h2>გაიცანით გარემო და პროგრამა ადგილზე</h2>
             <p>დატოვეთ მოთხოვნა და ადმინისტრაცია დაგიკავშირდებათ თქვენთვის მოსახერხებელი დროის შესათანხმებლად.</p>
         </div>
-        <a class="primary-button" href="{{ route('public.admission') }}">ვიზიტის დაგეგმვა</a>
+        <a class="primary-button" href="{{ $pageKey === 'admission' ? '#admissionFormTitle' : route('public.admission') }}">ვიზიტის დაგეგმვა</a>
     </section>
 </main>
 

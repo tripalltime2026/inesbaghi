@@ -6,13 +6,14 @@ use App\Models\AdmissionApplication;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdmissionApplicationController extends Controller
 {
-    public function store(Request $request, PrivacyConsentRecorder $recorder): JsonResponse
+    public function store(Request $request, PrivacyConsentRecorder $recorder): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
             'parent_name' => ['required', 'string', 'min:2', 'max:120'],
@@ -61,10 +62,14 @@ class AdmissionApplicationController extends Controller
             return $application;
         });
 
-        return response()->json([
-            'message' => 'განაცხადი მიღებულია. მალე დაგიკავშირდებით.',
-            'application_id' => $application->id,
-        ], 201);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'განაცხადი მიღებულია. მალე დაგიკავშირდებით.',
+                'application_id' => $application->id,
+            ], 201);
+        }
+
+        return back()->with('admission_success', "განაცხადი მიღებულია. ნომერი: #{$application->id}. ადმინისტრაცია მალე დაგიკავშირდებათ.");
     }
 
     private function normalizePhone(string $phone): string
