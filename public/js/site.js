@@ -188,7 +188,7 @@ registrationForm?.addEventListener('submit', async (event) => {
 
 const loginModal = document.getElementById('loginModal');
 const loginStatus = document.getElementById('loginStatus');
-let authMode = { demo_enabled: false, admin_phone: '555411831' };
+let authMode = { demo_enabled: false };
 let requestId = null;
 let loginName = '';
 let loginPhone = '';
@@ -211,11 +211,8 @@ async function loadAuthMode() {
     const response = await fetch(window.ines.routes.demoStatus, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
     authMode = await response.json();
     if (authMode.demo_enabled) {
-      document.getElementById('loginLead').textContent = 'SMS კოდი დროებით გამორთულია. შეიყვანეთ სახელი და ტელეფონის ნომერი და პირდაპირ გადადით კაბინეტში.';
-      document.getElementById('loginSubmit').textContent = 'კოდის გარეშე შესვლა →';
-      const note = document.getElementById('demoAuthNote');
-      note.hidden = false;
-      note.textContent = `დემო ადმინისტრატორი: ${authMode.admin_phone}. სხვა სწორი ქართული ნომერი მშობლის კაბინეტს გახსნის.`;
+      document.getElementById('loginLead').textContent = 'შეიყვანეთ სახელი და ტელეფონის ნომერი კაბინეტში შესასვლელად.';
+      document.getElementById('loginSubmit').textContent = 'შესვლა';
     }
   } catch (_) { /* OTP fallback remains available. */ }
 }
@@ -230,7 +227,7 @@ document.getElementById('otpRequest')?.addEventListener('submit', async (event) 
   try {
     if (authMode.demo_enabled) {
       const data = await post(window.ines.routes.demoLogin, { name: loginName, phone: loginPhone });
-      showLoginStatus(data.user.role === 'admin' ? 'ადმინისტრატორის კაბინეტი იხსნება.' : 'მშობლის კაბინეტი იხსნება.', 'ok');
+      showLoginStatus('კაბინეტი იხსნება.', 'ok');
       setTimeout(() => { window.location.href = data.redirect_to || '/'; }, 450);
       return;
     }
