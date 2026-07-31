@@ -57,16 +57,17 @@ class GoogleOnlyAuthentication
             return $response;
         }
 
-        $modal = $this->modal((string) $request->session()->get('google_auth_error', ''));
-        $modalStart = strpos($content, '<div class="modal" id="loginModal"');
-        if ($modalStart !== false && ($nextScript = strpos($content, '<script>', $modalStart)) !== false) {
-            $content = substr_replace($content, $modal."\n\n", $modalStart, $nextScript - $modalStart);
-        } elseif (str_contains($content, '</body>')) {
-            $content = str_replace('</body>', $modal."\n</body>", $content);
-        }
+        $content = $this->replaceLoginButtonsWithGoogleLinks($content);
+        $content = $this->removeLegacyLoginModal($content);
+        $content = $this->injectGoogleError($content, (string) $request->session()->get('google_auth_error', ''));
 
-        $content = str_replace('</head>', '    <link rel="stylesheet" href="/css/google-auth.css?v=20260731b">'."\n</head>", $content);
-        $content = str_replace('</body>', '    <script src="/js/google-auth.js?v=20260731b" defer></script>'."\n</body>", $content);
+        if (! str_contains($content, '/css/google-auth.css')) {
+            $content = str_replace(
+                '</head>',
+                '    <link rel="stylesheet" href="/css/google-auth.css?v=20260731c">'."\n</head>",
+                $content,
+            );
+        }
 
         $response->setContent($content);
         $response->headers->remove('Content-Length');
@@ -79,15 +80,49 @@ class GoogleOnlyAuthentication
         return $request->is('auth/mode') || $request->is('auth/demo/*') || $request->is('auth/phone/*');
     }
 
-    private function modal(string $error): string
+    private function replaceLoginButtonsWithGoogleLinks(string $content): string
     {
-        $errorBlock = $error !== '' ? '<div class="google-auth-error" data-google-auth-error>'.e($error).'</div>' : '';
+        $authUrl = e(route('auth.google.redirect'));
 
-        return '<div class="modal google-auth-modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle"><div class="modal-card compact google-auth-card">'
-            .'<button class="modal-close" type="button" data-close-login aria-label="დახურვა">×</button><span class="section-badge mint">შესვლა / რეგისტრაცია</span>'
-            .'<h2 id="loginTitle">შესვლა Google-ით</h2><p>ერთი მოქმედებით შედით ან შექმენით თქვენი ანგარიში.</p>'.$errorBlock
-            .'<a class="google-auth-button" href="'.e(route('auth.google.redirect')).'" data-google-auth-start><span class="google-auth-mark">G</span><span>Google-ით გაგრძელება</span></a>'
-            .'<div class="google-auth-trust"><strong>Google-იდან მივიღებთ</strong><span>სახელს, დადასტურებულ ელფოსტას და პროფილის ფოტოს, როცა ის ხელმისაწვდომია.</span></div>'
-            .'<p class="google-auth-privacy">Google-ით გაგრძელებით ადასტურებთ, რომ გაეცანით <a href="/privacy">კონფიდენციალურობის პოლიტიკას</a>. ახალი ანგარიში იქმნება ჩვეულებრივი მომხმარებლის სტატუსით.</p></div></div>';
+        return preg_replace_callback(
+            '/<button(?P<before>[^>]*)\sdata-open-login(?P<after>[^>]*)>(?P<label>.*?)<\/button>/is',
+            function (array $matches) use ($authUrl): string {
+                $attributes = ($matches['before'] ?? '').($matches['after'] ?? '');
+                $attributes = preg_replace('/\s+type=("|\')button\1/i', '', $attributes) ?? $attributes;
+                $attributes = preg_replace('/\s+data-open-login(?:=("|\')[^"\']*\1)?/i', '', $attributes) ?? $attributes;
+                $attributes = rtrim($attributes);
+
+                return '<a'.$attributes.' href="'.$authUrl.'" data-google-auth-link>'
+                    .($matches['label'] ?? '')
+                    .'</a>';
+            },
+            $content,
+        ) ?? $content;
+    }
+
+    private function removeLegacyLoginModal(string $content): string
+    {
+        $modalStart = strpos($content, '<div class="modal" id="loginModal"');
+        if ($modalStart === false) {
+            return $content;
+        }
+
+        $nextScript = strpos($content, '<script>', $modalStart);
+        if ($nextScript === false) {
+            return $content;
+        }
+
+        return substr_replace($content, '', $modalStart, $nextScript - $modalStart);
+    }
+
+    private function injectGoogleError(string $content, string $error): string
+    {
+        if ($error === '' || ! str_contains($content, '<main id="publicApp">')) {
+            return $content;
+        }
+
+        $message = '<div class="google-auth-inline-error" role="alert">'.e($error).'</div>';
+
+        return str_replace('<main id="publicApp">', $message."\n<main id=\"publicApp\">", $content);
     }
 }
