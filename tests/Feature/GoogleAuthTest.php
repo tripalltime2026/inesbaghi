@@ -94,6 +94,7 @@ class CredentialsAuthTest extends TestCase
         $this->assertAuthenticatedAs($user);
 
         $this->patch('/account/profile', [
+            'username' => 'თამარ კიკნაძე',
             'name' => 'თამარ კიკნაძე',
             'phone' => '555123456',
             'email' => 'parent@example.com',
