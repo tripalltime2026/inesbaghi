@@ -4,6 +4,7 @@ use App\Http\Middleware\ApplyManagedContent;
 use App\Http\Middleware\EnsureParentClubAccess;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\InjectGoogleAnalytics;
+use App\Http\Middleware\InjectGoogleTagManager;
 use App\Http\Middleware\InjectMobileUxFixes;
 use App\Http\Middleware\InjectResponsiveAssets;
 use App\Http\Middleware\PasswordAuthentication;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            InjectGoogleTagManager::class,
             InjectGoogleAnalytics::class,
             PasswordAuthentication::class,
             InjectMobileUxFixes::class,
