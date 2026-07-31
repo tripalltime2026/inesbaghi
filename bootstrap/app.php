@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureParentClubAccess;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\InjectGoogleAnalytics;
 use App\Http\Middleware\InjectGoogleTagManager;
+use App\Http\Middleware\InjectHomeHeroManager;
 use App\Http\Middleware\InjectMobileUxFixes;
 use App\Http\Middleware\InjectResponsiveAssets;
 use App\Http\Middleware\InjectSocialFooterLinks;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             InjectResponsiveAssets::class,
             InjectSocialFooterLinks::class,
             ApplyManagedContent::class,
+            InjectHomeHeroManager::class,
         ]);
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
