@@ -24,7 +24,34 @@ class GoogleOnlyAuthentication
         }
 
         $content = $response->getContent();
-        if (! is_string($content) || ! str_contains($content, 'final-site')) {
+        if (! is_string($content)) {
+            return $response;
+        }
+
+        if (str_contains($content, 'account-status-body') && $request->user()?->google_id) {
+            $email = e((string) $request->user()->email);
+            $content = str_replace(
+                [
+                    'status-step waiting"><span>1</span><h2>ანგარიში</h2><p>ტელეფონის დადასტურება დარჩენილია.',
+                    '<div><span>ტელეფონი</span><strong></strong></div>',
+                    'ამ ტელეფონის ნომერზე ჩარიცხვის განაცხადი არ მოიძებნა.',
+                    'მხოლოდ რეგისტრაცია საკმარისი არ არის.',
+                ],
+                [
+                    'status-step done"><span>1</span><h2>ანგარიში</h2><p>Google ანგარიში და ელფოსტა დადასტურებულია.',
+                    '<div><span>ელფოსტა</span><strong>'.$email.'</strong></div><div><span>შესვლის მეთოდი</span><strong>Google</strong></div>',
+                    'თქვენს ანგარიშთან ჩარიცხვის განაცხადი ჯერ არ არის დაკავშირებული.',
+                    'მხოლოდ Google-ით რეგისტრაცია საკმარისი არ არის.',
+                ],
+                $content,
+            );
+            $response->setContent($content);
+            $response->headers->remove('Content-Length');
+
+            return $response;
+        }
+
+        if (! str_contains($content, 'final-site')) {
             return $response;
         }
 
