@@ -11,15 +11,16 @@ class User extends Authenticatable
     use Notifiable;
 
     protected $fillable = [
-        'name', 'phone', 'email', 'google_id', 'avatar_url', 'role', 'status',
+        'name', 'username', 'password', 'phone', 'email', 'role', 'status',
         'phone_verified_at', 'email_verified_at',
     ];
 
-    protected $hidden = ['remember_token'];
+    protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'phone_verified_at' => 'datetime',
             'email_verified_at' => 'datetime',
         ];
@@ -32,7 +33,7 @@ class User extends Authenticatable
 
     public function hasVerifiedIdentity(): bool
     {
-        return $this->phone_verified_at !== null || $this->email_verified_at !== null;
+        return filled($this->username) && filled($this->password);
     }
 
     public function children(): BelongsToMany
