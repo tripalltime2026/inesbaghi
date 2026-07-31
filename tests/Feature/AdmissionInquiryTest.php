@@ -13,11 +13,15 @@ class AdmissionInquiryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_inquiry_form_does_not_request_child_name(): void
+    public function test_public_inquiry_page_contains_reliable_form_without_child_name(): void
     {
-        $this->get('/')
+        $this->get('/charetskhva')
             ->assertOk()
-            ->assertSee('შეავსეთ ჩარიცხვის განაცხადი ან დაგეგმეთ გაცნობითი ვიზიტი')
+            ->assertSee('დატოვეთ საკონტაქტო ინფორმაცია')
+            ->assertSee('action="'.route('admissions.store').'"', false)
+            ->assertSee('name="parent_name"', false)
+            ->assertSee('name="phone"', false)
+            ->assertSee('/css/admission-form.css', false)
             ->assertDontSee('name="child_name"', false)
             ->assertDontSee('ბავშვის სახელი და გვარი *');
     }
@@ -37,6 +41,29 @@ class AdmissionInquiryTest extends TestCase
             'marketing_consent' => false,
             'privacy_policy_version' => PrivacyPolicy::VERSION,
         ])->assertCreated();
+
+        $this->assertDatabaseHas('admission_applications', [
+            'phone' => '+995555123456',
+            'child_name' => null,
+            'status' => 'new',
+        ]);
+    }
+
+    public function test_html_inquiry_redirects_back_with_success_message(): void
+    {
+        $this->from('/charetskhva')->post('/admissions', [
+            'parent_name' => 'ნინო ბერიძე',
+            'phone' => '555123456',
+            'birth_year' => 2022,
+            'preferred_group' => '3-4',
+            'academic_year' => '2026',
+            'wants_tour' => '1',
+            'privacy_accepted' => '1',
+            'guardian_authority_confirmed' => '1',
+            'special_category_consent' => '1',
+            'privacy_policy_version' => PrivacyPolicy::VERSION,
+        ])->assertRedirect('/charetskhva')
+            ->assertSessionHas('admission_success');
 
         $this->assertDatabaseHas('admission_applications', [
             'phone' => '+995555123456',
