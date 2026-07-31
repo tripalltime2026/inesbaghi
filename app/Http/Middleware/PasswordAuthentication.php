@@ -32,16 +32,20 @@ class PasswordAuthentication
         if (str_contains($content, 'account-status-body') && $request->user()?->password) {
             $content = str_replace(
                 [
+                    'status-step waiting"><span>1</span><h2>ანგარიში</h2>',
                     'ტელეფონის დადასტურება დარჩენილია.',
                     'ტელეფონის ნომერი დადასტურებულია.',
                     'ამ ტელეფონის ნომერზე ჩარიცხვის განაცხადი არ მოიძებნა.',
                     '<div><span>ტელეფონი</span><strong></strong></div>',
+                    '<h2>ანგარიშის ინფორმაცია</h2>',
                 ],
                 [
+                    'status-step done"><span>1</span><h2>ანგარიში</h2>',
                     'ანგარიში დაცულია სახელითა და პაროლით.',
                     'ანგარიში დაცულია სახელითა და პაროლით.',
                     'თქვენს ანგარიშთან ჩარიცხვის განაცხადი ჯერ არ არის დაკავშირებული.',
                     '<div><span>ტელეფონი</span><strong>ჯერ არ არის დამატებული</strong></div>',
+                    '<h2>ანგარიშის ინფორმაცია</h2><a class="account-cta" href="'.e(route('account.profile')).'">პროფილის რედაქტირება →</a>',
                 ],
                 $content,
             );
