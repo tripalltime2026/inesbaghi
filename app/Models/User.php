@@ -10,17 +10,29 @@ class User extends Authenticatable
 {
     use Notifiable;
 
-    protected $fillable = ['name', 'phone', 'email', 'role', 'status', 'phone_verified_at'];
+    protected $fillable = [
+        'name', 'phone', 'email', 'google_id', 'avatar_url', 'role', 'status',
+        'phone_verified_at', 'email_verified_at',
+    ];
+
     protected $hidden = ['remember_token'];
 
     protected function casts(): array
     {
-        return ['phone_verified_at' => 'datetime'];
+        return [
+            'phone_verified_at' => 'datetime',
+            'email_verified_at' => 'datetime',
+        ];
     }
 
     public function hasRole(string ...$roles): bool
     {
         return $this->status === 'active' && in_array($this->role, $roles, true);
+    }
+
+    public function hasVerifiedIdentity(): bool
+    {
+        return $this->phone_verified_at !== null || $this->email_verified_at !== null;
     }
 
     public function children(): BelongsToMany
@@ -47,7 +59,7 @@ class User extends Authenticatable
     public function canAccessParentClub(): bool
     {
         return $this->status === 'active'
-            && $this->phone_verified_at !== null
+            && $this->hasVerifiedIdentity()
             && $this->hasLinkedChild()
             && $this->hasActiveEnrollment();
     }
