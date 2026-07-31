@@ -1,0 +1,253 @@
+/* Mobile UX v5 — readable type, compact footer, non-overlapping controls and usable auth sheet. */
+@media (max-width: 900px) {
+  body.final-site {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .final-site .mobile-app-nav {
+    left: 12px;
+    right: 12px;
+    bottom: max(9px, env(safe-area-inset-bottom));
+    z-index: 800;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 20px;
+  }
+
+  .final-site .mobile-app-nav a,
+  .final-site .mobile-app-nav button {
+    min-height: 54px;
+    gap: 4px;
+    border-radius: 14px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .final-site .mobile-app-nav i {
+    font-size: 18px;
+  }
+
+  .final-site .mobile-app-nav [data-mobile-key="ai"] {
+    background: #dcefe8;
+    color: #10303a;
+  }
+
+  .final-site .mobile-app-nav [data-mobile-key="ai"].active {
+    background: #1d5a75;
+    color: #fff;
+  }
+
+  /* Ines AI lives inside the mobile navigation instead of floating over content. */
+  .final-site .ines-ai-launcher {
+    display: none !important;
+  }
+
+  body.mobile-auth-open .mobile-app-nav,
+  body.mobile-chat-open .mobile-app-nav,
+  body:has(#loginModal.open) .mobile-app-nav,
+  body:has(.ines-ai-panel.open) .mobile-app-nav {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .final-site .ines-ai-panel {
+    z-index: 1500;
+  }
+
+  .final-site .ines-ai-message {
+    font-size: 14px;
+    line-height: 1.58;
+  }
+
+  .final-site .ines-ai-quick button {
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+
+  /* Remove the invisible SEO link block that made the dark footer extremely tall. */
+  .final-site .site-footer {
+    min-height: 0 !important;
+    padding: 20px 0 calc(84px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .final-site .site-footer .seo-footer-nav {
+    display: none !important;
+  }
+
+  .final-site .site-footer .footer-row {
+    display: grid !important;
+    justify-content: start;
+    width: calc(100% - 32px);
+    margin: 0 auto;
+    gap: 7px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .final-site .site-footer .legal-footer-links {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    width: calc(100% - 32px);
+    margin: 14px auto 0;
+    padding: 0;
+    gap: 8px 14px;
+    text-align: left;
+  }
+
+  .final-site .site-footer .legal-footer-links a {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  /* Public demo role details are never shown in the interface. */
+  .final-site #demoAuthNote,
+  .final-site .demo-auth-note {
+    display: none !important;
+  }
+
+  /* The login sheet stays above all floating UI and always exposes its action. */
+  .final-site .modal {
+    z-index: 1400 !important;
+    align-items: flex-end;
+    padding: max(8px, env(safe-area-inset-top)) 0 0;
+  }
+
+  .final-site .modal-card,
+  .final-site .modal-card.compact {
+    width: 100%;
+    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)));
+    padding: 24px 18px calc(104px + env(safe-area-inset-bottom));
+    border-radius: 28px 28px 0 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: 118px;
+  }
+
+  .final-site .modal-card h2 {
+    margin: 15px 0 10px;
+    padding-right: 44px;
+    font-size: 30px;
+    line-height: 1.2;
+  }
+
+  .final-site .modal-card > div > p,
+  .final-site #loginLead {
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .final-site .modal-card .final-form {
+    gap: 15px;
+    padding: 18px 14px 12px;
+  }
+
+  .final-site .modal-card .final-form label > span,
+  .final-site .modal-card .final-form legend {
+    font-size: 12px;
+  }
+
+  .final-site .modal-card .legal-consent-box span {
+    font-size: 11.5px !important;
+    line-height: 1.55;
+  }
+
+  .final-site #otpRequest > .primary-button.full,
+  .final-site #otpVerify > .primary-button.full {
+    position: fixed;
+    left: 18px;
+    right: 18px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 1450;
+    width: auto;
+    min-height: 56px;
+    margin: 0;
+    border: 4px solid #fff;
+    border-radius: 18px;
+    font-size: 13px;
+    box-shadow: 0 12px 30px rgba(16,48,58,.28);
+  }
+}
+
+@media (max-width: 760px) {
+  .final-site .brand-lockup strong {
+    font-size: 16px;
+  }
+
+  .final-site .site-actions .pill.navy {
+    font-size: 12px;
+  }
+
+  .final-site .public-page[data-page="home"] .section-badge {
+    font-size: 10px;
+  }
+
+  .final-site .public-page[data-page="home"] .hero-copy > p {
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-line-clamp: 3;
+  }
+
+  .final-site .public-page[data-page="home"] .experience-trust-row span {
+    min-height: 44px;
+    padding: 7px 6px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .final-site .public-page[data-page="home"] .button-row .secondary-button {
+    min-height: 50px;
+    font-size: 13px;
+  }
+
+  .final-site .public-page[data-page="home"] .button-row .primary-button {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .final-site .public-page[data-page="home"] .home-offers > h2 {
+    font-size: 23px;
+  }
+
+  .final-site .public-page[data-page="home"] .offer-card strong {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .final-site .public-page[data-page="home"] .offer-card small {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .final-site .public-page[data-page="home"] .mini-post-grid strong {
+    font-size: 12px;
+  }
+
+  .seo-page-body .seo-hero p,
+  .seo-page-body .seo-info-card p,
+  .seo-page-body .seo-faq p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .seo-page-body .seo-info-card h2 {
+    font-size: 25px;
+  }
+}
+
+@media (max-width: 390px) {
+  .final-site .public-page[data-page="home"] .hero-copy > p {
+    font-size: 13.5px;
+  }
+
+  .final-site .mobile-app-nav a,
+  .final-site .mobile-app-nav button {
+    font-size: 9.5px;
+  }
+
+  .final-site .site-footer .legal-footer-links {
+    gap: 7px 11px;
+  }
+}

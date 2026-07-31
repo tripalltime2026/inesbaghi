@@ -12,18 +12,20 @@ class DemoAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_auth_mode_exposes_temporary_demo_configuration(): void
+    public function test_auth_mode_exposes_only_safe_demo_configuration(): void
     {
         config()->set('services.demo_auth.enabled', true);
         config()->set('services.demo_auth.admin_phone', '555411831');
 
-        $this->getJson('/auth/mode')
+        $response = $this->getJson('/auth/mode')
             ->assertOk()
             ->assertJson([
                 'demo_enabled' => true,
-                'admin_phone' => '555411831',
                 'privacy_policy_version' => PrivacyPolicy::VERSION,
             ]);
+
+        $this->assertArrayNotHasKey('admin_phone', $response->json());
+        $response->assertDontSee('555411831');
     }
 
     public function test_configured_phone_logs_in_as_active_admin_without_code(): void

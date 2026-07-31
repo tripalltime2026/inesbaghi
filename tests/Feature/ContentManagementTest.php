@@ -138,6 +138,9 @@ class ContentManagementTest extends TestCase
 
     private function loginAsAdmin(): void
     {
+        config()->set('services.demo_auth.enabled', true);
+        config()->set('services.demo_auth.admin_phone', '555411831');
+
         $this->postJson('/auth/demo/login', [
             'name' => 'ინეს ბაღის ადმინისტრატორი',
             'phone' => '555411831',
