@@ -88,8 +88,7 @@ class GoogleOnlyAuthentication
             '/<button(?P<before>[^>]*)\sdata-open-login(?P<after>[^>]*)>(?P<label>.*?)<\/button>/is',
             function (array $matches) use ($authUrl): string {
                 $attributes = ($matches['before'] ?? '').($matches['after'] ?? '');
-                $attributes = preg_replace('/\s+type=("|\')button\1/i', '', $attributes) ?? $attributes;
-                $attributes = preg_replace('/\s+data-open-login(?:=("|\')[^"\']*\1)?/i', '', $attributes) ?? $attributes;
+                $attributes = preg_replace('/\s+type="button"/i', '', $attributes) ?? $attributes;
                 $attributes = rtrim($attributes);
 
                 return '<a'.$attributes.' href="'.$authUrl.'" data-google-auth-link>'
