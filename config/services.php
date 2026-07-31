@@ -7,7 +7,7 @@ return [
     ],
     'demo_auth' => [
         'enabled' => filter_var(env('DEMO_AUTH_ENABLED', true), FILTER_VALIDATE_BOOL),
-        'admin_phone' => env('DEMO_ADMIN_PHONE', '555411831'),
+        'admin_phone' => env('DEMO_ADMIN_PHONE'),
         'auto_migrate' => filter_var(env('DEMO_AUTO_MIGRATE', true), FILTER_VALIDATE_BOOL),
     ],
     'ines_ai' => [
