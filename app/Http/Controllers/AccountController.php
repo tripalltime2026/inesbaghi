@@ -10,6 +10,7 @@ use App\Support\PrivacyPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -68,6 +69,13 @@ class AccountController extends Controller
     {
         $user = $request->user();
         $validated = $request->validate([
+            'username' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                Rule::unique('users', 'username')->ignore($user->id),
+            ],
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'phone' => [
                 'required',
@@ -81,12 +89,26 @@ class AccountController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
         ], [
+            'username.required' => 'ჩაწერეთ შესვლის სახელი.',
+            'username.min' => 'შესვლის სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'username.unique' => 'ეს შესვლის სახელი უკვე გამოყენებულია.',
             'phone.required' => 'ჩაწერეთ მობილურის ნომერი.',
             'phone.regex' => 'მობილურის ნომერი ჩაწერეთ ფორმატით 5XX XX XX XX.',
             'phone.unique' => 'ეს მობილურის ნომერი უკვე სხვა ანგარიშზეა გამოყენებული.',
             'email.email' => 'ელფოსტის ფორმატი არასწორია.',
             'email.unique' => 'ეს ელფოსტა უკვე სხვა ანგარიშზეა გამოყენებული.',
         ]);
+
+        $username = Str::of($validated['username'])->squish()->lower()->toString();
+        $usernameOwner = User::query()
+            ->where('username', $username)
+            ->whereKeyNot($user->id)
+            ->exists();
+        if ($usernameOwner) {
+            throw ValidationException::withMessages([
+                'username' => 'ეს შესვლის სახელი უკვე გამოყენებულია.',
+            ]);
+        }
 
         $phone = $this->normalizePhone($validated['phone']);
         $phoneOwner = User::query()
@@ -101,6 +123,7 @@ class AccountController extends Controller
         }
 
         $user->update([
+            'username' => $username,
             'name' => trim($validated['name']),
             'phone' => $phone,
             'email' => $validated['email'] ? mb_strtolower(trim($validated['email'])) : null,
@@ -138,9 +161,7 @@ class AccountController extends Controller
 
         $user->update(['password' => $validated['password']]);
 
-        return back()->with('success', $user->wasChanged('password')
-            ? 'პაროლი წარმატებით შენახულია.'
-            : 'პაროლი განახლებულია.');
+        return back()->with('success', 'პაროლი წარმატებით შენახულია.');
     }
 
     public function updatePreferences(Request $request, PrivacyConsentRecorder $recorder): RedirectResponse
