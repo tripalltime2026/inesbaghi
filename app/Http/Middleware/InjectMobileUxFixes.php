@@ -32,18 +32,21 @@ class InjectMobileUxFixes
             return $response;
         }
 
+        $styles = [];
         if (! str_contains($content, '/css/mobile-fixes-v5.css')) {
-            $content = str_replace(
-                '</head>',
-                '    <link rel="stylesheet" href="/css/mobile-fixes-v5.css?v=20260731a">'."\n</head>",
-                $content,
-            );
+            $styles[] = '<link rel="stylesheet" href="/css/mobile-fixes-v5.css?v=20260731c">';
+        }
+        if (! str_contains($content, '/css/mobile-stability-v6.css')) {
+            $styles[] = '<link rel="stylesheet" href="/css/mobile-stability-v6.css?v=20260731a">';
+        }
+        if ($styles !== []) {
+            $content = str_replace('</head>', '    '.implode("\n    ", $styles)."\n</head>", $content);
         }
 
         if (! str_contains($content, '/js/mobile-fixes-v5.js')) {
             $content = str_replace(
                 '</body>',
-                '    <script src="/js/mobile-fixes-v5.js?v=20260731a" defer></script>'."\n</body>",
+                '    <script src="/js/mobile-fixes-v5.js?v=20260731c" defer></script>'."\n</body>",
                 $content,
             );
         }
