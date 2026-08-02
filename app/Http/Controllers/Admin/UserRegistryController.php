@@ -47,6 +47,8 @@ class UserRegistryController extends Controller
 
         $this->applyFilter($query, $filters['access'] ?? null);
 
+        $billingUsers = $this->parentQuery()->get(['payment_due', 'payment_paid']);
+
         return view('admin.users.index', [
             'users' => $query->latest()->paginate(20)->withQueryString(),
             'filters' => $filters,
@@ -55,9 +57,7 @@ class UserRegistryController extends Controller
                 'total' => $this->parentQuery()->count(),
                 'pending' => $this->parentQuery()->whereNull('club_access_approved_at')->count(),
                 'approved' => $this->parentQuery()->whereNotNull('club_access_approved_at')->count(),
-                'outstanding' => (float) $this->parentQuery()
-                    ->selectRaw('COALESCE(SUM(GREATEST(payment_due - payment_paid, 0)), 0) as total')
-                    ->value('total'),
+                'outstanding' => (float) $billingUsers->sum(fn (User $user) => $user->paymentOutstanding()),
             ],
         ]);
     }
