@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\SiteItem;
+use App\Services\ArticleImporter;
 use App\Services\ManagedContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class ContentController extends Controller
 {
@@ -76,28 +79,79 @@ class ContentController extends Controller
         return back()->with('success', 'ჩანაწერი წაიშალა.');
     }
 
+    public function importBlog(Request $request, ArticleImporter $importer, ManagedContent $content): RedirectResponse
+    {
+        $validated = $request->validate([
+            'source_url' => ['required', 'url:http,https', 'max:2048'],
+        ]);
+
+        try {
+            $imported = $importer->import($validated['source_url']);
+
+            DB::transaction(function () use ($imported, $content, $request): void {
+                BlogPost::create(array_merge($imported, [
+                    'slug' => $content->uniqueSlug($imported['title']),
+                    'status' => 'draft',
+                    'published_at' => null,
+                    'sort_order' => 0,
+                    'updated_by' => $request->user()?->id,
+                ]));
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withErrors(['source_url' => $exception->getMessage() ?: 'სტატიის იმპორტი ვერ მოხერხდა.'])
+                ->withInput();
+        }
+
+        return back()->with('success', 'Marketer.ge-ის სტატია დრაფტად დაემატა. გადაამოწმეთ ტექსტი და შემდეგ გამოაქვეყნეთ.');
+    }
+
     public function storeBlog(Request $request, ManagedContent $content): RedirectResponse
     {
         $validated = $this->validateBlog($request);
-        $payload = $this->blogPayload($request, $validated);
-        $payload['slug'] = $content->uniqueSlug($validated['title']);
-        $payload['updated_by'] = $request->user()?->id;
 
-        BlogPost::create($payload);
+        try {
+            DB::transaction(function () use ($request, $content, $validated): void {
+                $payload = $this->blogPayload($request, $validated);
+                $payload['slug'] = $content->uniqueSlug($validated['title']);
+                $payload['updated_by'] = $request->user()?->id;
 
-        return back()->with('success', 'ბლოგის სტატია შეიქმნა.');
+                BlogPost::create($payload);
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withErrors(['cover' => 'სტატიის შენახვა ვერ მოხერხდა. გადაამოწმეთ ქავერის ფორმატი და სცადეთ თავიდან.'])
+                ->withInput();
+        }
+
+        return back()->with('success', 'ბლოგის სტატია შეიქმნა და სტატუსის შესაბამისად გამოქვეყნდა.');
     }
 
     public function updateBlog(Request $request, BlogPost $post, ManagedContent $content): RedirectResponse
     {
         $validated = $this->validateBlog($request);
-        $payload = $this->blogPayload($request, $validated, $post);
-        $payload['slug'] = $content->uniqueSlug($validated['title'], $post);
-        $payload['updated_by'] = $request->user()?->id;
 
-        $post->update($payload);
+        try {
+            DB::transaction(function () use ($request, $post, $content, $validated): void {
+                $payload = $this->blogPayload($request, $validated, $post);
+                $payload['slug'] = $content->uniqueSlug($validated['title'], $post);
+                $payload['updated_by'] = $request->user()?->id;
 
-        return back()->with('success', 'ბლოგის სტატია განახლდა.');
+                $post->update($payload);
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withErrors(['cover' => 'სტატიის განახლება ვერ მოხერხდა. გადაამოწმეთ ქავერის ფორმატი და სცადეთ თავიდან.'])
+                ->withInput();
+        }
+
+        return back()->with('success', 'ბლოგის სტატია განახლდა და სტატუსის შესაბამისად გამოქვეყნდა.');
     }
 
     public function destroyBlog(BlogPost $post): RedirectResponse
@@ -163,6 +217,9 @@ class ContentController extends Controller
             'category' => ['nullable', 'string', 'max:120'],
             'status' => ['required', Rule::in(array_keys(BlogPost::STATUSES))],
             'published_at' => ['nullable', 'date'],
+            'source_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'source_name' => ['nullable', 'string', 'max:120'],
+            'source_published_at' => ['nullable', 'date'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'cover' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'cover_alt' => ['nullable', 'string', 'max:255'],
@@ -172,28 +229,50 @@ class ContentController extends Controller
 
     private function blogPayload(Request $request, array $validated, ?BlogPost $post = null): array
     {
+        $status = $validated['status'];
+        $publishedAt = $validated['published_at'] ?? null;
+
+        if ($status === 'published' && blank($publishedAt)) {
+            $publishedAt = now();
+        }
+
         $payload = [
             'title' => $validated['title'],
             'excerpt' => $validated['excerpt'] ?? null,
             'body' => $validated['body'] ?? null,
             'category' => $validated['category'] ?? null,
-            'status' => $validated['status'],
-            'published_at' => $validated['published_at'] ?? null,
+            'status' => $status,
+            'published_at' => $publishedAt,
+            'source_url' => filled($validated['source_url'] ?? null) ? trim($validated['source_url']) : null,
+            'source_name' => filled($validated['source_name'] ?? null) ? trim($validated['source_name']) : null,
+            'source_published_at' => $validated['source_published_at'] ?? null,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'cover_alt' => $validated['cover_alt'] ?? null,
         ];
 
         if ($request->boolean('remove_cover')) {
-            $payload = array_merge($payload, ['cover_image' => null, 'cover_mime' => null, 'cover_name' => null]);
+            $payload = array_merge($payload, [
+                'cover_image' => null,
+                'cover_encoding' => null,
+                'cover_mime' => null,
+                'cover_name' => null,
+            ]);
         }
 
         if ($request->hasFile('cover')) {
             $file = $request->file('cover');
-            $payload['cover_image'] = file_get_contents($file->getRealPath());
+            $rawImage = file_get_contents($file->getRealPath());
+
+            if (! is_string($rawImage) || $rawImage === '') {
+                throw new \RuntimeException('ქავერის წაკითხვა ვერ მოხერხდა.');
+            }
+
+            $payload['cover_image'] = base64_encode($rawImage);
+            $payload['cover_encoding'] = 'base64';
             $payload['cover_mime'] = $file->getMimeType();
             $payload['cover_name'] = $file->getClientOriginalName();
         } elseif ($post && ! $request->boolean('remove_cover')) {
-            unset($payload['cover_image'], $payload['cover_mime'], $payload['cover_name']);
+            unset($payload['cover_image'], $payload['cover_encoding'], $payload['cover_mime'], $payload['cover_name']);
         }
 
         return $payload;

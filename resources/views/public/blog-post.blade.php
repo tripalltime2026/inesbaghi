@@ -64,6 +64,11 @@
                 ],
             ],
         ];
+
+        if ($post->source_url) {
+            $schema['@graph'][0]['citation'] = $post->source_url;
+            $schema['@graph'][0]['isBasedOn'] = $post->source_url;
+        }
     @endphp
     <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 </head>
@@ -132,6 +137,16 @@
                 @empty
                     <p>{{ $post->excerpt }}</p>
                 @endforelse
+
+                @if($post->source_url)
+                    <p class="blog-source-note">
+                        <strong>პირველწყარო:</strong>
+                        <a href="{{ $post->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $post->source_name ?: parse_url($post->source_url, PHP_URL_HOST) }} ↗</a>
+                        @if($post->source_published_at)
+                            <span> · {{ $post->source_published_at->format('d.m.Y') }}</span>
+                        @endif
+                    </p>
+                @endif
             </div>
 
             <aside class="blog-share" aria-label="სტატიის გაზიარება">
