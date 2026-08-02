@@ -20,7 +20,7 @@ class EnsureParentClubAccess
 
         if ($request->expectsJson()) {
             return new JsonResponse([
-                'message' => 'მშობელთა კლუბი ხელმისაწვდომია მხოლოდ აქტიურად ჩარიცხული ბავშვის დადასტურებული მშობლისთვის.',
+                'message' => 'ჯგუფებსა და ფორუმზე წვდომა გაიხსნება მხოლოდ ადმინისტრატორის დადასტურებისა და აქტიური ჩარიცხვის შემდეგ.',
                 'account_status_url' => route('account.status'),
             ], 403);
         }

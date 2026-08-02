@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Admin\UserRegistryController;
+use App\Http\Middleware\NoIndexPrivateArea;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -17,6 +20,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Route::middleware(['web', 'auth', NoIndexPrivateArea::class, 'role:admin'])
+            ->prefix('admin')
+            ->name('admin.')
+            ->group(function (): void {
+                Route::patch('/users/{user}/access-payment', [UserRegistryController::class, 'update'])
+                    ->name('users.access-payment.update');
+            });
+
         $this->prepareRuntimeDirectories();
 
         if (

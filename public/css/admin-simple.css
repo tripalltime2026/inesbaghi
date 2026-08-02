@@ -1,0 +1,55 @@
+.admin-workspace .account-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.admin-workspace .account-meta > div {
+    padding: 12px 14px;
+    border: 1px solid rgba(26, 55, 63, .1);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .72);
+}
+
+.admin-workspace .account-meta span,
+.admin-workspace .account-meta strong {
+    display: block;
+}
+
+.admin-workspace .account-meta span {
+    margin-bottom: 5px;
+    color: #667483;
+    font-size: 12px;
+}
+
+.admin-workspace .account-meta strong {
+    color: #17343c;
+    font-size: 14px;
+}
+
+.cms-card-top > div:last-child {
+    text-align: right;
+}
+
+.check-label small {
+    display: block;
+    margin-top: 4px;
+    color: #667483;
+    font-weight: 400;
+}
+
+@media (max-width: 900px) {
+    .admin-workspace .account-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .admin-workspace .account-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .cms-card-top > div:last-child {
+        text-align: left;
+    }
+}
