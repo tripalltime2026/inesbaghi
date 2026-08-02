@@ -186,6 +186,7 @@ class BillingAttendanceTest extends TestCase
             'role' => $role,
             'status' => 'active',
             'phone_verified_at' => now(),
+            'club_access_approved_at' => $role === 'parent' ? now() : null,
         ]);
     }
 }

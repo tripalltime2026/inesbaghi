@@ -22,7 +22,7 @@
 
 <section class="admin-section compact">
     <div class="panel-heading">
-        <div><p class="eyebrow">{{ $users->total() }} ანგარიში</p><h2>დადასტურება და გადასახდელი ერთ ადგილას</h2><p>მონიშნეთ წვდომა, ჩაწერეთ თანხა და შეინახეთ. დაუდასტურებელი მომხმარებელი ჯგუფებსა და ფორუმს ვერ გახსნის.</p></div>
+        <div><p class="eyebrow">{{ $users->total() }} ანგარიში</p><h2>მშობელი, ბავშვი, წვდომა და თანხა</h2><p>ბავშვი ცალკე რეგისტრაციას არ გადის. შექმენით ან აირჩიეთ ბავშვი, დაუკავშირეთ მშობელს და ის მშობლის პროფილში ავტომატურად გამოჩნდება.</p></div>
     </div>
 
     <div class="cms-item-list">
@@ -50,11 +50,47 @@
                 </div>
 
                 <div class="account-meta" style="margin:14px 0">
-                    <div><span>ბავშვი</span><strong>{{ $registryUser->children->pluck('first_name')->join(', ') ?: 'არ არის დაკავშირებული' }}</strong></div>
+                    <div>
+                        <span>ბავშვი</span>
+                        @forelse($registryUser->children as $linkedChild)
+                            <a class="row-link" href="{{ route('admin.children.show', $linkedChild) }}"><strong>{{ $linkedChild->first_name }} {{ $linkedChild->last_name }}</strong></a>
+                        @empty
+                            <strong>არ არის დაკავშირებული</strong>
+                        @endforelse
+                    </div>
                     <div><span>ჯგუფი</span><strong>{{ $latestEnrollment?->group?->name ?? 'არ არის მინიჭებული' }}</strong></div>
                     <div><span>განაცხადი</span><strong>{{ (int)$registryUser->application_count }}</strong></div>
                     <div><span>დარჩენილი</span><strong>{{ number_format($outstanding, 2) }} ₾</strong></div>
                 </div>
+
+                <details class="cms-create-box">
+                    <summary>+ ბავშვის შექმნა ან დაკავშირება</summary>
+                    <form method="post" action="{{ route('admin.users.children.store', $registryUser) }}" class="cms-item-form">
+                        @csrf
+                        <p style="margin:0 0 14px">თუ ბავშვი უკვე რეესტრშია, აირჩიეთ სიიდან. თუ ჯერ არ არსებობს, ჩაწერეთ მისი სახელი და მონაცემები.</p>
+                        <div class="cms-field-grid">
+                            <label class="wide">
+                                <span>არსებული ბავშვის არჩევა</span>
+                                <select name="child_id">
+                                    <option value="">ახალი ბავშვის შექმნა</option>
+                                    @foreach($linkableChildren as $childOption)
+                                        @unless($registryUser->children->contains('id', $childOption->id))
+                                            <option value="{{ $childOption->id }}">{{ $childOption->first_name }} {{ $childOption->last_name }}@if($childOption->birth_date) · {{ $childOption->birth_date->format('d.m.Y') }}@elseif($childOption->birth_year) · {{ $childOption->birth_year }}@endif</option>
+                                        @endunless
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label><span>ახალი ბავშვის სახელი</span><input name="first_name" placeholder="მაგ. ანა"></label>
+                            <label><span>გვარი</span><input name="last_name" placeholder="გვარი"></label>
+                            <label><span>დაბადების თარიღი</span><input type="date" name="birth_date"></label>
+                            <label><span>დაბადების წელი</span><input type="number" name="birth_year" min="2018" max="{{ now()->year }}"></label>
+                            <label><span>ჯგუფი</span><select name="group_id"><option value="">ჯერ არ მივანიჭოთ</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
+                            <label><span>ჩარიცხვის სტატუსი</span><select name="enrollment_status">@foreach($enrollmentStatuses as $key=>$label)<option value="{{ $key }}" @selected($key === 'active')>{{ $label }}</option>@endforeach</select></label>
+                            <label><span>დაწყების თარიღი</span><input type="date" name="starts_on" value="{{ now()->format('Y-m-d') }}"></label>
+                        </div>
+                        <button class="primary" type="submit">ბავშვის დაკავშირება</button>
+                    </form>
+                </details>
 
                 <form method="post" action="{{ route('admin.users.access-payment.update', $registryUser) }}" class="cms-item-form">
                     @csrf

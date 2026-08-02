@@ -61,12 +61,16 @@ class RuntimeSmokeTest extends TestCase
         ])->assertOk()->assertJsonPath('user.role', 'admin');
 
         $this->get('/admin')
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->get('/admin/users')
             ->assertOk()
             ->assertSee('მართვის ცენტრი')
-            ->assertSee('პლატფორმის მართვა')
-            ->assertSee('მომხმარებელთა რეესტრი')
+            ->assertSee('მომხმარებლები და თანხები')
+            ->assertSee('ჩარიცხვის განაცხადები')
+            ->assertSee('ბავშვები')
+            ->assertSee('საიტის კონტენტი')
             ->assertSee('მონაცემთა დაცვა')
-            ->assertSee('მენიუში ძებნა')
             ->assertSee('/css/privacy-compliance.css?v=20260730b', false)
             ->assertSee('/css/access-control.css?v=20260730', false)
             ->assertSee('/js/privacy-compliance.js?v=20260730b', false)
@@ -89,6 +93,6 @@ class RuntimeSmokeTest extends TestCase
             ->assertOk()
             ->assertSee('ანგარიშის ცენტრი')
             ->assertSee('კლუბის წვდომა')
-            ->assertSee('მარკეტინგული და საინფორმაციო შეტყობინებების მიღება არჩევითია');
+            ->assertSee('საინფორმაციო შეტყობინებების მიღება არჩევითია');
     }
 }

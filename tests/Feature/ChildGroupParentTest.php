@@ -119,6 +119,7 @@ class ChildGroupParentTest extends TestCase
             'role' => 'parent',
             'status' => 'active',
             'phone_verified_at' => now(),
+            'club_access_approved_at' => now(),
         ]);
     }
 
