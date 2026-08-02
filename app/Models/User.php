@@ -13,6 +13,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'username', 'password', 'phone', 'email', 'role', 'status',
         'phone_verified_at', 'email_verified_at',
+        'club_access_approved_at', 'club_access_approved_by_user_id',
+        'payment_due', 'payment_paid', 'payment_due_at', 'payment_note',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -23,6 +25,10 @@ class User extends Authenticatable
             'password' => 'hashed',
             'phone_verified_at' => 'datetime',
             'email_verified_at' => 'datetime',
+            'club_access_approved_at' => 'datetime',
+            'payment_due' => 'decimal:2',
+            'payment_paid' => 'decimal:2',
+            'payment_due_at' => 'date',
         ];
     }
 
@@ -59,12 +65,23 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function isClubAccessApproved(): bool
+    {
+        return $this->club_access_approved_at !== null;
+    }
+
     public function canAccessParentClub(): bool
     {
         return $this->status === 'active'
+            && $this->isClubAccessApproved()
             && $this->hasVerifiedIdentity()
             && $this->hasLinkedChild()
             && $this->hasActiveEnrollment();
+    }
+
+    public function paymentOutstanding(): float
+    {
+        return max(0, (float) $this->payment_due - (float) $this->payment_paid);
     }
 
     public function membershipLabel(): string
@@ -73,10 +90,10 @@ class User extends Authenticatable
             return 'დადასტურებული მშობელი';
         }
 
-        if ($this->hasLinkedChild()) {
-            return 'ბავშვთან დაკავშირებული მომხმარებელი';
+        if ($this->isClubAccessApproved()) {
+            return 'წვდომა დამტკიცებულია — ჩარიცხვა მოსაწესრიგებელია';
         }
 
-        return 'რეგისტრირებული მომხმარებელი';
+        return 'ადმინისტრატორის დადასტურებას ელოდება';
     }
 }
