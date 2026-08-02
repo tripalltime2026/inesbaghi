@@ -102,7 +102,8 @@ class ParentGroupForumTest extends TestCase
         $this->get('/parent')->assertRedirect(route('account.status'));
         $this->get('/account')
             ->assertOk()
-            ->assertSee('მხოლოდ რეგისტრაცია საკმარისი არ არის');
+            ->assertSee('რეგისტრაციის შემდეგ ჯგუფები და ფორუმი დახურულია')
+            ->assertSee('დადასტურებას ელოდება');
     }
 
     private function group(string $slug, string $name, int $minimumAge): KindergartenGroup
@@ -127,6 +128,7 @@ class ParentGroupForumTest extends TestCase
             'role' => 'parent',
             'status' => 'active',
             'phone_verified_at' => now(),
+            'club_access_approved_at' => now(),
         ]);
 
         $child = Child::create([
