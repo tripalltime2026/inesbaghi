@@ -74,5 +74,9 @@
         @yield('content')
     </section>
 </main>
+@if(request()->routeIs('admin.content.*'))
+<script>window.__oldBlogArticleUrl = @json(old('article_url', ''));</script>
+<script src="{{ asset('js/blog-import.js') }}" defer></script>
+@endif
 </body>
 </html>

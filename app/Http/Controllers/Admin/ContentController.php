@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\SiteItem;
+use App\Services\ArticleImporter;
 use App\Services\ManagedContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ContentController extends Controller
@@ -76,26 +78,63 @@ class ContentController extends Controller
         return back()->with('success', 'ჩანაწერი წაიშალა.');
     }
 
-    public function storeBlog(Request $request, ManagedContent $content): RedirectResponse
-    {
+    public function storeBlog(
+        Request $request,
+        ManagedContent $content,
+        ArticleImporter $importer,
+    ): RedirectResponse {
         $validated = $this->validateBlog($request);
-        $payload = $this->blogPayload($request, $validated);
-        $payload['slug'] = $content->uniqueSlug($validated['title']);
-        $payload['updated_by'] = $request->user()?->id;
+        $importedCover = null;
 
-        BlogPost::create($payload);
+        if (filled($validated['article_url'] ?? null)) {
+            $imported = $importer->import($validated['article_url']);
+            foreach (['title', 'excerpt', 'body', 'category'] as $field) {
+                if (! filled($validated[$field] ?? null) && filled($imported[$field] ?? null)) {
+                    $validated[$field] = $imported[$field];
+                }
+            }
+            $validated['source_url'] = $imported['source_url'];
+            $importedCover = $imported['cover'] ?? null;
+        }
 
-        return back()->with('success', 'ბლოგის სტატია შეიქმნა.');
+        if (! filled($validated['title'] ?? null)) {
+            throw ValidationException::withMessages(['title' => 'შეავსეთ სტატიის სათაური ან მიუთითეთ Marketer.ge-ის სტატიის ბმული.']);
+        }
+
+        try {
+            $payload = $this->blogPayload($request, $validated, null, $importedCover);
+            $payload['slug'] = $content->uniqueSlug($validated['title']);
+            $payload['updated_by'] = $request->user()?->id;
+
+            BlogPost::create($payload);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+            return back()
+                ->withErrors(['blog' => 'სტატიის შენახვა ვერ მოხერხდა. გადაამოწმეთ მონაცემები და ქავერის ზომა.'])
+                ->withInput();
+        }
+
+        return back()->with('success', 'ბლოგის სტატია შეიქმნა და არჩეული სტატუსით შეინახა.');
     }
 
     public function updateBlog(Request $request, BlogPost $post, ManagedContent $content): RedirectResponse
     {
-        $validated = $this->validateBlog($request);
-        $payload = $this->blogPayload($request, $validated, $post);
-        $payload['slug'] = $content->uniqueSlug($validated['title'], $post);
-        $payload['updated_by'] = $request->user()?->id;
+        $validated = $this->validateBlog($request, false);
 
-        $post->update($payload);
+        try {
+            $payload = $this->blogPayload($request, $validated, $post);
+            $payload['slug'] = $content->uniqueSlug($validated['title'], $post);
+            $payload['updated_by'] = $request->user()?->id;
+
+            $post->update($payload);
+        } catch (\Throwable $exception) {
+            report($exception);
+            return back()
+                ->withErrors(['blog' => 'სტატიის განახლება ვერ მოხერხდა. გადაამოწმეთ მონაცემები და ქავერის ზომა.'])
+                ->withInput();
+        }
 
         return back()->with('success', 'ბლოგის სტატია განახლდა.');
     }
@@ -154,10 +193,11 @@ class ContentController extends Controller
         return $payload;
     }
 
-    private function validateBlog(Request $request): array
+    private function validateBlog(Request $request, bool $allowImport = true): array
     {
         return $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'article_url' => $allowImport ? ['nullable', 'url:https', 'max:2000'] : ['nullable'],
+            'title' => $allowImport ? ['nullable', 'required_without:article_url', 'string', 'max:255'] : ['required', 'string', 'max:255'],
             'excerpt' => ['nullable', 'string', 'max:2000'],
             'body' => ['nullable', 'string', 'max:50000'],
             'category' => ['nullable', 'string', 'max:120'],
@@ -170,30 +210,62 @@ class ContentController extends Controller
         ]);
     }
 
-    private function blogPayload(Request $request, array $validated, ?BlogPost $post = null): array
-    {
+    private function blogPayload(
+        Request $request,
+        array $validated,
+        ?BlogPost $post = null,
+        ?array $importedCover = null,
+    ): array {
+        $publishedAt = $validated['published_at'] ?? null;
+        if (($validated['status'] ?? null) === 'published' && ! filled($publishedAt)) {
+            $publishedAt = now();
+        }
+
         $payload = [
             'title' => $validated['title'],
             'excerpt' => $validated['excerpt'] ?? null,
             'body' => $validated['body'] ?? null,
             'category' => $validated['category'] ?? null,
+            'source_url' => $validated['source_url'] ?? ($post?->source_url),
             'status' => $validated['status'],
-            'published_at' => $validated['published_at'] ?? null,
+            'published_at' => $publishedAt,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'cover_alt' => $validated['cover_alt'] ?? null,
         ];
 
         if ($request->boolean('remove_cover')) {
-            $payload = array_merge($payload, ['cover_image' => null, 'cover_mime' => null, 'cover_name' => null]);
+            $payload = array_merge($payload, [
+                'cover_image' => null,
+                'cover_mime' => null,
+                'cover_name' => null,
+                'cover_encoding' => null,
+            ]);
         }
 
+        $cover = null;
         if ($request->hasFile('cover')) {
             $file = $request->file('cover');
-            $payload['cover_image'] = file_get_contents($file->getRealPath());
-            $payload['cover_mime'] = $file->getMimeType();
-            $payload['cover_name'] = $file->getClientOriginalName();
+            $bytes = file_get_contents($file->getRealPath());
+            if (! is_string($bytes) || $bytes === '') {
+                throw ValidationException::withMessages(['cover' => 'ქავერის წაკითხვა ვერ მოხერხდა.']);
+            }
+            $cover = [
+                'bytes' => $bytes,
+                'mime' => $file->getMimeType(),
+                'name' => $file->getClientOriginalName(),
+            ];
+        } elseif (! $post && $importedCover) {
+            $cover = $importedCover;
+        }
+
+        if ($cover) {
+            $payload['cover_image'] = base64_encode($cover['bytes']);
+            $payload['cover_mime'] = $cover['mime'];
+            $payload['cover_name'] = $cover['name'];
+            $payload['cover_encoding'] = 'base64';
+            $payload['cover_alt'] = filled($payload['cover_alt']) ? $payload['cover_alt'] : $payload['title'];
         } elseif ($post && ! $request->boolean('remove_cover')) {
-            unset($payload['cover_image'], $payload['cover_mime'], $payload['cover_name']);
+            unset($payload['cover_image'], $payload['cover_mime'], $payload['cover_name'], $payload['cover_encoding']);
         }
 
         return $payload;

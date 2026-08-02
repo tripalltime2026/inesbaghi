@@ -20,10 +20,12 @@ class BlogPost extends Model
         'category',
         'status',
         'published_at',
+        'source_url',
         'cover_image',
         'cover_mime',
         'cover_name',
         'cover_alt',
+        'cover_encoding',
         'sort_order',
         'updated_by',
     ];
