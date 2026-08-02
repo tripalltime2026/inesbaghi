@@ -20,7 +20,11 @@ class BlogPost extends Model
         'category',
         'status',
         'published_at',
+        'source_url',
+        'source_name',
+        'source_published_at',
         'cover_image',
+        'cover_encoding',
         'cover_mime',
         'cover_name',
         'cover_alt',
@@ -34,6 +38,7 @@ class BlogPost extends Model
     {
         return [
             'published_at' => 'datetime',
+            'source_published_at' => 'datetime',
             'sort_order' => 'integer',
         ];
     }
