@@ -87,7 +87,7 @@ class SeoTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get('/admin')
+            ->get('/admin/users')
             ->assertOk()
             ->assertSee('<meta name="robots" content="noindex,nofollow,noarchive">', false)
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
