@@ -11,28 +11,27 @@
     <article class="stat-card"><span>სულ დარჩენილი</span><strong>{{ number_format($counts['outstanding'], 2) }} ₾</strong><small>მომხმარებლებზე მითითებული დავალიანება</small></article>
 </section>
 
-@php($temporaryCredentials = session('temporary_credentials'))
-@if($temporaryCredentials)
+@if(session()->has('temporary_credentials'))
     <section class="admin-section compact" id="temporary-credentials">
         <div class="panel-heading">
             <div>
                 <p class="eyebrow">ერთჯერადი ჩვენება</p>
-                <h2>{{ $temporaryCredentials['name'] }} — შესვლის მონაცემები</h2>
+                <h2>{{ session('temporary_credentials.name') }} — შესვლის მონაცემები</h2>
                 <p>დროებითი პაროლი ამ გვერდის დატოვების შემდეგ აღარ გამოჩნდება. გაუგზავნეთ მომხმარებელს უსაფრთხო არხით.</p>
             </div>
         </div>
         <div class="cms-field-grid">
-            <label><span>ლოგინი</span><input readonly value="{{ $temporaryCredentials['username'] }}" onclick="this.select()"></label>
-            <label><span>დროებითი პაროლი</span><input readonly value="{{ $temporaryCredentials['password'] }}" onclick="this.select()"></label>
+            <label><span>ლოგინი</span><input readonly value="{{ session('temporary_credentials.username') }}" onclick="this.select()"></label>
+            <label><span>დროებითი პაროლი</span><input readonly value="{{ session('temporary_credentials.password') }}" onclick="this.select()"></label>
             <label class="wide">
                 <span>გასაგზავნი ტექსტი</span>
                 <textarea id="temporary-credentials-copy" readonly rows="4" onclick="this.select()">ინეს ბაღის ანგარიშზე შესვლის მონაცემები:
-ლოგინი: {{ $temporaryCredentials['username'] }}
-დროებითი პაროლი: {{ $temporaryCredentials['password'] }}
+ლოგინი: {{ session('temporary_credentials.username') }}
+დროებითი პაროლი: {{ session('temporary_credentials.password') }}
 შესვლის შემდეგ შეცვალეთ პაროლი პროფილიდან.</textarea>
             </label>
         </div>
-        <button class="primary" type="button" onclick="const field=document.getElementById('temporary-credentials-copy'); field.select(); if (navigator.clipboard) { navigator.clipboard.writeText(field.value); }">ტექსტის კოპირება</button>
+        <button class="primary" type="button" data-copy-temporary-credentials>ტექსტის კოპირება</button>
     </section>
 @endif
 
@@ -160,4 +159,25 @@
         <nav class="pagination">@if($users->onFirstPage())<span>← წინა</span>@else<a href="{{ $users->previousPageUrl() }}">← წინა</a>@endif<strong>{{ $users->currentPage() }} / {{ $users->lastPage() }}</strong>@if($users->hasMorePages())<a href="{{ $users->nextPageUrl() }}">შემდეგი →</a>@else<span>შემდეგი →</span>@endif</nav>
     @endif
 </section>
+
+@if(session()->has('temporary_credentials'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var button = document.querySelector('[data-copy-temporary-credentials]');
+    var field = document.getElementById('temporary-credentials-copy');
+
+    if (!button || !field) {
+        return;
+    }
+
+    button.addEventListener('click', function () {
+        field.select();
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(field.value);
+        }
+    });
+});
+</script>
+@endif
 @endsection
