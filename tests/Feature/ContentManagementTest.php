@@ -106,6 +106,8 @@ class ContentManagementTest extends TestCase
         ])->assertOk()->assertJsonPath('user.role', 'member');
 
         $parent = User::where('phone', '+995555123456')->firstOrFail();
+        $parent->update(['club_access_approved_at' => now()]);
+
         $group = KindergartenGroup::create([
             'name' => '3-4 წელი',
             'slug' => '3-4',
