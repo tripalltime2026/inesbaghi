@@ -128,7 +128,8 @@ class ContentManagementTest extends TestCase
             'enrolled_at' => now(),
         ]);
 
-        $this->get('/parent')
+        $this->actingAs($parent->fresh())
+            ->get('/parent')
             ->assertOk()
             ->assertSee('js/cms-portal.js', false);
 
