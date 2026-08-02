@@ -16,7 +16,7 @@ class MemberParentAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_only_active_enrollment_unlocks_parent_club(): void
+    public function test_active_enrollment_and_admin_approval_unlock_parent_club(): void
     {
         $user = $this->user('რეგისტრირებული მშობელი', '555310001', 'member');
         $group = $this->group();
@@ -37,9 +37,13 @@ class MemberParentAccessTest extends TestCase
         $this->actingAs($user)->get('/account')
             ->assertOk()
             ->assertSee('დასამტკიცებელი')
-            ->assertSee('კლუბის დაშვებისთვის საჭიროა აქტიური ჩარიცხვა');
+            ->assertSee('დადასტურებას ელოდება');
 
         $enrollment->update(['status' => 'active', 'enrolled_at' => now()]);
+
+        $this->actingAs($user)->get('/parent')->assertRedirect(route('account.status'));
+
+        $user->update(['club_access_approved_at' => now()]);
 
         $this->actingAs($user)->get('/parent')
             ->assertOk()
@@ -69,7 +73,7 @@ class MemberParentAccessTest extends TestCase
             ->assertJsonPath('account_status_url', route('account.status'));
     }
 
-    public function test_admin_registry_distinguishes_accounts_applicants_and_verified_parents(): void
+    public function test_admin_registry_distinguishes_pending_approved_and_applicant_accounts(): void
     {
         $admin = $this->user('ადმინისტრატორი', '555411831', 'admin');
         $registered = $this->user('მხოლოდ ანგარიში', '555310010');
@@ -98,13 +102,13 @@ class MemberParentAccessTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/users')
             ->assertOk()
-            ->assertSee('მომხმარებელთა რეესტრი')
+            ->assertSee('მომხმარებლები და თანხები')
             ->assertSee($registered->name)
             ->assertSee($applicant->name)
             ->assertSee($activeParent->name)
-            ->assertSee('კლუბზე დაშვებული');
+            ->assertSee('ადმინის მიერ დადასტურებული');
 
-        $this->actingAs($admin)->get('/admin/users?membership=club')
+        $this->actingAs($admin)->get('/admin/users?access=approved')
             ->assertOk()
             ->assertSee($activeParent->name)
             ->assertDontSee($registered->name);
@@ -118,6 +122,7 @@ class MemberParentAccessTest extends TestCase
             'role' => $role,
             'status' => 'active',
             'phone_verified_at' => now(),
+            'club_access_approved_at' => $role === 'parent' ? now() : null,
         ]);
 
         PrivacyConsent::create([
