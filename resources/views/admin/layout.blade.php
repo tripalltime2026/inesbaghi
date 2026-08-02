@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/operations.css') }}">
     <link rel="stylesheet" href="{{ asset('css/cms-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-simple.css') }}">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
