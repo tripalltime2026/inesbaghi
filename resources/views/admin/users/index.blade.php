@@ -11,9 +11,34 @@
     <article class="stat-card"><span>სულ დარჩენილი</span><strong>{{ number_format($counts['outstanding'], 2) }} ₾</strong><small>მომხმარებლებზე მითითებული დავალიანება</small></article>
 </section>
 
+@php($temporaryCredentials = session('temporary_credentials'))
+@if($temporaryCredentials)
+    <section class="admin-section compact" id="temporary-credentials">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">ერთჯერადი ჩვენება</p>
+                <h2>{{ $temporaryCredentials['name'] }} — შესვლის მონაცემები</h2>
+                <p>დროებითი პაროლი ამ გვერდის დატოვების შემდეგ აღარ გამოჩნდება. გაუგზავნეთ მომხმარებელს უსაფრთხო არხით.</p>
+            </div>
+        </div>
+        <div class="cms-field-grid">
+            <label><span>ლოგინი</span><input readonly value="{{ $temporaryCredentials['username'] }}" onclick="this.select()"></label>
+            <label><span>დროებითი პაროლი</span><input readonly value="{{ $temporaryCredentials['password'] }}" onclick="this.select()"></label>
+            <label class="wide">
+                <span>გასაგზავნი ტექსტი</span>
+                <textarea id="temporary-credentials-copy" readonly rows="4" onclick="this.select()">ინეს ბაღის ანგარიშზე შესვლის მონაცემები:
+ლოგინი: {{ $temporaryCredentials['username'] }}
+დროებითი პაროლი: {{ $temporaryCredentials['password'] }}
+შესვლის შემდეგ შეცვალეთ პაროლი პროფილიდან.</textarea>
+            </label>
+        </div>
+        <button class="primary" type="button" onclick="const field=document.getElementById('temporary-credentials-copy'); field.select(); if (navigator.clipboard) { navigator.clipboard.writeText(field.value); }">ტექსტის კოპირება</button>
+    </section>
+@endif
+
 <section class="admin-section compact">
     <form class="filter-bar" method="get" action="{{ route('admin.users.index') }}">
-        <label><span>ძიება</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="სახელი, ტელეფონი ან ელფოსტა"></label>
+        <label><span>ძიება</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="სახელი, ლოგინი, ტელეფონი ან ელფოსტა"></label>
         <label><span>სტატუსი</span><select name="access"><option value="">ყველა მომხმარებელი</option>@foreach($accessFilters as $key=>$label)<option value="{{ $key }}" @selected(($filters['access'] ?? null)===$key)>{{ $label }}</option>@endforeach</select></label>
         <button class="primary" type="submit">მოძებნა</button>
         <a class="text-button" href="{{ route('admin.users.index') }}">გასუფთავება</a>
@@ -62,6 +87,20 @@
                     <div><span>განაცხადი</span><strong>{{ (int)$registryUser->application_count }}</strong></div>
                     <div><span>დარჩენილი</span><strong>{{ number_format($outstanding, 2) }} ₾</strong></div>
                 </div>
+
+                <div class="account-meta" style="margin:14px 0">
+                    <div><span>ლოგინი</span><strong>{{ $registryUser->username ?: 'ჯერ არ არის შექმნილი' }}</strong></div>
+                    <div><span>პაროლი</span><strong>{{ $registryUser->password ? 'დაცულია — არ ჩანს' : 'ჯერ არ არის შექმნილი' }}</strong></div>
+                </div>
+
+                <form method="post" action="{{ route('admin.users.credentials.reset', $registryUser) }}" class="cms-item-form" onsubmit="return confirm('ახალი დროებითი პაროლი შეცვლის მომხმარებლის მოქმედ პაროლს. გავაგრძელოთ?')">
+                    @csrf
+                    @method('patch')
+                    <div class="cms-form-actions">
+                        <button class="primary" type="submit">დროებითი პაროლის შექმნა</button>
+                        <small>მოქმედი პაროლის ნახვა შეუძლებელია. ახალი პაროლი მხოლოდ ერთხელ გამოჩნდება და ძველ პაროლს ჩაანაცვლებს.</small>
+                    </div>
+                </form>
 
                 <details class="cms-create-box">
                     <summary>+ ბავშვის შექმნა ან დაკავშირება</summary>
