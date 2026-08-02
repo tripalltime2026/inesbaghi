@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -44,6 +46,7 @@ class UserRegistryController extends Controller
             ->when($filters['search'] ?? null, function (Builder $builder, string $search): void {
                 $builder->where(function (Builder $searchQuery) use ($search): void {
                     $searchQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
@@ -103,6 +106,43 @@ class UserRegistryController extends Controller
         ]);
 
         return back()->with('success', "{$user->name}-ის წვდომა და გადასახდელი ინფორმაცია შენახულია.");
+    }
+
+    public function resetCredentials(Request $request, User $user): RedirectResponse
+    {
+        abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
+
+        $username = filled($user->username)
+            ? $user->username
+            : $this->uniqueUsernameFor($user);
+        $temporaryPassword = $this->temporaryPassword();
+
+        $user->forceFill([
+            'username' => $username,
+            'password' => Hash::make($temporaryPassword),
+        ])->save();
+
+        DB::table('audit_logs')->insert([
+            'actor_user_id' => $request->user()->id,
+            'action' => 'user.credentials_reset',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+            'metadata' => json_encode([
+                'username' => $username,
+                'temporary_password_generated' => true,
+            ], JSON_THROW_ON_ERROR),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return back()
+            ->with('success', "{$user->name}-ისთვის ახალი დროებითი პაროლი შეიქმნა.")
+            ->with('temporary_credentials', [
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'username' => $username,
+                'password' => $temporaryPassword,
+            ]);
     }
 
     public function storeChild(Request $request, User $user): RedirectResponse
@@ -207,5 +247,37 @@ class UserRegistryController extends Controller
             'debt' => $query->whereColumn('payment_due', '>', 'payment_paid'),
             default => null,
         };
+    }
+
+    private function uniqueUsernameFor(User $user): string
+    {
+        $base = Str::of($user->name)
+            ->squish()
+            ->lower()
+            ->toString();
+
+        if ($base === '') {
+            $base = 'user-'.$user->id;
+        }
+
+        $candidate = $base;
+        $attempt = 0;
+
+        while (User::query()
+            ->where('username', $candidate)
+            ->whereKeyNot($user->id)
+            ->exists()) {
+            $attempt++;
+            $candidate = $base.'-'.$user->id.($attempt > 1 ? '-'.$attempt : '');
+        }
+
+        return $candidate;
+    }
+
+    private function temporaryPassword(): string
+    {
+        return Str::upper(Str::random(3))
+            .'-'.random_int(1000, 9999)
+            .'-'.Str::lower(Str::random(3));
     }
 }

@@ -134,6 +134,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', NoIndexPrivateArea::
         Route::patch('/privacy/requests/{dataRequest}', [AdminPrivacyController::class, 'update'])->name('privacy.requests.update');
         Route::get('/users', AdminUserRegistryController::class)->name('users.index');
         Route::patch('/users/{user}', [AdminUserRegistryController::class, 'update'])->name('users.access-payment.update');
+        Route::patch('/users/{user}/credentials', [AdminUserRegistryController::class, 'resetCredentials'])->name('users.credentials.reset');
         Route::post('/users/{user}/children', [AdminUserRegistryController::class, 'storeChild'])->name('users.children.store');
 
         Route::prefix('support')->name('support.')->group(function () {

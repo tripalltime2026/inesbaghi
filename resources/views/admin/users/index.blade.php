@@ -11,9 +11,33 @@
     <article class="stat-card"><span>სულ დარჩენილი</span><strong>{{ number_format($counts['outstanding'], 2) }} ₾</strong><small>მომხმარებლებზე მითითებული დავალიანება</small></article>
 </section>
 
+@if(session()->has('temporary_credentials'))
+    <section class="admin-section compact" id="temporary-credentials">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">ერთჯერადი ჩვენება</p>
+                <h2>{{ session('temporary_credentials.name') }} — შესვლის მონაცემები</h2>
+                <p>დროებითი პაროლი ამ გვერდის დატოვების შემდეგ აღარ გამოჩნდება. გაუგზავნეთ მომხმარებელს უსაფრთხო არხით.</p>
+            </div>
+        </div>
+        <div class="cms-field-grid">
+            <label><span>ლოგინი</span><input readonly value="{{ session('temporary_credentials.username') }}" onclick="this.select()"></label>
+            <label><span>დროებითი პაროლი</span><input readonly value="{{ session('temporary_credentials.password') }}" onclick="this.select()"></label>
+            <label class="wide">
+                <span>გასაგზავნი ტექსტი</span>
+                <textarea id="temporary-credentials-copy" readonly rows="4" onclick="this.select()">ინეს ბაღის ანგარიშზე შესვლის მონაცემები:
+ლოგინი: {{ session('temporary_credentials.username') }}
+დროებითი პაროლი: {{ session('temporary_credentials.password') }}
+შესვლის შემდეგ შეცვალეთ პაროლი პროფილიდან.</textarea>
+            </label>
+        </div>
+        <button class="primary" type="button" data-copy-temporary-credentials>ტექსტის კოპირება</button>
+    </section>
+@endif
+
 <section class="admin-section compact">
     <form class="filter-bar" method="get" action="{{ route('admin.users.index') }}">
-        <label><span>ძიება</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="სახელი, ტელეფონი ან ელფოსტა"></label>
+        <label><span>ძიება</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="სახელი, ლოგინი, ტელეფონი ან ელფოსტა"></label>
         <label><span>სტატუსი</span><select name="access"><option value="">ყველა მომხმარებელი</option>@foreach($accessFilters as $key=>$label)<option value="{{ $key }}" @selected(($filters['access'] ?? null)===$key)>{{ $label }}</option>@endforeach</select></label>
         <button class="primary" type="submit">მოძებნა</button>
         <a class="text-button" href="{{ route('admin.users.index') }}">გასუფთავება</a>
@@ -62,6 +86,20 @@
                     <div><span>განაცხადი</span><strong>{{ (int)$registryUser->application_count }}</strong></div>
                     <div><span>დარჩენილი</span><strong>{{ number_format($outstanding, 2) }} ₾</strong></div>
                 </div>
+
+                <div class="account-meta" style="margin:14px 0">
+                    <div><span>ლოგინი</span><strong>{{ $registryUser->username ?: 'ჯერ არ არის შექმნილი' }}</strong></div>
+                    <div><span>პაროლი</span><strong>{{ $registryUser->password ? 'დაცულია — არ ჩანს' : 'ჯერ არ არის შექმნილი' }}</strong></div>
+                </div>
+
+                <form method="post" action="{{ route('admin.users.credentials.reset', $registryUser) }}" class="cms-item-form" onsubmit="return confirm('ახალი დროებითი პაროლი შეცვლის მომხმარებლის მოქმედ პაროლს. გავაგრძელოთ?')">
+                    @csrf
+                    @method('patch')
+                    <div class="cms-form-actions">
+                        <button class="primary" type="submit">დროებითი პაროლის შექმნა</button>
+                        <small>მოქმედი პაროლის ნახვა შეუძლებელია. ახალი პაროლი მხოლოდ ერთხელ გამოჩნდება და ძველ პაროლს ჩაანაცვლებს.</small>
+                    </div>
+                </form>
 
                 <details class="cms-create-box">
                     <summary>+ ბავშვის შექმნა ან დაკავშირება</summary>
@@ -121,4 +159,25 @@
         <nav class="pagination">@if($users->onFirstPage())<span>← წინა</span>@else<a href="{{ $users->previousPageUrl() }}">← წინა</a>@endif<strong>{{ $users->currentPage() }} / {{ $users->lastPage() }}</strong>@if($users->hasMorePages())<a href="{{ $users->nextPageUrl() }}">შემდეგი →</a>@else<span>შემდეგი →</span>@endif</nav>
     @endif
 </section>
+
+@if(session()->has('temporary_credentials'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var button = document.querySelector('[data-copy-temporary-credentials]');
+    var field = document.getElementById('temporary-credentials-copy');
+
+    if (!button || !field) {
+        return;
+    }
+
+    button.addEventListener('click', function () {
+        field.select();
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(field.value);
+        }
+    });
+});
+</script>
+@endif
 @endsection

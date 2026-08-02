@@ -6,6 +6,7 @@ use App\Models\Child;
 use App\Models\KindergartenGroup;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class SimplifiedParentManagementTest extends TestCase
@@ -126,5 +127,52 @@ class SimplifiedParentManagementTest extends TestCase
             ->assertOk()
             ->assertSee('ანა')
             ->assertSee('3-4 წლის ჯგუფი');
+    }
+
+    public function test_admin_sees_login_and_can_generate_one_time_temporary_password(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin',
+            'username' => 'admin-credentials',
+            'password' => 'password123',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $parent = User::create([
+            'name' => 'Nino Beridze',
+            'username' => null,
+            'password' => null,
+            'role' => 'member',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($admin)->patch(
+            route('admin.users.credentials.reset', $parent),
+        );
+
+        $response
+            ->assertRedirect()
+            ->assertSessionHas('temporary_credentials');
+
+        $credentials = session('temporary_credentials');
+        $this->assertSame($parent->id, $credentials['user_id']);
+        $this->assertSame('nino beridze', $credentials['username']);
+        $this->assertNotSame('', $credentials['password']);
+
+        $parent->refresh();
+        $this->assertSame('nino beridze', $parent->username);
+        $this->assertTrue(Hash::check($credentials['password'], $parent->password));
+        $this->assertNotSame($credentials['password'], $parent->password);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'user.credentials_reset',
+            'subject_id' => $parent->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('nino beridze')
+            ->assertSee('დაცულია — არ ჩანს');
     }
 }
