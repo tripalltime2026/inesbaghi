@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdmissionApplication;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -13,21 +14,19 @@ use Illuminate\View\View;
 class UserRegistryController extends Controller
 {
     public const FILTERS = [
-        'registered' => 'მხოლოდ რეგისტრირებული',
-        'applicant' => 'განაცხადის მქონე',
-        'linked' => 'ბავშვთან დაკავშირებული',
-        'pending' => 'ჩარიცხვა დასამტკიცებელია',
-        'club' => 'კლუბზე დაშვებული',
+        'pending' => 'დადასტურების მოლოდინში',
+        'approved' => 'დადასტურებული',
+        'debt' => 'დავალიანების მქონე',
     ];
 
     public function __invoke(Request $request): View
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'membership' => ['nullable', Rule::in(array_keys(self::FILTERS))],
+            'access' => ['nullable', Rule::in(array_keys(self::FILTERS))],
         ]);
 
-        $query = User::query()
+        $query = $this->parentQuery()
             ->with(['children.enrollments.group'])
             ->withCount('children')
             ->addSelect([
@@ -46,52 +45,65 @@ class UserRegistryController extends Controller
                 });
             });
 
-        $this->applyMembershipFilter($query, $filters['membership'] ?? null);
+        $this->applyFilter($query, $filters['access'] ?? null);
 
         return view('admin.users.index', [
-            'users' => $query->latest()->paginate(30)->withQueryString(),
+            'users' => $query->latest()->paginate(20)->withQueryString(),
             'filters' => $filters,
-            'membershipFilters' => self::FILTERS,
+            'accessFilters' => self::FILTERS,
             'counts' => [
-                'total' => User::count(),
-                'registered' => User::whereDoesntHave('children')->count(),
-                'linked' => User::whereHas('children')->count(),
-                'club' => $this->clubEligibleQuery()->count(),
+                'total' => $this->parentQuery()->count(),
+                'pending' => $this->parentQuery()->whereNull('club_access_approved_at')->count(),
+                'approved' => $this->parentQuery()->whereNotNull('club_access_approved_at')->count(),
+                'outstanding' => (float) $this->parentQuery()
+                    ->selectRaw('COALESCE(SUM(GREATEST(payment_due - payment_paid, 0)), 0) as total')
+                    ->value('total'),
             ],
         ]);
     }
 
-    private function applyMembershipFilter(Builder $query, ?string $filter): void
+    public function update(Request $request, User $user): RedirectResponse
     {
-        match ($filter) {
-            'registered' => $query->whereDoesntHave('children'),
-            'applicant' => $query->whereExists(function ($applicationQuery): void {
-                $applicationQuery->selectRaw('1')
-                    ->from('admission_applications')
-                    ->where(function ($match): void {
-                        $match->whereColumn('admission_applications.guardian_user_id', 'users.id')
-                            ->orWhereColumn('admission_applications.phone', 'users.phone');
-                    });
-            }),
-            'linked' => $query->whereHas('children'),
-            'pending' => $query->whereHas('children.enrollments', fn (Builder $enrollments) => $enrollments->where('status', 'pending')),
-            'club' => $query
-                ->where('status', 'active')
-                ->whereNotNull('phone_verified_at')
-                ->whereHas('children.enrollments', fn (Builder $enrollments) => $enrollments
-                    ->where('status', 'active')
-                    ->whereHas('group', fn (Builder $groups) => $groups->where('is_active', true))),
-            default => null,
-        };
+        abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
+
+        $validated = $request->validate([
+            'access_approved' => ['required', 'boolean'],
+            'payment_due' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'payment_paid' => ['required', 'numeric', 'min:0', 'max:999999.99', 'lte:payment_due'],
+            'payment_due_at' => ['nullable', 'date'],
+            'payment_note' => ['nullable', 'string', 'max:1500'],
+        ], [
+            'payment_paid.lte' => 'გადახდილი თანხა ვერ იქნება გადასახდელ თანხაზე მეტი.',
+        ]);
+
+        $approved = (bool) $validated['access_approved'];
+
+        $user->update([
+            'club_access_approved_at' => $approved
+                ? ($user->club_access_approved_at ?? now())
+                : null,
+            'club_access_approved_by_user_id' => $approved ? $request->user()->id : null,
+            'payment_due' => $validated['payment_due'],
+            'payment_paid' => $validated['payment_paid'],
+            'payment_due_at' => $validated['payment_due_at'] ?? null,
+            'payment_note' => $validated['payment_note'] ?? null,
+        ]);
+
+        return back()->with('success', "{$user->name}-ის წვდომა და გადასახდელი ინფორმაცია შენახულია.");
     }
 
-    private function clubEligibleQuery(): Builder
+    private function parentQuery(): Builder
     {
-        return User::query()
-            ->where('status', 'active')
-            ->whereNotNull('phone_verified_at')
-            ->whereHas('children.enrollments', fn (Builder $enrollments) => $enrollments
-                ->where('status', 'active')
-                ->whereHas('group', fn (Builder $groups) => $groups->where('is_active', true)));
+        return User::query()->whereIn('role', ['member', 'parent']);
+    }
+
+    private function applyFilter(Builder $query, ?string $filter): void
+    {
+        match ($filter) {
+            'pending' => $query->whereNull('club_access_approved_at'),
+            'approved' => $query->whereNotNull('club_access_approved_at'),
+            'debt' => $query->whereColumn('payment_due', '>', 'payment_paid'),
+            default => null,
+        };
     }
 }
