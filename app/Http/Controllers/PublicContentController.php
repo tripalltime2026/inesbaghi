@@ -32,11 +32,29 @@ class PublicContentController extends Controller
     {
         abort_unless($post->cover_image && $post->cover_mime, 404);
 
-        return response($post->cover_image, 200, [
+        $storedImage = $this->readStoredValue($post->cover_image);
+        $imageBytes = $post->cover_encoding === 'base64'
+            ? base64_decode($storedImage, true)
+            : $storedImage;
+
+        abort_unless(is_string($imageBytes) && $imageBytes !== '', 404);
+
+        return response($imageBytes, 200, [
             'Content-Type' => $post->cover_mime,
             'Content-Disposition' => 'inline; filename="'.($post->cover_name ?: 'cover').'"',
             'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    private function readStoredValue(mixed $value): string
+    {
+        if (is_resource($value)) {
+            $contents = stream_get_contents($value);
+
+            return is_string($contents) ? $contents : '';
+        }
+
+        return is_string($value) ? $value : '';
     }
 }
