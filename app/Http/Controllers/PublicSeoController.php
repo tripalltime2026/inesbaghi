@@ -21,7 +21,8 @@ class PublicSeoController extends Controller
         abort_unless(is_array($config), 404);
 
         $content->ensureDefaults();
-        $config = $this->withManagedText($page, $config, $content->textValues());
+        $defaults = collect($content->textDefinitions())->pluck('default', 'key')->all();
+        $config = $this->withManagedText($page, $config, $content->textValues(), $defaults);
 
         if ($page === 'blog') {
             return view('public.blog-index', [
@@ -90,83 +91,125 @@ class PublicSeoController extends Controller
         ]);
     }
 
-    private function withManagedText(string $page, array $config, array $text): array
+    private function withManagedText(string $page, array $config, array $text, array $defaults): array
     {
         if ($page === 'about') {
-            $config['h1'] = $text['about.title'] ?? $config['h1'];
-            $config['lead'] = $text['about.paragraph_1'] ?? $config['lead'];
-            $config['sections'] = [
-                ['title' => 'ჩვენი გამოცდილება', 'body' => $text['about.paragraph_2'] ?? ''],
-                ['title' => 'ბავშვის განვითარება', 'body' => $text['about.paragraph_3'] ?? ''],
-                ['title' => 'ჩვენი ისტორია', 'body' => $text['about.story'] ?? ''],
-                ['title' => 'ჩვენი ფილოსოფია', 'body' => $text['about.philosophy'] ?? ''],
-                ['title' => 'ჩვენი ღირებულებები', 'body' => $text['about.values'] ?? ''],
-            ];
+            $config['h1'] = $this->changedValue('about.title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('about.paragraph_1', $text, $defaults, $config['lead']);
+            $config['sections'][0]['body'] = $this->changedValue(
+                'about.paragraph_2',
+                $text,
+                $defaults,
+                $config['sections'][0]['body'] ?? '',
+            );
+            $config['sections'][1]['body'] = $this->changedValue(
+                'about.paragraph_3',
+                $text,
+                $defaults,
+                $config['sections'][1]['body'] ?? '',
+            );
+
+            foreach ([
+                'about.story' => 'ჩვენი ისტორია',
+                'about.philosophy' => 'ჩვენი ფილოსოფია',
+                'about.values' => 'ჩვენი ღირებულებები',
+            ] as $key => $title) {
+                if ($this->hasChanged($key, $text, $defaults)) {
+                    $config['sections'][] = ['title' => $title, 'body' => (string) $text[$key]];
+                }
+            }
         }
 
         if ($page === 'methodology') {
-            $config['h1'] = $text['methodology.title'] ?? $config['h1'];
-            $config['lead'] = $text['methodology.intro'] ?? $config['lead'];
-            $sectionTitles = collect($config['sections'] ?? [])->pluck('title')->values();
-            $config['sections'] = collect([
-                $text['methodology.card_1_text'] ?? null,
-                $text['methodology.card_2_text'] ?? null,
-                $text['methodology.card_3_text'] ?? null,
-            ])->filter(fn ($body): bool => filled($body))
-                ->values()
-                ->map(fn ($body, int $index): array => [
-                    'title' => (string) ($sectionTitles->get($index) ?? 'მეთოდოლოგია'),
-                    'body' => (string) $body,
-                ])
-                ->all();
+            $config['h1'] = $this->changedValue('methodology.title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('methodology.intro', $text, $defaults, $config['lead']);
+
+            foreach (['methodology.card_1_text', 'methodology.card_2_text', 'methodology.card_3_text'] as $index => $key) {
+                $config['sections'][$index]['body'] = $this->changedValue(
+                    $key,
+                    $text,
+                    $defaults,
+                    $config['sections'][$index]['body'] ?? '',
+                );
+            }
         }
 
         if ($page === 'groups') {
-            $config['lead'] = $text['catalog.groups_intro'] ?? $config['lead'];
+            $config['lead'] = $this->changedValue('catalog.groups_intro', $text, $defaults, $config['lead']);
         }
 
         if ($page === 'team') {
-            $config['h1'] = $text['catalog.team_title'] ?? $config['h1'];
-            $config['lead'] = $text['catalog.team_intro'] ?? $config['lead'];
+            $config['h1'] = $this->changedValue('catalog.team_title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('catalog.team_intro', $text, $defaults, $config['lead']);
         }
 
         if ($page === 'gallery') {
-            $config['h1'] = $text['catalog.gallery_title'] ?? $config['h1'];
-            $config['lead'] = $text['catalog.gallery_intro'] ?? $config['lead'];
+            $config['h1'] = $this->changedValue('catalog.gallery_title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('catalog.gallery_intro', $text, $defaults, $config['lead']);
         }
 
         if ($page === 'blog') {
-            $config['h1'] = $text['catalog.blog_title'] ?? $config['h1'];
-            $config['lead'] = $text['catalog.blog_intro'] ?? $config['lead'];
+            $config['h1'] = $this->changedValue('catalog.blog_title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('catalog.blog_intro', $text, $defaults, $config['lead']);
         }
 
         if ($page === 'faq') {
-            $config['h1'] = $text['catalog.faq_title'] ?? $config['h1'];
-            $config['lead'] = $text['catalog.faq_intro'] ?? $config['lead'];
+            $config['h1'] = $this->changedValue('catalog.faq_title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('catalog.faq_intro', $text, $defaults, $config['lead']);
         }
 
         if ($page === 'contact') {
-            $config['h1'] = $text['contact.title'] ?? $config['h1'];
-            $config['lead'] = $text['contact.intro'] ?? $config['lead'];
-            $config['sections'] = [
-                ['title' => 'მისამართი', 'body' => $text['contact.address'] ?? ''],
-                ['title' => 'ტელეფონი', 'body' => $text['contact.phone_display'] ?? ''],
-                ['title' => 'სამუშაო საათები', 'body' => $text['contact.hours'] ?? ''],
-            ];
+            $config['h1'] = $this->changedValue('contact.title', $text, $defaults, $config['h1']);
+            $config['lead'] = $this->changedValue('contact.intro', $text, $defaults, $config['lead']);
+            $config['sections'][0]['body'] = $this->changedValue(
+                'contact.address',
+                $text,
+                $defaults,
+                $config['sections'][0]['body'] ?? '',
+            );
+            $config['sections'][1]['body'] = $this->changedValue(
+                'contact.phone_display',
+                $text,
+                $defaults,
+                $config['sections'][1]['body'] ?? '',
+            );
+            $config['sections'][2]['body'] = $this->changedValue(
+                'contact.hours',
+                $text,
+                $defaults,
+                $config['sections'][2]['body'] ?? '',
+            );
         }
 
         if ($page === 'admission') {
-            $config['h1'] = $text['admission.title'] ?? $config['h1'];
-            $config['lead'] = $text['admission.note_text'] ?? $config['lead'];
-            $config['sections'] = array_merge([
-                [
-                    'title' => $text['admission.note_title'] ?? 'გმადლობთ ინტერესისთვის',
-                    'body' => $text['admission.note_text'] ?? '',
-                ],
-            ], $config['sections'] ?? []);
+            $config['h1'] = $this->changedValue('admission.title', $text, $defaults, $config['h1']);
+
+            if ($this->hasChanged('admission.note_title', $text, $defaults)
+                || $this->hasChanged('admission.note_text', $text, $defaults)) {
+                array_unshift($config['sections'], [
+                    'title' => (string) ($text['admission.note_title'] ?? 'გმადლობთ ინტერესისთვის'),
+                    'body' => (string) ($text['admission.note_text'] ?? ''),
+                ]);
+            }
         }
 
         return $config;
+    }
+
+    private function changedValue(string $key, array $text, array $defaults, string $fallback): string
+    {
+        return $this->hasChanged($key, $text, $defaults)
+            ? (string) $text[$key]
+            : $fallback;
+    }
+
+    private function hasChanged(string $key, array $text, array $defaults): bool
+    {
+        if (! array_key_exists($key, $text)) {
+            return false;
+        }
+
+        return (string) $text[$key] !== (string) ($defaults[$key] ?? '');
     }
 
     private function withManagedItems(string $page, array $config, array $payload): array
