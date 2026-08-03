@@ -11,7 +11,7 @@
     background:rgba(163,209,203,.12)!important;
 }
 
-.site-nav button{
+.site-nav :is(button,a){
     display:inline-flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -26,17 +26,18 @@
     font-weight:700!important;
     line-height:1.2!important;
     letter-spacing:0!important;
+    text-decoration:none!important;
     white-space:nowrap!important;
 }
 
-.site-nav button:hover{
+.site-nav :is(button,a):hover{
     border-color:rgba(15,44,53,.08)!important;
     background:rgba(239,226,160,.62)!important;
     color:#0f2c35!important;
     transform:translateY(-1px);
 }
 
-.site-nav button.active{
+.site-nav :is(button,a).active{
     border-color:rgba(15,44,53,.09)!important;
     background:#a3d1cb!important;
     color:#0f2c35!important;
@@ -45,7 +46,7 @@
 
 @media(max-width:1250px){
     .site-nav{gap:4px!important;padding:4px!important}
-    .site-nav button{padding:8px 10px!important;font-size:10px!important}
+    .site-nav :is(button,a){padding:8px 10px!important;font-size:10px!important}
 }
 
 @media(max-width:1050px){
@@ -56,7 +57,7 @@
         background:#fffdf8!important;
     }
     .site-nav.open{display:flex!important}
-    .site-nav button{
+    .site-nav :is(button,a){
         width:100%!important;
         justify-content:flex-start!important;
         padding:12px 14px!important;
