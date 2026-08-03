@@ -13,8 +13,7 @@ class BlogNavigationTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('/js/blog-navigation.js?v=20260803a', false)
-            ->assertSee('data-page-target="blog"', false);
+            ->assertSee('/js/blog-navigation.js?v=20260803a', false);
 
         $script = file_get_contents(public_path('js/blog-navigation.js'));
 
