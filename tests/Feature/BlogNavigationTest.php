@@ -9,20 +9,17 @@ class BlogNavigationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_blog_controls_open_the_public_blog_page(): void
+    public function test_home_blog_controls_are_real_links_to_the_public_blog_page(): void
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('/js/blog-navigation.js?v=20260803a', false);
-
-        $script = file_get_contents(public_path('js/blog-navigation.js'));
-
-        $this->assertIsString($script);
-        $this->assertStringContainsString('[data-page-target="blog"]', $script);
-        $this->assertStringContainsString("window.location.assign(blogPath)", $script);
+            ->assertSee('href="/blogi">ბლოგი</a>', false)
+            ->assertSee('class="ghost-button" href="/blogi">ყველა სტატია →</a>', false)
+            ->assertSee('/js/blog-navigation.js?v=20260803b', false);
 
         $this->get('/blogi')
             ->assertOk()
-            ->assertSee('ბლოგი მშობლებისთვის');
+            ->assertSee('ბლოგი მშობლებისთვის')
+            ->assertDontSee('სასარგებლო რჩევები ყოველდღიური მშობლობისთვის');
     }
 }
