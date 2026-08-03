@@ -29,6 +29,7 @@ class ContentManagementTest extends TestCase
         $this->put('/admin/content/texts', [
             'content' => [
                 'identity.hero_text' => 'ახალი მთავარი ტექსტი CMS-დან.',
+                'about.title' => 'ჩვენ შესახებ — განახლებული სათაური',
                 'contact.address' => 'ახალი მისამართი, ბათუმი',
             ],
         ])->assertRedirect()->assertSessionHas('success');
@@ -37,7 +38,17 @@ class ContentManagementTest extends TestCase
             ->assertOk()
             ->assertSee('ახალი მთავარი ტექსტი CMS-დან.')
             ->assertSee('ახალი მისამართი, ბათუმი')
-            ->assertSee('js/cms-public.js', false);
+            ->assertSee('js/cms-public.js', false)
+            ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, public');
+
+        $this->get('/chven-shesakheb')
+            ->assertOk()
+            ->assertSee('ჩვენ შესახებ — განახლებული სათაური');
+
+        $this->get('/kontakti')
+            ->assertOk()
+            ->assertSee('ახალი მისამართი, ბათუმი')
+            ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, public');
 
         $this->post('/admin/content/items/faq', [
             'title' => 'შეიძლება თუ არა ონლაინ ვიზიტის დაჯავშნა?',
@@ -58,6 +69,60 @@ class ContentManagementTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['title' => 'შეიძლება თუ არა ონლაინ ვიზიტის დაჯავშნა?'])
             ->assertJsonStructure(['group', 'team', 'faq', 'gallery', 'club_post', 'club_event', 'club_poll', 'club_topic', 'blog']);
+    }
+
+    public function test_structured_admin_content_renders_on_dedicated_public_pages(): void
+    {
+        $this->loginAsAdmin();
+
+        $this->post('/admin/content/items/group', [
+            'title' => 'საცდელი ასაკობრივი ჯგუფი',
+            'subtitle' => 'ნინო ტესტაძე',
+            'body' => 'განახლებული პროგრამა ადმინისტრაციიდან.',
+            'badge' => 'test-group',
+            'color' => '#A9D3C9',
+            'meta_json' => json_encode(['free' => 5, 'total' => 18], JSON_THROW_ON_ERROR),
+            'sort_order' => 90,
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->post('/admin/content/items/team', [
+            'title' => 'მარიამ ტესტაძე',
+            'subtitle' => 'განვითარების სპეციალისტი',
+            'body' => 'გუნდის განახლებული აღწერა.',
+            'badge' => 'მ',
+            'color' => '#A9D3C9',
+            'meta_json' => '{}',
+            'sort_order' => 90,
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->post('/admin/content/items/faq', [
+            'title' => 'ადმინისტრაციიდან დამატებული კითხვა?',
+            'body' => 'ადმინისტრაციიდან დამატებული პასუხი.',
+            'color' => '#A9D3C9',
+            'meta_json' => '{}',
+            'sort_order' => 90,
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->get('/jgufebi')
+            ->assertOk()
+            ->assertSee('საცდელი ასაკობრივი ჯგუფი')
+            ->assertSee('განახლებული პროგრამა ადმინისტრაციიდან.')
+            ->assertSee('ნინო ტესტაძე')
+            ->assertSee('5 / 18');
+
+        $this->get('/gundi')
+            ->assertOk()
+            ->assertSee('მარიამ ტესტაძე')
+            ->assertSee('განვითარების სპეციალისტი')
+            ->assertSee('გუნდის განახლებული აღწერა.');
+
+        $this->get('/kitkhva-pasukhi')
+            ->assertOk()
+            ->assertSee('ადმინისტრაციიდან დამატებული კითხვა?')
+            ->assertSee('ადმინისტრაციიდან დამატებული პასუხი.');
     }
 
     public function test_admin_can_upload_blog_cover_and_publish_post(): void

@@ -16,10 +16,19 @@ class ApplyManagedContent
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
-        $isPublicSite = $request->routeIs('home');
+        $isHome = $request->routeIs('home');
+        $isManagedPublicHtml = $request->routeIs(
+            'home',
+            'public.*',
+            'privacy',
+            'terms',
+            'privacy.request',
+            'auth.credentials.login.form',
+            'auth.credentials.register.form',
+        );
         $isParentPortal = $request->routeIs('parent.dashboard');
 
-        if ((! $isPublicSite && ! $isParentPortal) || ! method_exists($response, 'getContent')) {
+        if ((! $isManagedPublicHtml && ! $isParentPortal) || ! method_exists($response, 'getContent')) {
             return $response;
         }
 
@@ -31,8 +40,11 @@ class ApplyManagedContent
         try {
             $html = (string) $response->getContent();
 
-            if ($isPublicSite) {
+            if ($isManagedPublicHtml) {
                 $html = $this->content->applyTextToHtml($html);
+            }
+
+            if ($isHome) {
                 $html = $this->injectScript($html, 'js/cms-public.js');
             }
 
@@ -41,6 +53,11 @@ class ApplyManagedContent
             }
 
             $response->setContent($html);
+            $response->headers->remove('Content-Length');
+
+            if ($isManagedPublicHtml) {
+                $response->headers->set('Cache-Control', 'public, max-age=0, must-revalidate');
+            }
         } catch (\Throwable $exception) {
             report($exception);
         }
