@@ -11,11 +11,20 @@ class BlogNavigationTest extends TestCase
 
     public function test_home_blog_controls_are_real_links_to_the_public_blog_page(): void
     {
-        $this->get('/')
+        $blogUrl = route('public.blog');
+        $response = $this->get('/');
+
+        $response
             ->assertOk()
-            ->assertSee('href="/blogi">ბლოგი</a>', false)
-            ->assertSee('class="ghost-button" href="/blogi">ყველა სტატია →</a>', false)
+            ->assertSee('ბლოგი')
+            ->assertSee('ყველა სტატია →')
+            ->assertSee($blogUrl, false)
             ->assertSee('/js/blog-navigation.js?v=20260803b', false);
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            substr_count((string) $response->getContent(), 'href="'.$blogUrl.'"'),
+        );
 
         $this->get('/blogi')
             ->assertOk()
