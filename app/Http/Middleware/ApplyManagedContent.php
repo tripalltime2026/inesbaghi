@@ -3,19 +3,40 @@
 namespace App\Http\Middleware;
 
 use App\Services\ManagedContent;
+use App\Services\RestrictedTerminology;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApplyManagedContent
 {
-    public function __construct(private readonly ManagedContent $content)
-    {
+    public function __construct(
+        private readonly ManagedContent $content,
+        private readonly RestrictedTerminology $terminology,
+    ) {
     }
 
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+
+        if (! method_exists($response, 'getContent')) {
+            return $response;
+        }
+
+        $contentType = strtolower((string) $response->headers->get('Content-Type'));
+        $isHtml = $contentType === '' || str_contains($contentType, 'text/html');
+        $isTextResponse = $isHtml
+            || str_contains($contentType, 'application/json')
+            || str_contains($contentType, 'application/xml')
+            || str_contains($contentType, 'text/xml')
+            || str_contains($contentType, 'text/plain')
+            || str_contains($contentType, 'javascript');
+
+        if (! $isTextResponse) {
+            return $response;
+        }
+
         $isHome = $request->routeIs('home');
         $isManagedPublicHtml = $request->routeIs(
             'home',
@@ -28,31 +49,24 @@ class ApplyManagedContent
         );
         $isParentPortal = $request->routeIs('parent.dashboard');
 
-        if ((! $isManagedPublicHtml && ! $isParentPortal) || ! method_exists($response, 'getContent')) {
-            return $response;
-        }
-
-        $contentType = (string) $response->headers->get('Content-Type');
-        if ($contentType !== '' && ! str_contains($contentType, 'text/html')) {
-            return $response;
-        }
-
         try {
-            $html = (string) $response->getContent();
+            $body = (string) $response->getContent();
 
-            if ($isManagedPublicHtml) {
-                $html = $this->content->applyTextToHtml($html);
+            if ($isHtml && $isManagedPublicHtml) {
+                $body = $this->content->applyTextToHtml($body);
             }
 
-            if ($isHome) {
-                $html = $this->injectScript($html, 'js/cms-public.js');
+            if ($isHtml && $isHome) {
+                $body = $this->injectScript($body, 'js/cms-public.js');
             }
 
-            if ($isParentPortal) {
-                $html = $this->injectScript($html, 'js/cms-portal.js');
+            if ($isHtml && $isParentPortal) {
+                $body = $this->injectScript($body, 'js/cms-portal.js');
             }
 
-            $response->setContent($html);
+            $body = $this->terminology->sanitize($body);
+
+            $response->setContent($body);
             $response->headers->remove('Content-Length');
 
             if ($isManagedPublicHtml) {
