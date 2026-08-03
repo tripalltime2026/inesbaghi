@@ -17,6 +17,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        config([
+            'seo.pages.blog.h1' => 'ბლოგი მშობლებისთვის',
+        ]);
+
         $this->prepareRuntimeDirectories();
 
         if (
