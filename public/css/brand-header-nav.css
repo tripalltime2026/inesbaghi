@@ -1,0 +1,66 @@
+/* Clear separation for desktop header navigation. */
+.site-nav{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+    min-width:0!important;
+    padding:5px!important;
+    border:1px solid rgba(15,44,53,.07)!important;
+    border-radius:20px!important;
+    background:rgba(163,209,203,.12)!important;
+}
+
+.site-nav button{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:38px!important;
+    margin:0!important;
+    padding:9px 13px!important;
+    border:1px solid transparent!important;
+    border-radius:14px!important;
+    background:rgba(255,253,248,.58)!important;
+    color:rgba(15,44,53,.70)!important;
+    font-size:11px!important;
+    font-weight:700!important;
+    line-height:1.2!important;
+    letter-spacing:0!important;
+    white-space:nowrap!important;
+}
+
+.site-nav button:hover{
+    border-color:rgba(15,44,53,.08)!important;
+    background:rgba(239,226,160,.62)!important;
+    color:#0f2c35!important;
+    transform:translateY(-1px);
+}
+
+.site-nav button.active{
+    border-color:rgba(15,44,53,.09)!important;
+    background:#a3d1cb!important;
+    color:#0f2c35!important;
+    box-shadow:0 7px 18px rgba(15,44,53,.09)!important;
+}
+
+@media(max-width:1250px){
+    .site-nav{gap:4px!important;padding:4px!important}
+    .site-nav button{padding:8px 10px!important;font-size:10px!important}
+}
+
+@media(max-width:1050px){
+    .site-nav{
+        display:none!important;
+        padding:14px!important;
+        gap:8px!important;
+        background:#fffdf8!important;
+    }
+    .site-nav.open{display:flex!important}
+    .site-nav button{
+        width:100%!important;
+        justify-content:flex-start!important;
+        padding:12px 14px!important;
+        font-size:12px!important;
+        background:rgba(163,209,203,.12)!important;
+    }
+}
