@@ -11,7 +11,9 @@ class PublicSeoController extends Controller
 {
     public function home(): View
     {
-        return view('site');
+        return view('site', [
+            'latestPosts' => $this->publishedPosts()->limit(3)->get(),
+        ]);
     }
 
     public function show(string $page, ManagedContent $content): View
