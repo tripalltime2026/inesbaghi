@@ -5,13 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\BlogPost;
 use App\Services\ManagedContent;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class PublicSeoController extends Controller
 {
     public function home(): View
     {
-        return view('site');
+        $latestPosts = Schema::hasTable((new BlogPost)->getTable())
+            ? $this->publishedPosts()->limit(3)->get()
+            : collect();
+
+        return view('site', compact('latestPosts'));
     }
 
     public function show(string $page, ManagedContent $content): View
