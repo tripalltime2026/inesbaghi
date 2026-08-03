@@ -19,6 +19,18 @@ class AppServiceProvider extends ServiceProvider
     {
         config([
             'seo.pages.blog.h1' => 'ბლოგი მშობლებისთვის',
+            'seo.pages.admission.title' => 'საბავშვო ბაღის ვიზიტი ბათუმში | ინეს ბაღი',
+            'seo.pages.admission.description' => 'დაგეგმეთ ინეს ბაღში გაცნობითი ვიზიტი და მიიღეთ ინფორმაცია გარემოს, პროგრამისა და ასაკობრივი ჯგუფების შესახებ.',
+            'seo.pages.admission.eyebrow' => 'ვიზიტი',
+            'seo.pages.admission.h1' => 'დაგეგმეთ გაცნობითი ვიზიტი',
+            'seo.pages.admission.lead' => 'დატოვეთ საკონტაქტო ინფორმაცია და ადმინისტრაცია ვიზიტის დროს პირადად შეგითანხმებთ.',
+            'seo.pages.admission.sections.0.title' => '1. დატოვეთ მოთხოვნა',
+            'seo.pages.admission.sections.0.body' => 'მიუთითეთ მშობლის საკონტაქტო ინფორმაცია და ბავშვის ასაკობრივი ჯგუფი.',
+            'seo.pages.admission.sections.1.title' => '2. დაგეგმეთ ვიზიტი',
+            'seo.pages.admission.sections.1.body' => 'ადმინისტრაცია შეგითანხმებთ დროს და გაგაცნობთ სივრცეს, პროგრამასა და დღის რეჟიმს.',
+            'seo.pages.admission.sections.2.title' => '3. მიიღეთ სრული ინფორმაცია',
+            'seo.pages.admission.sections.2.body' => 'ვიზიტისას მიიღებთ პასუხებს ჯგუფების, ადგილებისა და შემდგომი ნაბიჯების შესახებ.',
+            'seo.pages.contact.lead' => 'გაგაცნობთ გარემოს, პროგრამას, ჯგუფებსა და ვიზიტის დეტალებს.',
         ]);
 
         $this->prepareRuntimeDirectories();
