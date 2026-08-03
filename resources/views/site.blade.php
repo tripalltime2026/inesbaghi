@@ -79,9 +79,24 @@
             <div class="content-width latest-grid">
                 <div><span class="section-badge mint">ბოლო სიახლეები</span><h2>ბლოგი მშობლებისთვის</h2><p>რჩევები აღზრდაზე, კვებაზე, დღის რეჟიმზე და სკოლისთვის მზადებაზე.</p><a class="ghost-button" href="{{ route('public.blog') }}">ყველა სტატია →</a></div>
                 <div class="mini-post-grid">
-                    <article><i class="mint"></i><small>8 ივლისი, 2026</small><strong>როგორ ვამზადოთ ბავშვი ბაღისთვის — 5 რჩევა</strong></article>
-                    <article><i class="butter"></i><small>2 ივლისი, 2026</small><strong>ჯანსაღი კვება პატარებისთვის</strong></article>
-                    <article><i class="lavender"></i><small>25 ივნისი, 2026</small><strong>თამაშის მნიშვნელობა 3-4 წლის ასაკში</strong></article>
+                    @forelse($latestPosts as $post)
+                        @php($tone = ['mint', 'butter', 'lavender'][$loop->index % 3])
+                        <a href="{{ route('public.blog.show', ['slug' => $post->slug]) }}" style="color:inherit;text-decoration:none" aria-label="სრულად წაიკითხეთ: {{ $post->title }}">
+                            <article>
+                                @if($post->cover_image)
+                                    <i style="background-image:url('{{ route('content.blog-cover', $post) }}');background-position:center;background-size:cover"></i>
+                                @else
+                                    <i class="{{ $tone }}"></i>
+                                @endif
+                                <small>{{ ($post->published_at ?? $post->created_at)?->format('d.m.Y') }}</small>
+                                <strong>{{ $post->title }}</strong>
+                            </article>
+                        </a>
+                    @empty
+                        <a href="{{ route('public.blog') }}" style="color:inherit;text-decoration:none">
+                            <article><i class="mint"></i><small>ბლოგი</small><strong>სტატიები მალე დაემატება</strong></article>
+                        </a>
+                    @endforelse
                 </div>
             </div>
         </section>
