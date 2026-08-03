@@ -68,6 +68,39 @@ class SimplifiedParentManagementTest extends TestCase
             ->assertRedirect(route('account.status'));
     }
 
+    public function test_admin_child_form_uses_one_birth_date_field_and_bootstraps_group_options(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin',
+            'username' => 'admin-child-form',
+            'password' => 'password123',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        User::create([
+            'name' => 'Parent',
+            'username' => 'parent-child-form',
+            'password' => 'password123',
+            'role' => 'member',
+            'status' => 'active',
+        ]);
+
+        $this->assertDatabaseCount('kindergarten_groups', 0);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('name="birth_date"', false)
+            ->assertDontSee('name="birth_year"', false)
+            ->assertSee('2-3 წელი')
+            ->assertSee('3-4 წელი')
+            ->assertSee('4-5 წელი')
+            ->assertSee('5-6 წელი');
+
+        $this->assertDatabaseCount('kindergarten_groups', 4);
+    }
+
     public function test_admin_can_create_and_link_child_without_child_registration(): void
     {
         $admin = User::create([
@@ -112,6 +145,7 @@ class SimplifiedParentManagementTest extends TestCase
         $response->assertSessionHasNoErrors();
 
         $child = Child::query()->where('first_name', 'ანა')->firstOrFail();
+        $this->assertSame(2022, $child->birth_year);
         $this->assertTrue($parent->children()->whereKey($child->id)->exists());
         $this->assertDatabaseHas('enrollments', [
             'child_id' => $child->id,
