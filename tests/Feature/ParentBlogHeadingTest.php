@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ParentBlogHeadingTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_parent_blog_uses_the_requested_heading(): void
     {
         $response = $this->get('/blogi');
