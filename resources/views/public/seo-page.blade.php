@@ -31,7 +31,7 @@
         <a class="{{ $pageKey === 'contact' ? 'active' : '' }}" href="{{ route('public.contact') }}">კონტაქტი</a>
     </nav>
     <div class="site-actions">
-        <a class="pill butter" href="{{ route('public.admission') }}">ჩარიცხვა</a>
+        <a class="pill butter" href="{{ route('public.admission') }}">ვიზიტი</a>
         @auth
             @php
                 $cabinetUrl = auth()->user()->hasRole('admin')
@@ -61,9 +61,9 @@
             <p>{{ $page['lead'] }}</p>
             <div class="button-row">
                 @if($pageKey === 'admission')
-                    <a class="primary-button" href="#admissionFormTitle">განაცხადის შევსება</a>
+                    <a class="primary-button" href="#admissionFormTitle">ვიზიტის მოთხოვნა</a>
                 @else
-                    <a class="primary-button" href="{{ route('public.admission') }}">ჩარიცხვა და ვიზიტი</a>
+                    <a class="primary-button" href="{{ route('public.admission') }}">ვიზიტის დაგეგმვა</a>
                 @endif
                 <button class="secondary-button lavender" type="button" data-ines-ai-open>ჰკითხეთ Ines AI-ს</button>
             </div>
