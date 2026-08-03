@@ -24,22 +24,26 @@ class InjectBrandbookDesign
         }
 
         $content = str_replace(
+            'სასარგებლო რჩევები ყოველდღიური მშობლობისთვის',
+            'ბლოგი მშობლებისთვის',
+            $content,
+        );
+
+        $content = preg_replace(
             [
-                'სასარგებლო რჩევები ყოველდღიური მშობლობისთვის',
-                '<button type="button" data-page-target="blog">ბლოგი</button>',
-                '<button class="ghost-button" type="button" data-page-target="blog">ყველა სტატია →</button>',
-                '<button class="pill butter" type="button" data-page-target="admission">ჩარიცხვა</button>',
-                '<button class="secondary-button lavender" type="button" data-page-target="admission">ჩარიცხვის განაცხადი</button>',
+                '#<button(?=[^>]*data-page-target="blog")[^>]*>\s*ბლოგი\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*ghost-button[^"]*")(?=[^>]*data-page-target="blog")[^>]*>\s*ყველა სტატია\s*→\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*pill[^"]*butter[^"]*")(?=[^>]*data-page-target="admission")[^>]*>\s*ჩარიცხვა\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*secondary-button[^"]*lavender[^"]*")(?=[^>]*data-page-target="admission")[^>]*>\s*ჩარიცხვის განაცხადი\s*</button>#u',
             ],
             [
-                'ბლოგი მშობლებისთვის',
                 '<a href="/blogi">ბლოგი</a>',
                 '<a class="ghost-button" href="/blogi">ყველა სტატია →</a>',
                 '<button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>',
                 '<button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>',
             ],
             $content,
-        );
+        ) ?? $content;
 
         $assets = [];
 
