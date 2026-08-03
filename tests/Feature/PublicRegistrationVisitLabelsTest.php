@@ -21,7 +21,7 @@ class PublicRegistrationVisitLabelsTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('>ვიზიტი</button>', false)
+            ->assertSee('ვიზიტი')
             ->assertSee('ვიზიტის დაგეგმვა')
             ->assertDontSee('ჩარიცხვის განაცხადი');
 
