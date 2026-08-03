@@ -35,6 +35,10 @@ class InjectBrandbookDesign
             $assets[] = '<link rel="stylesheet" href="/css/brand-premium-fixes.css?v=20260803b">';
         }
 
+        if (! str_contains($content, '/css/brand-header-nav.css')) {
+            $assets[] = '<link rel="stylesheet" href="/css/brand-header-nav.css?v=20260803c">';
+        }
+
         if ($assets !== []) {
             $content = str_replace('</head>', '    '.implode("\n    ", $assets)."\n</head>", $content);
         }
