@@ -14,6 +14,8 @@ class GroupController extends Controller
 {
     public function index(): View
     {
+        KindergartenGroup::ensureDefaults();
+
         $groups = KindergartenGroup::query()
             ->withCount([
                 'enrollments as active_enrollments_count' => fn ($query) => $query->where('status', 'active'),
