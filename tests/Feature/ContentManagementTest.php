@@ -39,7 +39,7 @@ class ContentManagementTest extends TestCase
             ->assertSee('ახალი მთავარი ტექსტი CMS-დან.')
             ->assertSee('ახალი მისამართი, ბათუმი')
             ->assertSee('js/cms-public.js', false)
-            ->assertHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+            ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, public');
 
         $this->get('/chven-shesakheb')
             ->assertOk()
@@ -48,7 +48,7 @@ class ContentManagementTest extends TestCase
         $this->get('/kontakti')
             ->assertOk()
             ->assertSee('ახალი მისამართი, ბათუმი')
-            ->assertHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+            ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, public');
 
         $this->post('/admin/content/items/faq', [
             'title' => 'შეიძლება თუ არა ონლაინ ვიზიტის დაჯავშნა?',
