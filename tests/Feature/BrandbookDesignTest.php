@@ -14,7 +14,7 @@ class BrandbookDesignTest extends TestCase
             ->assertSuccessful()
             ->assertSee('/css/brand-premium.css?v=20260803a', false)
             ->assertSee('/css/brand-premium-fixes.css?v=20260803b', false)
-            ->assertSee('/css/brand-header-nav.css?v=20260803c', false)
+            ->assertSee('/css/brand-header-nav.css?v=20260803d', false)
             ->assertSee('/images/ines-logo-horizontal.svg', false)
             ->assertSee('/images/ines-logo-favicon.svg', false);
     }
@@ -44,6 +44,6 @@ class BrandbookDesignTest extends TestCase
         $this->assertStringContainsString(".footer-row", $fixes);
         $this->assertStringContainsString("gap:7px!important", $navigation);
         $this->assertStringContainsString("white-space:nowrap!important", $navigation);
-        $this->assertStringContainsString(".site-nav button.active", $navigation);
+        $this->assertStringContainsString(".site-nav :is(button,a).active", $navigation);
     }
 }

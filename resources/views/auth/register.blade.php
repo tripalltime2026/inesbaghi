@@ -17,8 +17,8 @@
 
     <section class="credentials-card">
         <span class="credentials-badge">ახალი ანგარიში</span>
-        <h1>რეგისტრაცია ორ ნაბიჯში</h1>
-        <p class="credentials-lead">ჯერ შექმენით ანგარიში სახელითა და პაროლით. შემდეგ პროფილში დაამატებთ მობილურის ნომერსა და სხვა დეტალებს.</p>
+        <h1>რეგისტრაცია</h1>
+        <p class="credentials-lead">შექმენით ანგარიში სახელითა და პაროლით. სხვა დეტალების დამატებას პროფილიდან შეძლებთ.</p>
 
         @if($errors->any())
             <div class="credentials-errors">

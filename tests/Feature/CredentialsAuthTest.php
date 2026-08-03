@@ -24,9 +24,9 @@ class CredentialsAuthTest extends TestCase
             ->assertDontSee('Google-ით გაგრძელება');
 
         $this->get('/jgufebi')->assertOk()->assertSee('ჯგუფები');
-        $this->get('/charetskhva')->assertOk()->assertSee('ჩარიცხვა');
+        $this->get('/charetskhva')->assertOk()->assertSee('ვიზიტი');
         $this->get('/shesvla')->assertOk()->assertSee('კეთილი იყოს თქვენი დაბრუნება');
-        $this->get('/registratsia')->assertOk()->assertSee('რეგისტრაცია ორ ნაბიჯში');
+        $this->get('/registratsia')->assertOk()->assertSee('<h1>რეგისტრაცია</h1>', false);
         $this->get('/auth/google')->assertNotFound();
     }
 

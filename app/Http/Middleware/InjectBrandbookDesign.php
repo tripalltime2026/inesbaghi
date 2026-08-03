@@ -29,6 +29,22 @@ class InjectBrandbookDesign
             $content,
         );
 
+        $content = preg_replace(
+            [
+                '#<button(?=[^>]*data-page-target="blog")[^>]*>\s*ბლოგი\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*ghost-button[^"]*")(?=[^>]*data-page-target="blog")[^>]*>\s*ყველა სტატია\s*→\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*pill[^"]*butter[^"]*")(?=[^>]*data-page-target="admission")[^>]*>\s*ჩარიცხვა\s*</button>#u',
+                '#<button(?=[^>]*class="[^"]*secondary-button[^"]*lavender[^"]*")(?=[^>]*data-page-target="admission")[^>]*>\s*ჩარიცხვის განაცხადი\s*</button>#u',
+            ],
+            [
+                '<a href="/blogi">ბლოგი</a>',
+                '<a class="ghost-button" href="/blogi">ყველა სტატია →</a>',
+                '<button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>',
+                '<button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>',
+            ],
+            $content,
+        ) ?? $content;
+
         $assets = [];
 
         if (! str_contains($content, '/css/brand-premium.css')) {
@@ -42,7 +58,7 @@ class InjectBrandbookDesign
         }
 
         if (! str_contains($content, '/css/brand-header-nav.css')) {
-            $assets[] = '<link rel="stylesheet" href="/css/brand-header-nav.css?v=20260803c">';
+            $assets[] = '<link rel="stylesheet" href="/css/brand-header-nav.css?v=20260803d">';
         }
 
         if ($assets !== []) {
@@ -52,7 +68,7 @@ class InjectBrandbookDesign
         if (! str_contains($content, '/js/blog-navigation.js')) {
             $content = str_replace(
                 '</body>',
-                '    <script src="/js/blog-navigation.js?v=20260803a"></script>'."\n</body>",
+                '    <script src="/js/blog-navigation.js?v=20260803b"></script>'."\n</body>",
                 $content,
             );
         }

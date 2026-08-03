@@ -20,7 +20,7 @@ class RuntimeSmokeTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('სიყვარულით')
-            ->assertSee('ჩარიცხვის განაცხადი')
+            ->assertSee('ვიზიტის დაგეგმვა')
             ->assertSee('კონფიდენციალურობა')
             ->assertSee('სარგებლობის პირობები')
             ->assertSee('მონაცემთა მოთხოვნა')

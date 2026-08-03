@@ -21,12 +21,12 @@
         <button type="button" data-page-target="home">მთავარი</button>
         <button type="button" data-page-target="about">ჩვენ შესახებ</button>
         <button type="button" data-page-target="groups">ჯგუფები</button>
-        <button type="button" data-page-target="blog">ბლოგი</button>
+        <a href="{{ route('public.blog') }}">ბლოგი</a>
         <button type="button" data-page-target="faq">კითხვა-პასუხი</button>
         <button type="button" data-page-target="contact">კონტაქტი</button>
     </nav>
     <div class="site-actions">
-        <button class="pill butter" type="button" data-page-target="admission">ჩარიცხვა</button>
+        <button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>
         @auth
             @php
                 $cabinetUrl = auth()->user()->hasRole('admin')
@@ -59,7 +59,7 @@
                     @else
                         <button class="primary-button" type="button" data-open-login>შემოგვიერთდი კლუბში</button>
                     @endauth
-                    <button class="secondary-button lavender" type="button" data-page-target="admission">ჩარიცხვის განაცხადი</button>
+                    <button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>
                 </div>
             </div>
             <div class="hero-art" role="img" aria-label="ინეს ბაღის ილუსტრაცია"><img src="{{ asset('images/ines-final-hero.svg') }}" alt="ინეს ბაღი — სივრცე ბავშვებისთვის"></div>
@@ -68,7 +68,7 @@
         <section class="content-width home-offers">
             <h2>რას გთავაზობთ</h2>
             <div class="offer-grid">
-                <button class="offer-card mint" type="button" data-page-target="methodology"><span>🧩</span><strong>მონტესორის მეთოდი</strong><small>დამოუკიდებლობა და თამაშზე დაფუძნებული სწავლება</small></button>
+                <button class="offer-card mint" type="button" data-page-target="methodology"><span>🧩</span><strong>ბავშვზე ორიენტირებული სწავლება</strong><small>დამოუკიდებლობა და თამაშზე დაფუძნებული აქტივობები</small></button>
                 <button class="offer-card lavender" type="button" data-page-target="groups"><span>👶</span><strong>4 ასაკობრივი ჯგუფი</strong><small>ასაკზე მორგებული სასწავლო პროგრამები</small></button>
                 <button class="offer-card butter" type="button" data-page-target="team"><span>🌟</span><strong>გამოცდილი გუნდი</strong><small>პედაგოგები და ფსიქოლოგი, რომლებიც ბავშვს ინდივიდუალურად უდგებიან</small></button>
                 <button class="offer-card peach" type="button" data-open-login><span>💬</span><strong>მშობელთა კლუბი</strong><small>სიახლეები, ღონისძიებები, ფორუმი და გამოკითხვები</small></button>
@@ -77,7 +77,7 @@
 
         <section class="latest-band">
             <div class="content-width latest-grid">
-                <div><span class="section-badge mint">ბოლო სიახლეები</span><h2>ბლოგი მშობლებისთვის</h2><p>რჩევები აღზრდაზე, კვებაზე, დღის რეჟიმზე და სკოლისთვის მზადებაზე.</p><button class="ghost-button" type="button" data-page-target="blog">ყველა სტატია →</button></div>
+                <div><span class="section-badge mint">ბოლო სიახლეები</span><h2>ბლოგი მშობლებისთვის</h2><p>რჩევები აღზრდაზე, კვებაზე, დღის რეჟიმზე და სკოლისთვის მზადებაზე.</p><a class="ghost-button" href="{{ route('public.blog') }}">ყველა სტატია →</a></div>
                 <div class="mini-post-grid">
                     <article><i class="mint"></i><small>8 ივლისი, 2026</small><strong>როგორ ვამზადოთ ბავშვი ბაღისთვის — 5 რჩევა</strong></article>
                     <article><i class="butter"></i><small>2 ივლისი, 2026</small><strong>ჯანსაღი კვება პატარებისთვის</strong></article>
@@ -104,9 +104,9 @@
     </section>
 
     <section class="public-page" data-page="methodology">
-        <div class="page-intro content-width"><span class="section-badge lavender">მეთოდოლოგია</span><h1>ბავშვის ბუნებრივ რიტმზე მორგებული სწავლება</h1><p>ჩვენ ვიყენებთ მონტესორის ელემენტებს, გამდიდრებულს თამაშზე დაფუძნებული სწავლებით. თითოეული ჯგუფის დღის რიტმი ბავშვის ბუნებრივ ციკლს მიჰყვება.</p></div>
+        <div class="page-intro content-width"><span class="section-badge lavender">მეთოდოლოგია</span><h1>ბავშვის ბუნებრივ რიტმზე მორგებული სწავლება</h1><p>ჩვენ ვიყენებთ თამაშზე დაფუძნებულ, სენსორულ და პრაქტიკულ აქტივობებს. თითოეული ჯგუფის დღის რიტმი ბავშვის ბუნებრივ ციკლს მიჰყვება.</p></div>
         <div class="content-width method-grid">
-            <article class="method-card mint"><span>🧩</span><h3>სწავლების მეთოდი</h3><p>ბავშვი თავად ირჩევს აქტივობას მოწოდებული მასალებიდან.</p></article>
+            <article class="method-card mint"><span>🧩</span><h3>სწავლების მეთოდი</h3><p>ბავშვი თავად ირჩევს აქტივობას შეთავაზებული მასალებიდან.</p></article>
             <article class="method-card butter"><span>🎨</span><h3>თამაშზე დაფუძნებული სწავლება</h3><p>შემოქმედებითი პროცესები ემოციური და სოციალური განვითარებისთვის.</p></article>
             <article class="method-card lavender"><span>🌱</span><h3>ბუნებრივი დღის რიტმი</h3><p>ძილი, კვება და თამაში ბავშვის ბიოლოგიურ ციკლს მიჰყვება.</p></article>
         </div>
@@ -156,7 +156,7 @@
     </section>
 
     <section class="public-page" data-page="admission">
-        <div class="page-intro content-width"><span class="section-badge peach">მიღებაზე რეგისტრაცია</span><h1>შეავსეთ ჩარიცხვის განაცხადი ან დაგეგმეთ გაცნობითი ვიზიტი</h1></div>
+        <div class="page-intro content-width"><span class="section-badge peach">ვიზიტი</span><h1>დაგეგმეთ გაცნობითი ვიზიტი</h1></div>
         <div class="content-width admission-layout">
             <form class="final-form" id="registrationForm" novalidate>
                 <div class="form-grid">
@@ -166,15 +166,15 @@
                     <label><span>დაბადების წელი</span><input name="birth_year" type="number" min="2018" max="2026" placeholder="მაგ. 2022"></label>
                 </div>
                 <fieldset><legend>სასურველი ჯგუფი</legend><div class="choice-row" id="admissionGroups"></div></fieldset>
-                <fieldset><legend>სასწავლო წელი</legend><div class="choice-row"><label class="choice active"><input type="radio" name="academic_year" value="2026" checked>2026–2027</label><label class="choice"><input type="radio" name="academic_year" value="2027">2027–2028</label></div><small>შესაძლებელია ჩარიცხვის მოთხოვნის გაგზავნა წლით ადრეც — თქვენი ადგილი დაცული იქნება.</small></fieldset>
+                <fieldset><legend>სასწავლო წელი</legend><div class="choice-row"><label class="choice active"><input type="radio" name="academic_year" value="2026" checked>2026–2027</label><label class="choice"><input type="radio" name="academic_year" value="2027">2027–2028</label></div><small>ვიზიტის მოთხოვნის გაგზავნა წინასწარაც შეგიძლიათ.</small></fieldset>
                 <label class="switch-row"><input type="checkbox" name="wants_tour" value="1" checked><span>გვსურს დავჯავშნოთ ვიზიტი ბაღში</span></label>
                 <label><span>სასურველი ვიზიტის თარიღი</span><input name="preferred_tour_date" type="date"></label>
                 <label><span>დამატებითი ინფორმაცია</span><textarea name="comment" placeholder="მოგვწერეთ, თუ გაქვთ რაიმე მნიშვნელოვანი კითხვა ან ინფორმაცია"></textarea></label>
                 <p class="form-note">ფორმის გაგზავნით ეთანხმებით, რომ ადმინისტრაცია დაგიკავშირდეთ მითითებულ ნომერზე.</p>
                 <div class="form-status" id="registrationStatus" aria-live="polite"></div>
-                <button class="primary-button full" type="submit">განაცხადის გაგზავნა</button>
+                <button class="primary-button full" type="submit">ვიზიტის მოთხოვნის გაგზავნა</button>
             </form>
-            <aside class="admission-note butter"><span>🌱</span><h2>გმადლობთ ინტერესისთვის</h2><p>განაცხადის მიღების შემდეგ ადმინისტრაცია დაგიკავშირდებათ, გაგაცნობთ პირობებს და ვიზიტის დროს შეგითანხმებთ.</p><small>თქვენი განაცხადის სტატუსს შემდგომში კლუბის პროფილიდანაც ნახავთ.</small></aside>
+            <aside class="admission-note butter"><span>🌱</span><h2>გმადლობთ ინტერესისთვის</h2><p>მოთხოვნის მიღების შემდეგ ადმინისტრაცია დაგიკავშირდებათ და ვიზიტის დროს შეგითანხმებთ.</p><small>ვიზიტისას მიიღებთ სრულ ინფორმაციას გარემოს, პროგრამისა და ჯგუფების შესახებ.</small></aside>
         </div>
     </section>
 </main>
