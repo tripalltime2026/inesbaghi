@@ -49,6 +49,14 @@ class InjectBrandbookDesign
             $content = str_replace('</head>', '    '.implode("\n    ", $assets)."\n</head>", $content);
         }
 
+        if (! str_contains($content, '/js/blog-navigation.js')) {
+            $content = str_replace(
+                '</body>',
+                '    <script src="/js/blog-navigation.js?v=20260803a"></script>'."\n</body>",
+                $content,
+            );
+        }
+
         $response->setContent($content);
         $response->headers->remove('Content-Length');
 
