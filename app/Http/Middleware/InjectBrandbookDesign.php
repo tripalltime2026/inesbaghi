@@ -24,8 +24,20 @@ class InjectBrandbookDesign
         }
 
         $content = str_replace(
-            'სასარგებლო რჩევები ყოველდღიური მშობლობისთვის',
-            'ბლოგი მშობლებისთვის',
+            [
+                'სასარგებლო რჩევები ყოველდღიური მშობლობისთვის',
+                '<button type="button" data-page-target="blog">ბლოგი</button>',
+                '<button class="ghost-button" type="button" data-page-target="blog">ყველა სტატია →</button>',
+                '<button class="pill butter" type="button" data-page-target="admission">ჩარიცხვა</button>',
+                '<button class="secondary-button lavender" type="button" data-page-target="admission">ჩარიცხვის განაცხადი</button>',
+            ],
+            [
+                'ბლოგი მშობლებისთვის',
+                '<a href="/blogi">ბლოგი</a>',
+                '<a class="ghost-button" href="/blogi">ყველა სტატია →</a>',
+                '<button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>',
+                '<button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>',
+            ],
             $content,
         );
 
@@ -42,7 +54,7 @@ class InjectBrandbookDesign
         }
 
         if (! str_contains($content, '/css/brand-header-nav.css')) {
-            $assets[] = '<link rel="stylesheet" href="/css/brand-header-nav.css?v=20260803c">';
+            $assets[] = '<link rel="stylesheet" href="/css/brand-header-nav.css?v=20260803d">';
         }
 
         if ($assets !== []) {
@@ -52,7 +64,7 @@ class InjectBrandbookDesign
         if (! str_contains($content, '/js/blog-navigation.js')) {
             $content = str_replace(
                 '</body>',
-                '    <script src="/js/blog-navigation.js?v=20260803a"></script>'."\n</body>",
+                '    <script src="/js/blog-navigation.js?v=20260803b"></script>'."\n</body>",
                 $content,
             );
         }
