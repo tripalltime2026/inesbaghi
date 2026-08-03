@@ -3,6 +3,7 @@
 use App\Http\Middleware\ApplyManagedContent;
 use App\Http\Middleware\EnsureParentClubAccess;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\InjectBrandbookDesign;
 use App\Http\Middleware\InjectGoogleAnalytics;
 use App\Http\Middleware\InjectGoogleTagManager;
 use App\Http\Middleware\InjectHomeHeroManager;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request): string => route('auth.credentials.login.form'),
         );
         $middleware->web(append: [
+            InjectBrandbookDesign::class,
             InjectGoogleTagManager::class,
             InjectGoogleAnalytics::class,
             PasswordAuthentication::class,
