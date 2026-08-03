@@ -23,6 +23,12 @@ class InjectBrandbookDesign
             return $response;
         }
 
+        $content = str_replace(
+            'სასარგებლო რჩევები ყოველდღიური მშობლობისთვის',
+            'ბლოგი მშობლებისთვის',
+            $content,
+        );
+
         $assets = [];
 
         if (! str_contains($content, '/css/brand-premium.css')) {
