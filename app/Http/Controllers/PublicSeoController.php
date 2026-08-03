@@ -32,7 +32,7 @@ class PublicSeoController extends Controller
 
         return view('public.seo-page', [
             'pageKey' => $page,
-            'page' => $config,
+            'page' => $this->withManagedItems($page, $config, $content->publicPayload()),
             'pages' => config('seo.pages'),
         ]);
     }
@@ -87,6 +87,60 @@ class PublicSeoController extends Controller
             'Content-Type' => 'text/plain; charset=UTF-8',
             'Cache-Control' => 'public, max-age=3600',
         ]);
+    }
+
+    private function withManagedItems(string $page, array $config, array $payload): array
+    {
+        if ($page === 'groups') {
+            $config['sections'] = collect($payload['group'] ?? [])
+                ->map(function (array $item): array {
+                    $details = [];
+                    if (! empty($item['subtitle'])) {
+                        $details[] = 'აღმზრდელი: '.$item['subtitle'];
+                    }
+
+                    $free = $item['meta']['free'] ?? null;
+                    $total = $item['meta']['total'] ?? null;
+                    if ($free !== null && $total !== null) {
+                        $details[] = 'ხელმისაწვდომი ადგილები: '.$free.' / '.$total;
+                    }
+
+                    return [
+                        'title' => (string) ($item['title'] ?? ''),
+                        'body' => collect([
+                            (string) ($item['body'] ?? ''),
+                            implode(' · ', $details),
+                        ])->filter()->implode(' '),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        if ($page === 'team') {
+            $config['sections'] = collect($payload['team'] ?? [])
+                ->map(fn (array $item): array => [
+                    'title' => (string) ($item['title'] ?? ''),
+                    'body' => collect([
+                        (string) ($item['subtitle'] ?? ''),
+                        (string) ($item['body'] ?? ''),
+                    ])->filter()->implode(' — '),
+                ])
+                ->values()
+                ->all();
+        }
+
+        if ($page === 'faq') {
+            $config['faqs'] = collect($payload['faq'] ?? [])
+                ->map(fn (array $item): array => [
+                    'question' => (string) ($item['title'] ?? ''),
+                    'answer' => (string) ($item['body'] ?? ''),
+                ])
+                ->values()
+                ->all();
+        }
+
+        return $config;
     }
 
     private function publishedPosts()
