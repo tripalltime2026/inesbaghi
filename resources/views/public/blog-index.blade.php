@@ -29,7 +29,7 @@
         <a href="{{ route('public.contact') }}">კონტაქტი</a>
     </nav>
     <div class="site-actions">
-        <a class="pill butter" href="{{ route('public.admission') }}">ჩარიცხვა</a>
+        <a class="pill butter" href="{{ route('public.admission') }}">ვიზიტი</a>
         @auth
             @php
                 $cabinetUrl = auth()->user()->hasRole('admin')
@@ -54,7 +54,7 @@
 
     <section class="blog-index-hero content-width">
         <span class="section-badge mint">ბლოგი მშობლებისთვის</span>
-        <h1>სასარგებლო რჩევები ყოველდღიური მშობლობისთვის</h1>
+        <h1>ბლოგი მშობლებისთვის</h1>
         <p>სრული სტატიები ბავშვის ბაღთან ადაპტაციაზე, კვებაზე, თამაშით განვითარებასა და სკოლისთვის მზადებაზე.</p>
     </section>
 
@@ -86,7 +86,7 @@
         @empty
             <div class="blog-empty">
                 <h2>სტატიები მალე დაემატება</h2>
-                <p>მანამდე Ines AI-ს შეგიძლიათ ჰკითხოთ ბაღის პროგრამის, ჯგუფებისა და ჩარიცხვის შესახებ.</p>
+                <p>მანამდე Ines AI-ს შეგიძლიათ ჰკითხოთ ბაღის პროგრამის, ჯგუფებისა და ვიზიტის შესახებ.</p>
                 <button class="primary-button" type="button" data-ines-ai-open>ჰკითხეთ Ines AI-ს</button>
             </div>
         @endforelse
@@ -111,7 +111,7 @@
         <a href="{{ route('public.blog') }}">ბლოგი</a>
         <a href="{{ route('public.faq') }}">კითხვა-პასუხი</a>
         <a href="{{ route('public.contact') }}">კონტაქტი</a>
-        <a href="{{ route('public.admission') }}">ჩარიცხვა</a>
+        <a href="{{ route('public.admission') }}">ვიზიტი</a>
     </nav>
 </footer>
 </body>
