@@ -68,7 +68,7 @@ class InjectBrandbookDesign
         if (! str_contains($content, '/js/blog-navigation.js')) {
             $content = str_replace(
                 '</body>',
-                '    <script src="/js/blog-navigation.js?v=20260803b"></script>'."\n</body>",
+                '    <script src="/js/blog-navigation.js?v=20260803c"></script>'."\n</body>",
                 $content,
             );
         }
