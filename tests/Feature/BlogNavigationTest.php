@@ -19,7 +19,7 @@ class BlogNavigationTest extends TestCase
             ->assertSee('ბლოგი')
             ->assertSee('ყველა სტატია →')
             ->assertSee($blogUrl, false)
-            ->assertSee('/js/blog-navigation.js?v=20260803b', false);
+            ->assertSee('/js/blog-navigation.js?v=20260803c', false);
 
         $this->assertGreaterThanOrEqual(
             2,
