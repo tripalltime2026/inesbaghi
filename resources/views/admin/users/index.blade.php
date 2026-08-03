@@ -121,7 +121,6 @@
                             <label><span>ახალი ბავშვის სახელი</span><input name="first_name" placeholder="მაგ. ანა"></label>
                             <label><span>გვარი</span><input name="last_name" placeholder="გვარი"></label>
                             <label><span>დაბადების თარიღი</span><input type="date" name="birth_date"></label>
-                            <label><span>დაბადების წელი</span><input type="number" name="birth_year" min="2018" max="{{ now()->year }}"></label>
                             <label><span>ჯგუფი</span><select name="group_id"><option value="">ჯერ არ მივანიჭოთ</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
                             <label><span>ჩარიცხვის სტატუსი</span><select name="enrollment_status">@foreach($enrollmentStatuses as $key=>$label)<option value="{{ $key }}" @selected($key === 'active')>{{ $label }}</option>@endforeach</select></label>
                             <label><span>დაწყების თარიღი</span><input type="date" name="starts_on" value="{{ now()->format('Y-m-d') }}"></label>
