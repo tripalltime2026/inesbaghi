@@ -55,6 +55,7 @@ class UserRegistryController extends Controller
         $this->applyFilter($query, $filters['access'] ?? null);
 
         $billingUsers = $this->parentQuery()->get(['payment_due', 'payment_paid']);
+        KindergartenGroup::ensureDefaults();
 
         return view('admin.users.index', [
             'users' => $query->latest()->paginate(20)->withQueryString(),
@@ -62,6 +63,7 @@ class UserRegistryController extends Controller
             'accessFilters' => self::FILTERS,
             'groups' => KindergartenGroup::query()
                 ->where('is_active', true)
+                ->orderBy('age_min_months')
                 ->orderBy('name')
                 ->get(),
             'linkableChildren' => Child::query()
@@ -154,7 +156,6 @@ class UserRegistryController extends Controller
             'first_name' => ['nullable', 'required_without:child_id', 'string', 'min:2', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'birth_year' => ['nullable', 'integer', 'min:2018', 'max:'.now()->year],
             'group_id' => ['nullable', 'integer', 'exists:kindergarten_groups,id'],
             'enrollment_status' => ['nullable', 'required_with:group_id', Rule::in(array_keys(Enrollment::STATUSES))],
             'starts_on' => ['nullable', 'required_with:group_id', 'date'],
@@ -171,8 +172,9 @@ class UserRegistryController extends Controller
                     'first_name' => trim($validated['first_name']),
                     'last_name' => filled($validated['last_name'] ?? null) ? trim($validated['last_name']) : null,
                     'birth_date' => $validated['birth_date'] ?? null,
-                    'birth_year' => $validated['birth_year']
-                        ?? (filled($validated['birth_date'] ?? null) ? (int) substr($validated['birth_date'], 0, 4) : null),
+                    'birth_year' => filled($validated['birth_date'] ?? null)
+                        ? (int) substr($validated['birth_date'], 0, 4)
+                        : null,
                 ]);
 
             $isFirstGuardian = ! $child->guardians()->exists();
