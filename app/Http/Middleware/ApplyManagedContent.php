@@ -57,7 +57,7 @@ class ApplyManagedContent
             }
 
             if ($isHtml && $isHome) {
-                $body = $this->injectScript($body, 'js/cms-public.js');
+                $body = $this->injectScript($body, 'js/cms-public.js?v=20260804a');
             }
 
             if ($isHtml && $isParentPortal) {
