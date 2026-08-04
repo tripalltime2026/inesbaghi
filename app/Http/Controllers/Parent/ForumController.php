@@ -7,6 +7,8 @@ use App\Models\Enrollment;
 use App\Models\ForumTopic;
 use App\Models\KindergartenGroup;
 use App\Models\User;
+use App\Services\ManagedContent;
+use App\Services\ParentClubContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,8 +17,11 @@ use Illuminate\Validation\Rule;
 
 class ForumController extends Controller
 {
-    public function index(Request $request): JsonResponse
-    {
+    public function index(
+        Request $request,
+        ManagedContent $content,
+        ParentClubContent $clubContent,
+    ): JsonResponse {
         $groupIds = $this->accessibleGroupIds($request->user());
 
         $groups = KindergartenGroup::query()
@@ -25,8 +30,27 @@ class ForumController extends Controller
             ->orderBy('age_min_months')
             ->get(['id', 'name', 'slug']);
 
+        $selectedGroup = $groups->firstWhere('id', (int) $request->integer('group_id'))
+            ?? $groups->first();
+
+        if (! $selectedGroup) {
+            return response()->json([
+                'groups' => [],
+                'active_group' => null,
+                'categories' => ForumTopic::CATEGORIES,
+                'topics' => [],
+                'club_post' => [],
+                'club_event' => [],
+                'club_poll' => [],
+                'club_topic' => [],
+                'members' => [],
+                'can_create' => false,
+                'contact_policy' => 'ჯგუფური კომუნიკაცია ხელმისაწვდომია მხოლოდ აქტიურ ჯგუფში ჩარიცხული მშობლებისთვის.',
+            ]);
+        }
+
         $topics = ForumTopic::query()
-            ->whereIn('kindergarten_group_id', $groupIds)
+            ->where('kindergarten_group_id', $selectedGroup->id)
             ->with([
                 'group:id,name,slug',
                 'author:id,name',
@@ -56,12 +80,38 @@ class ForumController extends Controller
                 ])->values(),
             ]);
 
+        $scopedContent = $clubContent->forGroup(
+            $content->publicPayload(),
+            $selectedGroup,
+            $groups,
+        );
+
+        $members = User::query()
+            ->where('status', 'active')
+            ->whereNotNull('club_access_approved_at')
+            ->whereHas('children.enrollments', fn ($query) => $query
+                ->where('status', 'active')
+                ->where('kindergarten_group_id', $selectedGroup->id))
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->unique('id')
+            ->values()
+            ->map(fn (User $member) => [
+                'name' => $member->name,
+                'initial' => mb_substr($member->name, 0, 1),
+                'is_you' => $member->is($request->user()),
+            ]);
+
         return response()->json([
             'groups' => $groups,
+            'active_group' => $selectedGroup,
             'categories' => ForumTopic::CATEGORIES,
             'topics' => $topics,
-            'can_create' => $groupIds->isNotEmpty(),
-        ]);
+            ...$scopedContent,
+            'members' => $members,
+            'can_create' => true,
+            'contact_policy' => 'პირადი ტელეფონი და ელფოსტა არ გამოჩნდება. კომუნიკაცია შესაძლებელია მხოლოდ ამ ჯგუფის დახურულ ფორუმში.',
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function storeTopic(Request $request): JsonResponse|RedirectResponse
