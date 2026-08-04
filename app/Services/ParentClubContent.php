@@ -43,7 +43,7 @@ class ParentClubContent
             return true;
         }
 
-        if ($audience === 'group' && $targets->isEmpty()) {
+        if ($targets->isEmpty() && $this->hasExplicitGroupTarget($item)) {
             return false;
         }
 
@@ -51,6 +51,32 @@ class ParentClubContent
     }
 
     private function targetGroupIds(array $item, Collection $knownGroups): Collection
+    {
+        $tokens = $this->targetTokens($item);
+
+        if ($tokens->isEmpty()) {
+            return collect();
+        }
+
+        $targetIds = collect();
+
+        foreach ($knownGroups as $knownGroup) {
+            if (! $knownGroup instanceof KindergartenGroup) {
+                continue;
+            }
+
+            foreach ($tokens as $token) {
+                if ($this->tokenMatchesGroup($token, $knownGroup)) {
+                    $targetIds->push((int) $knownGroup->getKey());
+                    break;
+                }
+            }
+        }
+
+        return $targetIds->unique()->values();
+    }
+
+    private function targetTokens(array $item): Collection
     {
         $meta = is_array($item['meta'] ?? null) ? $item['meta'] : [];
         $tokens = collect();
@@ -79,26 +105,36 @@ class ParentClubContent
             $tokens->push($badge);
         }
 
-        if ($tokens->isEmpty()) {
-            return collect();
+        return $tokens->filter(fn ($token): bool => trim((string) $token) !== '')->values();
+    }
+
+    private function hasExplicitGroupTarget(array $item): bool
+    {
+        $meta = is_array($item['meta'] ?? null) ? $item['meta'] : [];
+        $audience = mb_strtolower(trim((string) ($meta['audience'] ?? '')));
+
+        if ($audience === 'group') {
+            return true;
         }
 
-        $targetIds = collect();
-
-        foreach ($knownGroups as $knownGroup) {
-            if (! $knownGroup instanceof KindergartenGroup) {
-                continue;
-            }
-
-            foreach ($tokens as $token) {
-                if ($this->tokenMatchesGroup($token, $knownGroup)) {
-                    $targetIds->push((int) $knownGroup->getKey());
-                    break;
-                }
+        foreach ([
+            'kindergarten_group_id',
+            'group_id',
+            'kindergarten_group_ids',
+            'group_ids',
+            'kindergarten_group_slug',
+            'group_slug',
+            'group',
+        ] as $key) {
+            if (filled($meta[$key] ?? null)) {
+                return true;
             }
         }
 
-        return $targetIds->unique()->values();
+        $badge = mb_strtolower(trim((string) ($item['badge'] ?? '')));
+
+        return str_contains($badge, 'ჯგუფი:')
+            || str_contains($badge, 'group:');
     }
 
     private function tokenMatchesGroup(mixed $token, KindergartenGroup $group): bool
