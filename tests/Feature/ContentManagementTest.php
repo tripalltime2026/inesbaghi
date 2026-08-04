@@ -65,10 +65,14 @@ class ContentManagementTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->getJson('/content/public')
+        $response = $this->getJson('/content/public')
             ->assertOk()
             ->assertJsonFragment(['title' => 'შეიძლება თუ არა ონლაინ ვიზიტის დაჯავშნა?'])
-            ->assertJsonStructure(['group', 'team', 'faq', 'gallery', 'club_post', 'club_event', 'club_poll', 'club_topic', 'blog']);
+            ->assertJsonStructure(['group', 'team', 'faq', 'gallery', 'blog']);
+
+        foreach (['club_post', 'club_event', 'club_poll', 'club_topic'] as $privateKey) {
+            $this->assertArrayNotHasKey($privateKey, $response->json());
+        }
     }
 
     public function test_structured_admin_content_renders_on_dedicated_public_pages(): void
@@ -196,10 +200,13 @@ class ContentManagementTest extends TestCase
         $this->actingAs($parent->fresh())
             ->get('/parent')
             ->assertOk()
-            ->assertSee('js/cms-portal.js', false);
+            ->assertSee('js/cms-portal.js', false)
+            ->assertSee('3-4 წელი');
 
-        $this->getJson('/content/public')
+        $this->actingAs($parent->fresh())
+            ->getJson('/parent/forum/data?group_id='.$group->id)
             ->assertOk()
+            ->assertJsonPath('active_group.id', $group->id)
             ->assertJsonFragment(['title' => 'საზაფხულო ზეიმის დეტალები'])
             ->assertJsonFragment(['title' => 'რომელი დროა უფრო მოსახერხებელი შემდეგი შეხვედრისთვის?']);
     }

@@ -24,6 +24,16 @@ class DashboardController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        return view('parent.dashboard', compact('children'));
+        $clubGroups = $children
+            ->flatMap(fn ($child) => $child->enrollments
+                ->where('status', 'active')
+                ->pluck('group')
+                ->filter())
+            ->filter(fn ($group) => $group->is_active)
+            ->unique('id')
+            ->sortBy('age_min_months')
+            ->values();
+
+        return view('parent.dashboard', compact('children', 'clubGroups'));
     }
 }
