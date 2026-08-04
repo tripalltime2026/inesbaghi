@@ -78,8 +78,12 @@ class PublicContentController extends Controller
             ->pluck('kindergarten_group_id')
             ->unique();
 
-        $groups = KindergartenGroup::query()
+        $accessibleGroups = KindergartenGroup::query()
             ->whereIn('id', $groupIds)
+            ->where('is_active', true)
+            ->get(['id', 'name', 'slug']);
+
+        $knownGroups = KindergartenGroup::query()
             ->where('is_active', true)
             ->get(['id', 'name', 'slug']);
 
@@ -89,10 +93,10 @@ class PublicContentController extends Controller
         ];
 
         abort_unless(
-            $groups->contains(fn (KindergartenGroup $group): bool => $clubContent->isVisibleToGroup(
+            $accessibleGroups->contains(fn (KindergartenGroup $group): bool => $clubContent->isVisibleToGroup(
                 $itemPayload,
                 $group,
-                $groups,
+                $knownGroups,
             )),
             404,
         );
