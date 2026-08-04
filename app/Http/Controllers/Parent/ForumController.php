@@ -30,6 +30,10 @@ class ForumController extends Controller
             ->orderBy('age_min_months')
             ->get(['id', 'name', 'slug']);
 
+        if ($request->filled('group_id')) {
+            abort_unless($groups->contains('id', (int) $request->integer('group_id')), 404);
+        }
+
         $selectedGroup = $groups->firstWhere('id', (int) $request->integer('group_id'))
             ?? $groups->first();
 
@@ -80,10 +84,14 @@ class ForumController extends Controller
                 ])->values(),
             ]);
 
+        $knownGroups = KindergartenGroup::query()
+            ->where('is_active', true)
+            ->get(['id', 'name', 'slug']);
+
         $scopedContent = $clubContent->forGroup(
             $content->publicPayload(),
             $selectedGroup,
-            $groups,
+            $knownGroups,
         );
 
         $members = User::query()
