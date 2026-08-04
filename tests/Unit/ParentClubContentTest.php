@@ -52,4 +52,18 @@ class ParentClubContentTest extends TestCase
             collect([$group]),
         ));
     }
+
+    public function test_unknown_group_badge_never_becomes_global_content(): void
+    {
+        $group = new KindergartenGroup(['name' => '5-6 წელი', 'slug' => '5-6']);
+        $group->setAttribute('id', 4);
+
+        $service = new ParentClubContent();
+
+        $this->assertFalse($service->isVisibleToGroup(
+            ['title' => 'ძველი ჯგუფის სიახლე', 'badge' => 'ჯგუფი: 1-2 წელი', 'meta' => []],
+            $group,
+            collect([$group]),
+        ));
+    }
 }
