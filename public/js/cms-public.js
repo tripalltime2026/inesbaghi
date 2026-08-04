@@ -1,5 +1,6 @@
 (() => {
   const endpoint = new URL('/content/public', window.location.origin).toString();
+  const blogPath = '/blogi';
   const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;',
   })[char]);
@@ -7,6 +8,10 @@
   const imageStyle = (url, color) => url
     ? `background-image:url('${String(url).replace(/'/g, '%27')}');background-size:cover;background-position:center;background-color:${safeColor(color)}`
     : `background:${safeColor(color)}`;
+  const blogUrl = (post = {}) => {
+    const slug = String(post.slug || '').trim();
+    return slug ? `${blogPath}/${encodeURIComponent(slug)}` : blogPath;
+  };
 
   async function loadContent() {
     const response = await fetch(endpoint, {
@@ -86,7 +91,17 @@
   }
 
   function blogCard(post) {
-    return `<article class="blog-card"><div class="blog-art" style="${imageStyle(post.cover_url, post.color)}" role="img" aria-label="${escapeHtml(post.cover_alt || post.title)}">${post.cover_url ? '' : escapeHtml(post.category || 'ბლოგი')}</div><div class="blog-copy"><small>${escapeHtml(post.published_at || '')}${post.category ? ` · ${escapeHtml(post.category)}` : ''}</small><h3>${escapeHtml(post.title)}</h3><p>${escapeHtml(post.excerpt || '')}</p></div></article>`;
+    const url = escapeHtml(blogUrl(post));
+    const label = escapeHtml(`სრულად წაიკითხეთ: ${post.title || 'ბლოგის სტატია'}`);
+
+    return `<a href="${url}" aria-label="${label}" style="display:block;height:100%;color:inherit;text-decoration:none"><article class="blog-card"><div class="blog-art" style="${imageStyle(post.cover_url, post.color)}" role="img" aria-label="${escapeHtml(post.cover_alt || post.title)}">${post.cover_url ? '' : escapeHtml(post.category || 'ბლოგი')}</div><div class="blog-copy"><small>${escapeHtml(post.published_at || '')}${post.category ? ` · ${escapeHtml(post.category)}` : ''}</small><h3>${escapeHtml(post.title)}</h3><p>${escapeHtml(post.excerpt || '')}</p></div></article></a>`;
+  }
+
+  function miniBlogCard(post) {
+    const url = escapeHtml(blogUrl(post));
+    const label = escapeHtml(`სრულად წაიკითხეთ: ${post.title || 'ბლოგის სტატია'}`);
+
+    return `<a href="${url}" aria-label="${label}" style="display:block;height:100%;color:inherit;text-decoration:none"><article><i style="${imageStyle(post.cover_url, post.color)}"></i><small>${escapeHtml(post.published_at || '')}</small><strong>${escapeHtml(post.title)}</strong></article></a>`;
   }
 
   function renderBlog(posts = []) {
@@ -95,8 +110,8 @@
     if (grid) grid.innerHTML = posts.map(blogCard).join('');
 
     const miniGrid = document.querySelector('.mini-post-grid');
-    if (miniGrid) {
-      miniGrid.innerHTML = posts.slice(0, 3).map((post) => `<article><i style="${imageStyle(post.cover_url, post.color)}"></i><small>${escapeHtml(post.published_at || '')}</small><strong>${escapeHtml(post.title)}</strong></article>`).join('');
+    if (miniGrid && !miniGrid.querySelector('a[href]')) {
+      miniGrid.innerHTML = posts.slice(0, 3).map(miniBlogCard).join('');
     }
   }
 
