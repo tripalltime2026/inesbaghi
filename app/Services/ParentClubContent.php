@@ -36,7 +36,7 @@ class ParentClubContent
     public function isVisibleToGroup(array $item, KindergartenGroup $group, Collection $knownGroups): bool
     {
         $meta = is_array($item['meta'] ?? null) ? $item['meta'] : [];
-        $audience = mb_strtolower(trim((string) ($meta['audience'] ?? ''));
+        $audience = mb_strtolower(trim((string) ($meta['audience'] ?? '')));
         $targets = $this->targetGroupIds($item, $knownGroups);
 
         if (in_array($audience, ['all', 'all_groups', 'club'], true)) {
