@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdmissionController as AdminAdmissionController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\Admin\ChildController as AdminChildController;
+use App\Http\Controllers\Admin\ClubController as AdminClubController;
 use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Admin\UserRegistryController as AdminUserRegistryContro
 use App\Http\Controllers\AdmissionApplicationController;
 use App\Http\Controllers\CredentialsAuthController;
 use App\Http\Controllers\LegalController;
+use App\Http\Controllers\Parent\ClubController as ParentClubController;
 use App\Http\Controllers\Parent\DashboardController as ParentDashboardController;
 use App\Http\Controllers\Parent\ForumController as ParentForumController;
 use App\Http\Controllers\PublicContentController;
@@ -121,6 +123,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', NoIndexPrivateArea::
     Route::middleware('role:admin')->group(function () {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
 
+        Route::get('/club', [AdminClubController::class, 'index'])->name('club.index');
+        Route::post('/club/events', [AdminClubController::class, 'storeEvent'])->name('club.events.store');
+        Route::patch('/club/events/{event}', [AdminClubController::class, 'updateEvent'])->name('club.events.update');
+        Route::delete('/club/events/{event}', [AdminClubController::class, 'destroyEvent'])->name('club.events.destroy');
+        Route::post('/club/topics/{topic}/reply', [AdminClubController::class, 'replyTopic'])->name('club.topics.reply');
+        Route::patch('/club/topics/{topic}', [AdminClubController::class, 'updateTopic'])->name('club.topics.update');
+
         Route::get('/content', [AdminContentController::class, 'index'])->name('content.index');
         Route::put('/content/texts', [AdminContentController::class, 'updateTexts'])->name('content.texts.update');
         Route::post('/content/items/{type}', [AdminContentController::class, 'storeItem'])->name('content.items.store');
@@ -188,4 +197,14 @@ Route::prefix('parent')->name('parent.')->middleware(['auth', 'parent.club', NoI
     Route::post('/forum/topics/{topic}/comments', [ParentForumController::class, 'storeComment'])
         ->middleware('throttle:30,1')
         ->name('forum.comments.store');
+
+    Route::post('/events/{event}/response', [ParentClubController::class, 'respondToEvent'])
+        ->middleware('throttle:30,1')
+        ->name('events.response');
+    Route::patch('/notifications/read-all', [ParentClubController::class, 'markAllNotificationsRead'])
+        ->name('notifications.read-all');
+    Route::patch('/notifications/{notification}/read', [ParentClubController::class, 'markNotificationRead'])
+        ->name('notifications.read');
+    Route::patch('/preferences', [ParentClubController::class, 'updatePreferences'])
+        ->name('preferences.update');
 });
