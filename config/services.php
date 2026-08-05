@@ -17,4 +17,11 @@ return [
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com'),
         'show_exact_availability' => filter_var(env('INES_AI_SHOW_EXACT_AVAILABILITY', false), FILTER_VALIDATE_BOOL),
     ],
+    'mailchimp' => [
+        'enabled' => filter_var(env('MAILCHIMP_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'api_key' => env('MAILCHIMP_API_KEY'),
+        'server_prefix' => env('MAILCHIMP_SERVER_PREFIX'),
+        'audience_id' => env('MAILCHIMP_AUDIENCE_ID'),
+        'timeout_seconds' => (int) env('MAILCHIMP_TIMEOUT_SECONDS', 5),
+    ],
 ];
