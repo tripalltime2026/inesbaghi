@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-simple.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-club.css') }}?v=20260805">
+    <link rel="stylesheet" href="{{ asset('css/group-club-feed.css') }}?v=20260805">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
