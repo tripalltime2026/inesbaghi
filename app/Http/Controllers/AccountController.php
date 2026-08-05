@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AdmissionApplication;
 use App\Models\PrivacyConsent;
 use App\Models\User;
+use App\Services\MailchimpMarketing;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\RedirectResponse;
@@ -42,19 +43,13 @@ class AccountController extends Controller
             ->sortByDesc('created_at')
             ->first();
 
-        $marketingConsent = PrivacyConsent::query()
-            ->where('user_id', $user->id)
-            ->where('consent_type', 'marketing_updates')
-            ->whereNull('withdrawn_at')
-            ->exists();
-
         return view('account.status', [
             'user' => $user,
             'children' => $children,
             'applications' => $applications,
             'latestEnrollment' => $latestEnrollment,
             'clubAccess' => $user->canAccessParentClub(),
-            'marketingConsent' => $marketingConsent,
+            'marketingConsent' => $this->hasMarketingConsent($user),
         ]);
     }
 
@@ -65,9 +60,12 @@ class AccountController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request): RedirectResponse
+    public function updateProfile(Request $request, MailchimpMarketing $mailchimp): RedirectResponse
     {
         $user = $request->user();
+        $oldEmail = $user->email;
+        $hadMarketingConsent = $this->hasMarketingConsent($user);
+
         $validated = $request->validate([
             'username' => [
                 'required',
@@ -122,11 +120,13 @@ class AccountController extends Controller
             ]);
         }
 
+        $newEmail = $validated['email'] ? mb_strtolower(trim($validated['email'])) : null;
+
         $user->update([
             'username' => $username,
             'name' => trim($validated['name']),
             'phone' => $phone,
-            'email' => $validated['email'] ? mb_strtolower(trim($validated['email'])) : null,
+            'email' => $newEmail,
             'phone_verified_at' => null,
             'email_verified_at' => null,
         ]);
@@ -135,6 +135,13 @@ class AccountController extends Controller
             ->where('phone', $phone)
             ->whereNull('guardian_user_id')
             ->update(['guardian_user_id' => $user->id]);
+
+        if ($hadMarketingConsent && $oldEmail !== $newEmail) {
+            $mailchimp->unsubscribe($oldEmail);
+            $mailchimp->requestDoubleOptIn($user, ['Parent', 'Profile Update']);
+        } elseif ($hadMarketingConsent) {
+            $mailchimp->syncActiveConsent($user, ['Parent']);
+        }
 
         return redirect()
             ->route('account.status')
@@ -164,35 +171,67 @@ class AccountController extends Controller
         return back()->with('success', 'პაროლი წარმატებით შენახულია.');
     }
 
-    public function updatePreferences(Request $request, PrivacyConsentRecorder $recorder): RedirectResponse
-    {
+    public function updatePreferences(
+        Request $request,
+        PrivacyConsentRecorder $recorder,
+        MailchimpMarketing $mailchimp,
+    ): RedirectResponse {
         $validated = $request->validate([
             'marketing_consent' => ['required', 'boolean'],
         ]);
 
         $user = $request->user();
         $enabled = (bool) $validated['marketing_consent'];
+        $hadActiveConsent = $this->hasMarketingConsent($user);
 
         if ($enabled) {
+            if (! $user->email) {
+                return back()->withErrors([
+                    'marketing_consent' => 'სიახლეების ელფოსტაზე მისაღებად ჯერ პროფილში დაამატეთ ელფოსტა.',
+                ]);
+            }
+
             $recorder->recordForUserIfMissing(
                 $request,
                 $user->id,
                 'marketing_updates',
                 PrivacyPolicy::MARKETING_CONSENT,
                 'consent',
-                ['source' => 'account_preferences', 'phone' => $user->phone],
+                [
+                    'source' => 'account_preferences',
+                    'channel' => 'email',
+                ],
             );
-        } else {
-            PrivacyConsent::query()
-                ->where('user_id', $user->id)
-                ->where('consent_type', 'marketing_updates')
-                ->whereNull('withdrawn_at')
-                ->update(['withdrawn_at' => now()]);
+
+            $synced = $hadActiveConsent
+                ? $mailchimp->syncActiveConsent($user, ['Parent', 'Account Preferences'])
+                : $mailchimp->requestDoubleOptIn($user, ['Parent', 'Account Preferences']);
+
+            return back()->with('success', $hadActiveConsent
+                ? 'სიახლეების მიღების პარამეტრი შენახულია.'
+                : ($synced
+                    ? 'დადასტურების წერილი გამოგზავნილია თქვენს ელფოსტაზე. გამოწერა წერილიდან დაადასტურეთ.'
+                    : 'სიახლეების მიღების თანხმობა შენახულია, თუმცა ელფოსტის სერვისთან დაკავშირება დროებით ვერ შესრულდა.'));
         }
 
-        return back()->with('success', $enabled
-            ? 'საინფორმაციო და მარკეტინგული შეტყობინებები ჩაირთო.'
-            : 'საინფორმაციო და მარკეტინგული შეტყობინებები გამოირთო.');
+        PrivacyConsent::query()
+            ->where('user_id', $user->id)
+            ->where('consent_type', 'marketing_updates')
+            ->whereNull('withdrawn_at')
+            ->update(['withdrawn_at' => now()]);
+
+        $mailchimp->unsubscribe($user->email);
+
+        return back()->with('success', 'საინფორმაციო და მარკეტინგული წერილების მიღება გამოირთო.');
+    }
+
+    private function hasMarketingConsent(User $user): bool
+    {
+        return PrivacyConsent::query()
+            ->where('user_id', $user->id)
+            ->where('consent_type', 'marketing_updates')
+            ->whereNull('withdrawn_at')
+            ->exists();
     }
 
     private function normalizePhone(string $phone): string
