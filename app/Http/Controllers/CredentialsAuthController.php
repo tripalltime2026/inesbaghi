@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Child;
 use App\Models\User;
+use App\Services\MailchimpMarketing;
 use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\JsonResponse;
@@ -38,8 +39,11 @@ class CredentialsAuthController extends Controller
         ]);
     }
 
-    public function register(Request $request, PrivacyConsentRecorder $recorder): RedirectResponse
-    {
+    public function register(
+        Request $request,
+        PrivacyConsentRecorder $recorder,
+        MailchimpMarketing $mailchimp,
+    ): RedirectResponse {
         $request->merge([
             'name' => Str::of((string) $request->input('name'))->squish()->toString(),
             'email' => mb_strtolower(trim((string) $request->input('email'))),
@@ -56,6 +60,7 @@ class CredentialsAuthController extends Controller
             'child_first_name' => ['required', 'string', 'min:2', 'max:100'],
             'child_last_name' => ['required', 'string', 'min:2', 'max:100'],
             'child_birth_date' => ['required', 'date', 'before_or_equal:today'],
+            'marketing_consent' => ['nullable', 'boolean'],
             'privacy_accepted' => ['accepted'],
             'privacy_policy_version' => ['required', 'string', 'in:'.PrivacyPolicy::VERSION],
         ], [
@@ -116,6 +121,20 @@ class CredentialsAuthController extends Controller
                 ],
             );
 
+            if ($request->boolean('marketing_consent')) {
+                $recorder->recordForUserIfMissing(
+                    $request,
+                    $user->id,
+                    'marketing_updates',
+                    PrivacyPolicy::MARKETING_CONSENT,
+                    'consent',
+                    [
+                        'source' => 'standard_registration',
+                        'channel' => 'email',
+                    ],
+                );
+            }
+
             DB::table('audit_logs')->insert([
                 'actor_user_id' => $user->id,
                 'action' => 'parent.registered_with_child',
@@ -124,6 +143,7 @@ class CredentialsAuthController extends Controller
                 'metadata' => json_encode([
                     'parent_user_id' => $user->id,
                     'source' => 'standard_registration',
+                    'marketing_consent' => $request->boolean('marketing_consent'),
                 ], JSON_THROW_ON_ERROR),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
@@ -132,12 +152,27 @@ class CredentialsAuthController extends Controller
             return [$user, $child];
         });
 
+        $marketingSynced = false;
+        if ($request->boolean('marketing_consent')) {
+            $marketingSynced = $mailchimp->requestDoubleOptIn($user, [
+                'Parent',
+                'Website Registration',
+            ]);
+        }
+
         Auth::login($user, true);
         $request->session()->regenerate();
 
+        $message = "რეგისტრაცია დასრულდა. {$child->first_name}-ის პროფილი შექმნილია და ადმინისტრატორის დადასტურებას ელოდება.";
+        if ($request->boolean('marketing_consent')) {
+            $message .= $marketingSynced
+                ? ' სიახლეების გამოწერის დასადასტურებელი წერილი გამოგზავნილია თქვენს ელფოსტაზე.'
+                : ' სიახლეების მიღების თანხმობა შენახულია, თუმცა ელფოსტის სერვისთან დაკავშირება დროებით ვერ შესრულდა.';
+        }
+
         return redirect()
             ->route('account.status')
-            ->with('success', "რეგისტრაცია დასრულდა. {$child->first_name}-ის პროფილი შექმნილია და ადმინისტრატორის დადასტურებას ელოდება.");
+            ->with('success', $message);
     }
 
     public function login(Request $request): RedirectResponse
