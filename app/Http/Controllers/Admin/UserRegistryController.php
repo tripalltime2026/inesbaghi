@@ -20,20 +20,45 @@ use Illuminate\View\View;
 class UserRegistryController extends Controller
 {
     public const FILTERS = [
-        'pending' => 'დადასტურების მოლოდინში',
-        'approved' => 'დადასტურებული',
+        'registered' => 'ყველა მოქმედი რეგისტრაცია',
+        'awaiting' => 'დადასტურების მოლოდინში',
+        'club_active' => 'კლუბის აქტიური წევრები',
+        'approved_incomplete' => 'დამტკიცებული, მაგრამ არასრული',
+        'no_access' => 'კლუბზე წვდომის გარეშე',
+        'no_child' => 'ბავშვის გარეშე',
+        'no_enrollment' => 'აქტიური ჯგუფის გარეშე',
+        'suspended' => 'დროებით შეჩერებული',
+        'cancelled' => 'გაუქმებული',
         'debt' => 'დავალიანების მქონე',
+    ];
+
+    public const ACCOUNT_STATUSES = [
+        'pending' => 'რეგისტრირებულია — განხილვაში',
+        'active' => 'აქტიური ანგარიში',
+        'suspended' => 'დროებით შეჩერებული',
+        'cancelled' => 'გაუქმებული',
     ];
 
     public function __invoke(Request $request): View
     {
+        KindergartenGroup::ensureDefaults();
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'access' => ['nullable', Rule::in(array_keys(self::FILTERS))],
+            'segment' => ['nullable', Rule::in(array_keys(self::FILTERS))],
+            'group_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('kindergarten_groups', 'id')->where('is_active', true),
+            ],
         ]);
 
         $query = $this->parentQuery()
-            ->with(['children.enrollments.group'])
+            ->with([
+                'children.enrollments' => fn ($enrollmentQuery) => $enrollmentQuery
+                    ->with('group')
+                    ->latest(),
+            ])
             ->withCount('children')
             ->addSelect([
                 'application_count' => AdmissionApplication::query()
@@ -44,23 +69,36 @@ class UserRegistryController extends Controller
                     }),
             ])
             ->when($filters['search'] ?? null, function (Builder $builder, string $search): void {
+                $search = trim($search);
                 $builder->where(function (Builder $searchQuery) use ($search): void {
                     $searchQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('username', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhereHas('children', fn (Builder $childQuery) => $childQuery
+                            ->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%"));
                 });
-            });
+            })
+            ->when($filters['group_id'] ?? null, fn (Builder $builder, int $groupId) => $builder
+                ->whereHas('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                    ->where('kindergarten_group_id', $groupId)));
 
-        $this->applyFilter($query, $filters['access'] ?? null);
+        $this->applyFilter($query, $filters['segment'] ?? null);
 
         $billingUsers = $this->parentQuery()->get(['payment_due', 'payment_paid']);
-        KindergartenGroup::ensureDefaults();
+        $counts = $this->segmentCounts();
+        $counts['outstanding'] = (float) $billingUsers->sum(fn (User $user) => $user->paymentOutstanding());
 
         return view('admin.users.index', [
-            'users' => $query->latest()->paginate(20)->withQueryString(),
+            'users' => $query
+                ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'active' THEN 1 WHEN 'suspended' THEN 2 ELSE 3 END")
+                ->latest()
+                ->paginate(20)
+                ->withQueryString(),
             'filters' => $filters,
-            'accessFilters' => self::FILTERS,
+            'segments' => self::FILTERS,
+            'accountStatuses' => self::ACCOUNT_STATUSES,
             'groups' => KindergartenGroup::query()
                 ->where('is_active', true)
                 ->orderBy('age_min_months')
@@ -71,12 +109,7 @@ class UserRegistryController extends Controller
                 ->orderBy('last_name')
                 ->get(['id', 'first_name', 'last_name', 'birth_date', 'birth_year']),
             'enrollmentStatuses' => Enrollment::STATUSES,
-            'counts' => [
-                'total' => $this->parentQuery()->count(),
-                'pending' => $this->parentQuery()->whereNull('club_access_approved_at')->count(),
-                'approved' => $this->parentQuery()->whereNotNull('club_access_approved_at')->count(),
-                'outstanding' => (float) $billingUsers->sum(fn (User $user) => $user->paymentOutstanding()),
-            ],
+            'counts' => $counts,
         ]);
     }
 
@@ -85,6 +118,7 @@ class UserRegistryController extends Controller
         abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
 
         $validated = $request->validate([
+            'account_status' => ['required', Rule::in(array_keys(self::ACCOUNT_STATUSES))],
             'access_approved' => ['required', 'boolean'],
             'payment_due' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'payment_paid' => ['required', 'numeric', 'min:0', 'max:999999.99', 'lte:payment_due'],
@@ -95,19 +129,44 @@ class UserRegistryController extends Controller
         ]);
 
         $approved = (bool) $validated['access_approved'];
+        $oldStatus = $user->status;
+        $newStatus = $validated['account_status'];
 
-        $user->update([
-            'club_access_approved_at' => $approved
-                ? ($user->club_access_approved_at ?? now())
-                : null,
-            'club_access_approved_by_user_id' => $approved ? $request->user()->id : null,
-            'payment_due' => $validated['payment_due'],
-            'payment_paid' => $validated['payment_paid'],
-            'payment_due_at' => $validated['payment_due_at'] ?? null,
-            'payment_note' => $validated['payment_note'] ?? null,
-        ]);
+        DB::transaction(function () use ($request, $user, $validated, $approved, $oldStatus, $newStatus): void {
+            $user->update([
+                'status' => $newStatus,
+                'club_access_approved_at' => $approved
+                    ? ($user->club_access_approved_at ?? now())
+                    : null,
+                'club_access_approved_by_user_id' => $approved ? $request->user()->id : null,
+                'payment_due' => $validated['payment_due'],
+                'payment_paid' => $validated['payment_paid'],
+                'payment_due_at' => $validated['payment_due_at'] ?? null,
+                'payment_note' => $validated['payment_note'] ?? null,
+            ]);
 
-        return back()->with('success', "{$user->name}-ის წვდომა და გადასახდელი ინფორმაცია შენახულია.");
+            if ($newStatus !== 'active') {
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+            }
+
+            DB::table('audit_logs')->insert([
+                'actor_user_id' => $request->user()->id,
+                'action' => 'user.registry_status_updated',
+                'subject_type' => User::class,
+                'subject_id' => $user->id,
+                'metadata' => json_encode([
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'club_access_approved' => $approved,
+                ], JSON_THROW_ON_ERROR),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        });
+
+        $statusLabel = self::ACCOUNT_STATUSES[$newStatus];
+
+        return back()->with('success', "{$user->name}-ის სტატუსი განახლდა: {$statusLabel}.");
     }
 
     public function resetCredentials(Request $request, User $user): RedirectResponse
@@ -244,11 +303,109 @@ class UserRegistryController extends Controller
     private function applyFilter(Builder $query, ?string $filter): void
     {
         match ($filter) {
-            'pending' => $query->whereNull('club_access_approved_at'),
-            'approved' => $query->whereNotNull('club_access_approved_at'),
+            'registered' => $query->whereIn('status', ['pending', 'active']),
+            'awaiting' => $query
+                ->whereIn('status', ['pending', 'active'])
+                ->whereNull('club_access_approved_at'),
+            'club_active' => $this->applyClubEligible($query),
+            'approved_incomplete' => $this->applyApprovedIncomplete($query),
+            'no_access' => $this->applyWithoutClubAccess($query),
+            'no_child' => $query->whereDoesntHave('children'),
+            'no_enrollment' => $query
+                ->whereHas('children')
+                ->whereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                    ->where('status', 'active')
+                    ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true))),
+            'suspended' => $query->where('status', 'suspended'),
+            'cancelled' => $query->where('status', 'cancelled'),
             'debt' => $query->whereColumn('payment_due', '>', 'payment_paid'),
             default => null,
         };
+    }
+
+    private function applyClubEligible(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'active')
+            ->whereNotNull('club_access_approved_at')
+            ->where(function (Builder $identity): void {
+                $identity->where(function (Builder $credentials): void {
+                    $credentials->whereNotNull('username')->whereNotNull('password');
+                })
+                    ->orWhereNotNull('phone_verified_at')
+                    ->orWhereNotNull('email_verified_at');
+            })
+            ->whereHas('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                ->where('status', 'active')
+                ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
+    }
+
+    private function applyApprovedIncomplete(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'active')
+            ->whereNotNull('club_access_approved_at')
+            ->where(function (Builder $blocked): void {
+                $blocked->where(function (Builder $identityMissing): void {
+                    $identityMissing
+                        ->where(function (Builder $credentials): void {
+                            $credentials->whereNull('username')->orWhereNull('password');
+                        })
+                        ->whereNull('phone_verified_at')
+                        ->whereNull('email_verified_at');
+                })
+                    ->orWhereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                        ->where('status', 'active')
+                        ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
+            });
+    }
+
+    private function applyWithoutClubAccess(Builder $query): Builder
+    {
+        return $query->where(function (Builder $blocked): void {
+            $blocked->where('status', '!=', 'active')
+                ->orWhereNull('club_access_approved_at')
+                ->orWhere(function (Builder $identityMissing): void {
+                    $identityMissing
+                        ->where(function (Builder $credentials): void {
+                            $credentials->whereNull('username')->orWhereNull('password');
+                        })
+                        ->whereNull('phone_verified_at')
+                        ->whereNull('email_verified_at');
+                })
+                ->orWhereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                    ->where('status', 'active')
+                    ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
+        });
+    }
+
+    private function segmentCounts(): array
+    {
+        $clubActive = $this->applyClubEligible($this->parentQuery())->count();
+        $approvedIncomplete = $this->applyApprovedIncomplete($this->parentQuery())->count();
+        $withoutAccess = $this->applyWithoutClubAccess($this->parentQuery())->count();
+
+        return [
+            'total' => $this->parentQuery()->count(),
+            'registered' => $this->parentQuery()->whereIn('status', ['pending', 'active'])->count(),
+            'awaiting' => $this->parentQuery()
+                ->whereIn('status', ['pending', 'active'])
+                ->whereNull('club_access_approved_at')
+                ->count(),
+            'club_active' => $clubActive,
+            'approved_incomplete' => $approvedIncomplete,
+            'no_access' => $withoutAccess,
+            'no_child' => $this->parentQuery()->whereDoesntHave('children')->count(),
+            'no_enrollment' => $this->parentQuery()
+                ->whereHas('children')
+                ->whereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                    ->where('status', 'active')
+                    ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)))
+                ->count(),
+            'suspended' => $this->parentQuery()->where('status', 'suspended')->count(),
+            'cancelled' => $this->parentQuery()->where('status', 'cancelled')->count(),
+            'debt' => $this->parentQuery()->whereColumn('payment_due', '>', 'payment_paid')->count(),
+        ];
     }
 
     private function uniqueUsernameFor(User $user): string
