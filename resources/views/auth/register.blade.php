@@ -83,6 +83,11 @@
             </section>
 
             <label class="credentials-check">
+                <input type="checkbox" name="marketing_consent" value="1" @checked(old('marketing_consent'))>
+                <span><strong>მსურს ინეს ბაღის სიახლეებისა და ღონისძიებების მიღება ელფოსტაზე.</strong><br>გამოწერა არჩევითია და დასადასტურებელი წერილი მითითებულ ელფოსტაზე გაიგზავნება. გაუქმება ნებისმიერ დროს იქნება შესაძლებელი.</span>
+            </label>
+
+            <label class="credentials-check">
                 <input type="checkbox" name="privacy_accepted" value="1" required @checked(old('privacy_accepted'))>
                 <span>გავეცანი <a href="{{ route('privacy') }}" target="_blank" rel="noopener">კონფიდენციალურობის პოლიტიკას</a> და <a href="{{ route('terms') }}" target="_blank" rel="noopener">სარგებლობის პირობებს</a> და ვადასტურებ ბავშვის მონაცემების დამუშავებაზე უფლებამოსილებას.</span>
             </label>
