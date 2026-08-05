@@ -117,7 +117,7 @@
     </section>
 
     <section class="club-panel" data-club-panel="forum" id="forum">
-        <div class="smart-forum-intro"><div><small>დახურული და უსაფრთხო სივრცე</small><h2>მშობელთა კლუბი</h2><p>დასვით კითხვა, გაუზიარეთ გამოცდილება სხვა მშობლებს და მიიღეთ ადმინისტრაციის ოფიციალური პასუხი. პირადი საკონტაქტო მონაცემები სხვა წევრებს არ უჩანს.</p></div></div>
+        <div class="smart-forum-intro"><div><small>დახურული და უსაფრთხო სივრცე</small><h2>მშობელთა კლუბი</h2><p>დასვით კითხვა, გაუზიარეთ გამოცდილება ჯგუფის მშობლებს და მიიღეთ ადმინისტრაციის ოფიციალური პასუხი. პირადი საკონტაქტო მონაცემები წევრებს არ უჩანს.</p></div></div>
         <div class="forum-layout"><aside class="forum-sidebar"><div class="club-loading">ჯგუფის წევრები იტვირთება…</div></aside><div class="forum-content"><div class="club-loading">ჯგუფის საუბრები იტვირთება…</div></div></div>
     </section>
 
