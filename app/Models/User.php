@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -49,6 +51,31 @@ class User extends Authenticatable
         return $this->belongsToMany(Child::class, 'child_guardians')
             ->withPivot(['relationship', 'is_primary', 'can_pick_up'])
             ->withTimestamps();
+    }
+
+    public function clubNotifications(): HasMany
+    {
+        return $this->hasMany(ClubNotification::class);
+    }
+
+    public function clubNotificationPreference(): HasOne
+    {
+        return $this->hasOne(ClubNotificationPreference::class);
+    }
+
+    public function clubEventResponses(): HasMany
+    {
+        return $this->hasMany(ClubEventResponse::class);
+    }
+
+    public function forumTopics(): HasMany
+    {
+        return $this->hasMany(ForumTopic::class);
+    }
+
+    public function forumComments(): HasMany
+    {
+        return $this->hasMany(ForumComment::class);
     }
 
     public function hasLinkedChild(): bool

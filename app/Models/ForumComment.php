@@ -7,7 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ForumComment extends Model
 {
-    protected $fillable = ['forum_topic_id', 'user_id', 'body'];
+    protected $fillable = [
+        'forum_topic_id',
+        'user_id',
+        'body',
+        'is_official_answer',
+        'edited_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_official_answer' => 'boolean',
+            'edited_at' => 'datetime',
+        ];
+    }
 
     public function topic(): BelongsTo
     {

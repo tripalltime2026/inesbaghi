@@ -7,12 +7,14 @@ use App\Models\Enrollment;
 use App\Models\ForumTopic;
 use App\Models\KindergartenGroup;
 use App\Models\User;
+use App\Services\ClubNotificationService;
 use App\Services\ManagedContent;
 use App\Services\ParentClubContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ForumController extends Controller
@@ -42,6 +44,7 @@ class ForumController extends Controller
                 'groups' => [],
                 'active_group' => null,
                 'categories' => ForumTopic::CATEGORIES,
+                'statuses' => ForumTopic::STATUSES,
                 'topics' => [],
                 'club_post' => [],
                 'club_event' => [],
@@ -58,10 +61,12 @@ class ForumController extends Controller
             ->with([
                 'group:id,name,slug',
                 'author:id,name',
-                'comments.author:id,name',
+                'answeredBy:id,name',
+                'comments.author:id,name,role',
             ])
             ->withCount('comments')
-            ->latest()
+            ->orderByDesc('is_pinned')
+            ->orderByDesc(DB::raw('COALESCE(last_activity_at, created_at)'))
             ->limit(50)
             ->get()
             ->map(fn (ForumTopic $topic) => [
@@ -70,16 +75,23 @@ class ForumController extends Controller
                 'group_name' => $topic->group?->name,
                 'category' => $topic->category,
                 'category_label' => ForumTopic::CATEGORIES[$topic->category] ?? $topic->category,
+                'status' => $topic->status,
+                'status_label' => ForumTopic::STATUSES[$topic->status] ?? $topic->status,
+                'priority' => $topic->priority,
+                'is_pinned' => $topic->is_pinned,
                 'title' => $topic->title,
                 'body' => $topic->body,
                 'author' => $topic->author?->name ?? 'მშობელი',
+                'answered_by' => $topic->answeredBy?->name,
+                'answered_at' => $topic->answered_at?->format('d.m.Y H:i'),
                 'created_at' => $topic->created_at?->format('d.m.Y H:i'),
                 'comments_count' => $topic->comments_count,
-                'is_locked' => $topic->is_locked,
-                'comments' => $topic->comments->map(fn ($comment) => [
+                'is_locked' => $topic->is_locked || $topic->status === 'closed',
+                'comments' => $topic->comments->sortBy('created_at')->map(fn ($comment) => [
                     'id' => $comment->id,
                     'body' => $comment->body,
                     'author' => $comment->author?->name ?? 'მშობელი',
+                    'is_official_answer' => $comment->is_official_answer,
                     'created_at' => $comment->created_at?->format('d.m.Y H:i'),
                 ])->values(),
             ]);
@@ -114,6 +126,7 @@ class ForumController extends Controller
             'groups' => $groups,
             'active_group' => $selectedGroup,
             'categories' => ForumTopic::CATEGORIES,
+            'statuses' => ForumTopic::STATUSES,
             'topics' => $topics,
             ...$scopedContent,
             'members' => $members,
@@ -137,45 +150,59 @@ class ForumController extends Controller
         $topic = ForumTopic::create([
             ...$validated,
             'user_id' => $request->user()->id,
+            'status' => 'open',
+            'priority' => 'normal',
+            'last_activity_at' => now(),
         ]);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'ok' => true,
                 'topic_id' => $topic->id,
-                'message' => 'თემა შეიქმნა და მხოლოდ არჩეული ჯგუფის მშობლებს გამოუჩნდებათ.',
+                'message' => 'კითხვა შეიქმნა. პასუხის მიღებისთანავე შეტყობინებას ნახავთ პირად კაბინეტში.',
             ], 201);
         }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
-            ->with('success', 'თემა შეიქმნა და მხოლოდ არჩეული ჯგუფის მშობლებს გამოუჩნდებათ.');
+            ->with('success', 'კითხვა შეიქმნა. პასუხის მიღებისთანავე შეტყობინებას ნახავთ პირად კაბინეტში.');
     }
 
-    public function storeComment(Request $request, ForumTopic $topic): JsonResponse|RedirectResponse
-    {
+    public function storeComment(
+        Request $request,
+        ForumTopic $topic,
+        ClubNotificationService $notifications,
+    ): JsonResponse|RedirectResponse {
         $groupIds = $this->accessibleGroupIds($request->user());
         abort_unless($groupIds->contains($topic->kindergarten_group_id), 404);
-        abort_if($topic->is_locked, 403, 'ამ თემაზე კომენტარები დახურულია.');
+        abort_if($topic->is_locked || $topic->status === 'closed', 403, 'ამ თემაზე კომენტარები დახურულია.');
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'min:2', 'max:2000'],
         ]);
 
-        $comment = $topic->comments()->create([
-            'user_id' => $request->user()->id,
-            'body' => $validated['body'],
-        ]);
+        $comment = DB::transaction(function () use ($request, $topic, $validated) {
+            $comment = $topic->comments()->create([
+                'user_id' => $request->user()->id,
+                'body' => $validated['body'],
+                'is_official_answer' => false,
+            ]);
+            $topic->update(['last_activity_at' => now()]);
+
+            return $comment;
+        });
+
+        $notifications->topicReply($topic->fresh(), $request->user(), false);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'ok' => true,
                 'comment_id' => $comment->id,
-                'message' => 'კომენტარი დაემატა.',
+                'message' => 'პასუხი დაემატა.',
             ], 201);
         }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
-            ->with('success', 'კომენტარი დაემატა.');
+            ->with('success', 'პასუხი დაემატა.');
     }
 
     private function accessibleGroupIds(User $user): Collection
