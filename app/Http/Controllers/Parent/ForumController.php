@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Parent;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClubPoll;
+use App\Models\ClubPollVote;
 use App\Models\Enrollment;
 use App\Models\ForumTopic;
 use App\Models\KindergartenGroup;
@@ -30,7 +32,7 @@ class ForumController extends Controller
             ->whereIn('id', $groupIds)
             ->where('is_active', true)
             ->orderBy('age_min_months')
-            ->get(['id', 'name', 'slug']);
+            ->get(['id', 'name', 'slug', 'academic_year']);
 
         if ($request->filled('group_id')) {
             abort_unless($groups->contains('id', (int) $request->integer('group_id')), 404);
@@ -46,6 +48,7 @@ class ForumController extends Controller
                 'categories' => ForumTopic::CATEGORIES,
                 'statuses' => ForumTopic::STATUSES,
                 'topics' => [],
+                'polls' => [],
                 'club_post' => [],
                 'club_event' => [],
                 'club_poll' => [],
@@ -85,6 +88,7 @@ class ForumController extends Controller
                 'answered_by' => $topic->answeredBy?->name,
                 'answered_at' => $topic->answered_at?->format('d.m.Y H:i'),
                 'created_at' => $topic->created_at?->format('d.m.Y H:i'),
+                'sort_at' => ($topic->last_activity_at ?? $topic->created_at)?->timestamp,
                 'comments_count' => $topic->comments_count,
                 'is_locked' => $topic->is_locked || $topic->status === 'closed',
                 'comments' => $topic->comments->sortBy('created_at')->map(fn ($comment) => [
@@ -95,6 +99,44 @@ class ForumController extends Controller
                     'created_at' => $comment->created_at?->format('d.m.Y H:i'),
                 ])->values(),
             ]);
+
+        $polls = ClubPoll::query()
+            ->published()
+            ->where('kindergarten_group_id', $selectedGroup->id)
+            ->with([
+                'options' => fn ($query) => $query->withCount('votes'),
+                'votes' => fn ($query) => $query->where('user_id', $request->user()->id),
+            ])
+            ->latest('published_at')
+            ->limit(20)
+            ->get()
+            ->map(function (ClubPoll $poll): array {
+                $totalVotes = $poll->options->sum('votes_count');
+                $myOptionId = $poll->votes->first()?->club_poll_option_id;
+
+                return [
+                    'id' => $poll->id,
+                    'group_id' => $poll->kindergarten_group_id,
+                    'question' => $poll->question,
+                    'description' => $poll->description,
+                    'status' => $poll->status,
+                    'closes_at' => $poll->closes_at?->format('d.m.Y H:i'),
+                    'published_at' => $poll->published_at?->format('d.m.Y H:i'),
+                    'sort_at' => $poll->published_at?->timestamp,
+                    'total_votes' => $totalVotes,
+                    'my_option_id' => $myOptionId,
+                    'can_vote' => $poll->isOpen(),
+                    'options' => $poll->options->map(fn ($option) => [
+                        'id' => $option->id,
+                        'label' => $option->label,
+                        'votes' => $option->votes_count,
+                        'percent' => $totalVotes > 0
+                            ? (int) round(($option->votes_count / $totalVotes) * 100)
+                            : 0,
+                        'selected' => $myOptionId === $option->id,
+                    ])->values(),
+                ];
+            });
 
         $knownGroups = KindergartenGroup::query()
             ->where('is_active', true)
@@ -128,10 +170,11 @@ class ForumController extends Controller
             'categories' => ForumTopic::CATEGORIES,
             'statuses' => ForumTopic::STATUSES,
             'topics' => $topics,
+            'polls' => $polls,
             ...$scopedContent,
             'members' => $members,
             'can_create' => true,
-            'contact_policy' => 'პირადი ტელეფონი და ელფოსტა არ გამოჩნდება. კომუნიკაცია შესაძლებელია მხოლოდ ამ ჯგუფის დახურულ ფორუმში.',
+            'contact_policy' => 'თქვენ ხედავთ მხოლოდ ამ ჯგუფის მშობლებს, კითხვებსა და გამოკითხვებს. სხვა ასაკობრივი ჯგუფის სივრცე მიუწვდომელია.',
         ])->header('Cache-Control', 'no-store, private');
     }
 
@@ -159,12 +202,12 @@ class ForumController extends Controller
             return response()->json([
                 'ok' => true,
                 'topic_id' => $topic->id,
-                'message' => 'კითხვა შეიქმნა. პასუხის მიღებისთანავე შეტყობინებას ნახავთ პირად კაბინეტში.',
+                'message' => 'კითხვა გამოქვეყნდა მხოლოდ თქვენი ჯგუფის ფიდში.',
             ], 201);
         }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
-            ->with('success', 'კითხვა შეიქმნა. პასუხის მიღებისთანავე შეტყობინებას ნახავთ პირად კაბინეტში.');
+            ->with('success', 'კითხვა გამოქვეყნდა მხოლოდ თქვენი ჯგუფის ფიდში.');
     }
 
     public function storeComment(
@@ -203,6 +246,34 @@ class ForumController extends Controller
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
             ->with('success', 'პასუხი დაემატა.');
+    }
+
+    public function votePoll(Request $request, ClubPoll $poll): JsonResponse
+    {
+        $groupIds = $this->accessibleGroupIds($request->user());
+        abort_unless($groupIds->contains($poll->kindergarten_group_id), 404);
+        abort_unless($poll->isOpen(), 422, 'ეს გამოკითხვა უკვე დახურულია.');
+
+        $validated = $request->validate([
+            'option_id' => [
+                'required',
+                'integer',
+                Rule::exists('club_poll_options', 'id')->where('club_poll_id', $poll->id),
+            ],
+        ]);
+
+        ClubPollVote::query()->updateOrCreate(
+            [
+                'club_poll_id' => $poll->id,
+                'user_id' => $request->user()->id,
+            ],
+            ['club_poll_option_id' => $validated['option_id']],
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'თქვენი პასუხი შენახულია.',
+        ]);
     }
 
     private function accessibleGroupIds(User $user): Collection

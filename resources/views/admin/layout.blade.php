@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-simple.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-club.css') }}?v=20260805">
+    <link rel="stylesheet" href="{{ asset('css/group-club-feed.css') }}?v=20260805">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
@@ -33,7 +34,8 @@
                 @php($waitingSupportCount = \App\Models\SupportConversation::query()->where('status', 'waiting_admin')->count())
                 @php($unansweredClubCount = \App\Models\ForumTopic::query()->where('status', 'open')->count())
                 <a class="{{ request()->routeIs('admin.users.*') || request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="admin-nav-icon">◎</span>მომხმარებლები და თანხები</a>
-                <a class="{{ request()->routeIs('admin.club.*') ? 'active' : '' }}" href="{{ route('admin.club.index') }}"><span class="admin-nav-icon">◌</span>მშობელთა კლუბი @if($unansweredClubCount)<small>{{ $unansweredClubCount }}</small>@endif</a>
+                <a class="{{ request()->routeIs('admin.club.index', 'admin.club.events.*', 'admin.club.topics.*') ? 'active' : '' }}" href="{{ route('admin.club.index') }}"><span class="admin-nav-icon">◌</span>მშობელთა კლუბი @if($unansweredClubCount)<small>{{ $unansweredClubCount }}</small>@endif</a>
+                <a class="{{ request()->routeIs('admin.club.polls.*') ? 'active' : '' }}" href="{{ route('admin.club.polls.index') }}"><span class="admin-nav-icon">▥</span>ჯგუფის გამოკითხვები</a>
                 <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}"><span class="admin-nav-icon">＋</span>ჩარიცხვის განაცხადები</a>
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები</a>
                 <a class="{{ request()->routeIs('admin.content.*') ? 'active' : '' }}" href="{{ route('admin.content.index') }}"><span class="admin-nav-icon">✦</span>საიტის კონტენტი</a>

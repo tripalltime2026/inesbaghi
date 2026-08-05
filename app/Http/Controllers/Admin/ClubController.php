@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ClubEvent;
 use App\Models\ClubEventResponse;
+use App\Models\ClubPoll;
 use App\Models\ForumTopic;
 use App\Models\KindergartenGroup;
 use App\Models\User;
@@ -86,6 +87,27 @@ class ClubController extends Controller
         return view('admin.club.index', compact('groups', 'events', 'topics', 'metrics'));
     }
 
+    public function polls(): View
+    {
+        $groups = KindergartenGroup::query()
+            ->where('is_active', true)
+            ->orderBy('age_min_months')
+            ->get();
+
+        $polls = ClubPoll::query()
+            ->with([
+                'group:id,name,academic_year',
+                'creator:id,name',
+                'options' => fn ($query) => $query->withCount('votes'),
+            ])
+            ->withCount('votes')
+            ->latest()
+            ->limit(60)
+            ->get();
+
+        return view('admin.club.polls', compact('groups', 'polls'));
+    }
+
     public function storeEvent(Request $request, ClubNotificationService $notifications): RedirectResponse
     {
         $validated = $this->validateEvent($request);
@@ -132,6 +154,96 @@ class ClubController extends Controller
         $event->delete();
 
         return back()->with('success', 'ღონისძიება წაიშალა.');
+    }
+
+    public function storePoll(Request $request, ClubNotificationService $notifications): RedirectResponse
+    {
+        $options = collect($request->input('options', []))
+            ->map(fn ($option) => trim((string) $option))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $request->merge(['options' => $options]);
+
+        $validated = $request->validate([
+            'kindergarten_group_id' => [
+                'required',
+                'integer',
+                Rule::exists('kindergarten_groups', 'id')->where('is_active', true),
+            ],
+            'question' => ['required', 'string', 'min:4', 'max:240'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'closes_at' => ['nullable', 'date', 'after:now'],
+            'status' => ['required', Rule::in(array_keys(ClubPoll::STATUSES))],
+            'options' => ['required', 'array', 'min:2', 'max:6'],
+            'options.*' => ['required', 'string', 'max:180'],
+        ]);
+
+        $poll = DB::transaction(function () use ($request, $validated): ClubPoll {
+            $poll = ClubPoll::query()->create([
+                'kindergarten_group_id' => $validated['kindergarten_group_id'],
+                'created_by_user_id' => $request->user()->id,
+                'question' => $validated['question'],
+                'description' => $validated['description'] ?? null,
+                'closes_at' => $validated['closes_at'] ?? null,
+                'status' => $validated['status'],
+                'published_at' => $validated['status'] === 'published' ? now() : null,
+            ]);
+
+            foreach ($validated['options'] as $position => $label) {
+                $poll->options()->create([
+                    'label' => $label,
+                    'position' => $position + 1,
+                ]);
+            }
+
+            return $poll;
+        });
+
+        if ($poll->status === 'published') {
+            $notifications->pollPublished($poll);
+        }
+
+        return back()->with('success', 'გამოკითხვა შეიქმნა მხოლოდ არჩეული ჯგუფისთვის.');
+    }
+
+    public function updatePoll(
+        Request $request,
+        ClubPoll $poll,
+        ClubNotificationService $notifications,
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'min:4', 'max:240'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'closes_at' => ['nullable', 'date'],
+            'status' => ['required', Rule::in(array_keys(ClubPoll::STATUSES))],
+        ]);
+
+        $wasPublished = $poll->status === 'published' && $poll->published_at !== null;
+        $poll->fill($validated);
+
+        if ($poll->status === 'published' && $poll->published_at === null) {
+            $poll->published_at = now();
+        }
+        if ($poll->status === 'draft') {
+            $poll->published_at = null;
+        }
+
+        $poll->save();
+
+        if ((! $wasPublished && $poll->status === 'published') || $request->boolean('notify_parents')) {
+            $notifications->pollPublished($poll);
+        }
+
+        return back()->with('success', 'გამოკითხვა განახლდა.');
+    }
+
+    public function destroyPoll(ClubPoll $poll): RedirectResponse
+    {
+        $poll->delete();
+
+        return back()->with('success', 'გამოკითხვა წაიშალა.');
     }
 
     public function replyTopic(

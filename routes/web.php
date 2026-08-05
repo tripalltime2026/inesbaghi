@@ -127,6 +127,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', NoIndexPrivateArea::
         Route::post('/club/events', [AdminClubController::class, 'storeEvent'])->name('club.events.store');
         Route::patch('/club/events/{event}', [AdminClubController::class, 'updateEvent'])->name('club.events.update');
         Route::delete('/club/events/{event}', [AdminClubController::class, 'destroyEvent'])->name('club.events.destroy');
+        Route::get('/club/polls', [AdminClubController::class, 'polls'])->name('club.polls.index');
+        Route::post('/club/polls', [AdminClubController::class, 'storePoll'])->name('club.polls.store');
+        Route::patch('/club/polls/{poll}', [AdminClubController::class, 'updatePoll'])->name('club.polls.update');
+        Route::delete('/club/polls/{poll}', [AdminClubController::class, 'destroyPoll'])->name('club.polls.destroy');
         Route::post('/club/topics/{topic}/reply', [AdminClubController::class, 'replyTopic'])->name('club.topics.reply');
         Route::patch('/club/topics/{topic}', [AdminClubController::class, 'updateTopic'])->name('club.topics.update');
 
@@ -197,6 +201,9 @@ Route::prefix('parent')->name('parent.')->middleware(['auth', 'parent.club', NoI
     Route::post('/forum/topics/{topic}/comments', [ParentForumController::class, 'storeComment'])
         ->middleware('throttle:30,1')
         ->name('forum.comments.store');
+    Route::post('/polls/{poll}/vote', [ParentForumController::class, 'votePoll'])
+        ->middleware('throttle:30,1')
+        ->name('polls.vote');
 
     Route::post('/events/{event}/response', [ParentClubController::class, 'respondToEvent'])
         ->middleware('throttle:30,1')
