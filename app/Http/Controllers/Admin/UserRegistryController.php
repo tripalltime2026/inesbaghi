@@ -46,6 +46,7 @@ class UserRegistryController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
             'segment' => ['nullable', Rule::in(array_keys(self::FILTERS))],
+            'access' => ['nullable', Rule::in(['pending', 'approved', 'debt'])],
             'group_id' => [
                 'nullable',
                 'integer',
@@ -85,6 +86,9 @@ class UserRegistryController extends Controller
                     ->where('kindergarten_group_id', $groupId)));
 
         $this->applyFilter($query, $filters['segment'] ?? null);
+        if (! filled($filters['segment'] ?? null)) {
+            $this->applyLegacyAccessFilter($query, $filters['access'] ?? null);
+        }
 
         $billingUsers = $this->parentQuery()->get(['payment_due', 'payment_paid']);
         $counts = $this->segmentCounts();
@@ -318,6 +322,16 @@ class UserRegistryController extends Controller
                     ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true))),
             'suspended' => $query->where('status', 'suspended'),
             'cancelled' => $query->where('status', 'cancelled'),
+            'debt' => $query->whereColumn('payment_due', '>', 'payment_paid'),
+            default => null,
+        };
+    }
+
+    private function applyLegacyAccessFilter(Builder $query, ?string $filter): void
+    {
+        match ($filter) {
+            'pending' => $query->whereNull('club_access_approved_at'),
+            'approved' => $query->whereNotNull('club_access_approved_at'),
             'debt' => $query->whereColumn('payment_due', '>', 'payment_paid'),
             default => null,
         };
