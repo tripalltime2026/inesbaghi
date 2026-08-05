@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ClubEvent;
 use App\Models\ClubNotification;
+use App\Models\ClubPoll;
 use App\Models\ForumTopic;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -21,6 +22,20 @@ class ClubNotificationService
             trim(($event->starts_at?->format('d.m.Y H:i') ?? '').($event->location ? ' · '.$event->location : '')),
             route('parent.dashboard').'#events',
             ['event_id' => $event->id],
+        );
+    }
+
+    public function pollPublished(ClubPoll $poll): int
+    {
+        $userIds = $this->eligibleParents($poll->kindergarten_group_id, 'event_updates');
+
+        return $this->send(
+            $userIds,
+            'poll_published',
+            'ახალი გამოკითხვა თქვენს ჯგუფში',
+            $poll->question,
+            route('parent.dashboard').'#forum',
+            ['poll_id' => $poll->id, 'group_id' => $poll->kindergarten_group_id],
         );
     }
 
