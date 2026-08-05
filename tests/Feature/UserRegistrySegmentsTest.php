@@ -42,15 +42,15 @@ class UserRegistrySegmentsTest extends TestCase
         $group = $this->group();
 
         $this->clubParent('წვდომიანი მშობელი', '+995555410011', $group);
-        $this->incompleteParent('წვდომის გარეშე', '+995555410012');
-        $this->cancelledParent('დახურული ანგარიში', '+995555410013');
+        $this->incompleteParent('ფილტრიდან გამოსარიცხი მშობელი', '+995555410012');
+        $this->cancelledParent('გაუქმებული ფილტრიდან გამოსარიცხი', '+995555410013');
 
         $this->actingAs($admin)
             ->get(route('admin.users.index', ['segment' => 'club_active']))
             ->assertOk()
             ->assertSee('წვდომიანი მშობელი')
-            ->assertDontSee('წვდომის გარეშე')
-            ->assertDontSee('დახურული ანგარიში');
+            ->assertDontSee('ფილტრიდან გამოსარიცხი მშობელი')
+            ->assertDontSee('გაუქმებული ფილტრიდან გამოსარიცხი');
     }
 
     public function test_admin_can_cancel_account_and_club_access_is_blocked(): void
