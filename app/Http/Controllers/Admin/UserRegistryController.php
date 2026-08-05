@@ -118,7 +118,7 @@ class UserRegistryController extends Controller
         abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
 
         $validated = $request->validate([
-            'account_status' => ['required', Rule::in(array_keys(self::ACCOUNT_STATUSES))],
+            'account_status' => ['nullable', Rule::in(array_keys(self::ACCOUNT_STATUSES))],
             'access_approved' => ['required', 'boolean'],
             'payment_due' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'payment_paid' => ['required', 'numeric', 'min:0', 'max:999999.99', 'lte:payment_due'],
@@ -130,7 +130,7 @@ class UserRegistryController extends Controller
 
         $approved = (bool) $validated['access_approved'];
         $oldStatus = $user->status;
-        $newStatus = $validated['account_status'];
+        $newStatus = $validated['account_status'] ?? $user->status;
 
         DB::transaction(function () use ($request, $user, $validated, $approved, $oldStatus, $newStatus): void {
             $user->update([
@@ -164,7 +164,7 @@ class UserRegistryController extends Controller
             ]);
         });
 
-        $statusLabel = self::ACCOUNT_STATUSES[$newStatus];
+        $statusLabel = self::ACCOUNT_STATUSES[$newStatus] ?? $newStatus;
 
         return back()->with('success', "{$user->name}-ის სტატუსი განახლდა: {$statusLabel}.");
     }
