@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/cms-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/support-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin-simple.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-club.css') }}?v=20260805">
 </head>
 <body class="admin-body">
 <header class="admin-global-header">
@@ -30,7 +31,9 @@
         <nav class="admin-tabs admin-nav-stack" aria-label="ადმინისტრაციული მოდულები">
             @if(auth()->user()->hasRole('admin'))
                 @php($waitingSupportCount = \App\Models\SupportConversation::query()->where('status', 'waiting_admin')->count())
+                @php($unansweredClubCount = \App\Models\ForumTopic::query()->where('status', 'open')->count())
                 <a class="{{ request()->routeIs('admin.users.*') || request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="admin-nav-icon">◎</span>მომხმარებლები და თანხები</a>
+                <a class="{{ request()->routeIs('admin.club.*') ? 'active' : '' }}" href="{{ route('admin.club.index') }}"><span class="admin-nav-icon">◌</span>მშობელთა კლუბი @if($unansweredClubCount)<small>{{ $unansweredClubCount }}</small>@endif</a>
                 <a class="{{ request()->routeIs('admin.admissions.*') ? 'active' : '' }}" href="{{ route('admin.admissions.index') }}"><span class="admin-nav-icon">＋</span>ჩარიცხვის განაცხადები</a>
                 <a class="{{ request()->routeIs('admin.children.*') ? 'active' : '' }}" href="{{ route('admin.children.index') }}"><span class="admin-nav-icon">●</span>ბავშვები</a>
                 <a class="{{ request()->routeIs('admin.content.*') ? 'active' : '' }}" href="{{ route('admin.content.index') }}"><span class="admin-nav-icon">✦</span>საიტის კონტენტი</a>
@@ -49,7 +52,7 @@
     <section class="admin-workspace">
         <section class="admin-title-row">
             <button class="admin-mobile-menu" type="button" data-admin-sidebar-open aria-label="მართვის მენიუს გახსნა">☰</button>
-            <div><p class="admin-kicker">ინეს ბაღი</p><h1>@yield('heading', 'ადმინ პანელი')</h1><p class="admin-subtitle">დადასტურება, გადასახდელი თანხა და ყოველდღიური მართვა ერთ სივრცეში.</p></div>
+            <div><p class="admin-kicker">ინეს ბაღი</p><h1>@yield('heading', 'ადმინ პანელი')</h1><p class="admin-subtitle">მშობლები, ბავშვები, კითხვები, ღონისძიებები და ყოველდღიური მართვა ერთ სივრცეში.</p></div>
             <div class="admin-title-actions"><a class="site-return" href="{{ route('home') }}">საჯარო საიტი →</a></div>
         </section>
 
