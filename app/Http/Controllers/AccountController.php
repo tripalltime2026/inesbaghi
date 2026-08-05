@@ -185,12 +185,6 @@ class AccountController extends Controller
         $hadActiveConsent = $this->hasMarketingConsent($user);
 
         if ($enabled) {
-            if (! $user->email) {
-                return back()->withErrors([
-                    'marketing_consent' => 'სიახლეების ელფოსტაზე მისაღებად ჯერ პროფილში დაამატეთ ელფოსტა.',
-                ]);
-            }
-
             $recorder->recordForUserIfMissing(
                 $request,
                 $user->id,
@@ -202,6 +196,10 @@ class AccountController extends Controller
                     'channel' => 'email',
                 ],
             );
+
+            if (! $user->email) {
+                return back()->with('success', 'სიახლეების მიღების თანხმობა შენახულია. ელფოსტის დამატების შემდეგ გამოწერის დადასტურება გახდება შესაძლებელი.');
+            }
 
             $synced = $hadActiveConsent
                 ? $mailchimp->syncActiveConsent($user, ['Parent', 'Account Preferences'])
