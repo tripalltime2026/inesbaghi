@@ -74,7 +74,7 @@ class DashboardController extends Controller
             ])
             ->withCount('comments')
             ->orderByDesc('is_pinned')
-            ->latest(DB_COLUMN: 'updated_at')
+            ->latest('updated_at')
             ->limit(8)
             ->get();
 
