@@ -1,7 +1,11 @@
+const feedStylesheet=document.createElement('link');
+feedStylesheet.rel='stylesheet';
+feedStylesheet.href='/css/group-club-feed.css?v=20260805';
+document.head.appendChild(feedStylesheet);
 const tabButtons=[...document.querySelectorAll('[data-club-tab]')];
 const panels=[...document.querySelectorAll('[data-club-panel]')];
 function normalizeClubTab(hash){
-  if(hash.startsWith('forum-topic-')||hash.startsWith('my-topic-'))return 'forum';
+  if(hash.startsWith('forum-topic-')||hash.startsWith('my-topic-')||hash.startsWith('club-poll-'))return 'forum';
   return tabButtons.some(button=>button.dataset.clubTab===hash)?hash:'feed';
 }
 function showClubTab(name,updateHash=true){
@@ -15,7 +19,7 @@ tabButtons.forEach(button=>button.addEventListener('click',()=>showClubTab(butto
 document.querySelectorAll('[data-club-tab-link]').forEach(button=>button.addEventListener('click',()=>showClubTab(button.dataset.clubTabLink)));
 const initialHash=location.hash.replace('#','');
 showClubTab(initialHash||'feed',!initialHash);
-if(initialHash.startsWith('forum-topic-')){
+if(initialHash.startsWith('forum-topic-')||initialHash.startsWith('club-poll-')){
   const targetId=initialHash;
   const observer=new MutationObserver(()=>{
     const target=document.getElementById(targetId);
