@@ -18,7 +18,7 @@
     <section class="credentials-card">
         <span class="credentials-badge">შესვლა</span>
         <h1>კეთილი იყოს თქვენი დაბრუნება</h1>
-        <p class="credentials-lead">ჩაწერეთ რეგისტრაციისას არჩეული სახელი და პაროლი.</p>
+        <p class="credentials-lead">ჩაწერეთ რეგისტრაციისას გამოყენებული ელფოსტა ან მომხმარებლის სახელი და პაროლი.</p>
 
         @if(session('success'))
             <div class="credentials-success">{{ session('success') }}</div>
@@ -32,8 +32,8 @@
         <form class="credentials-form" method="post" action="{{ route('auth.credentials.login') }}">
             @csrf
             <label class="credentials-field">
-                <span>სახელი ან მომხმარებლის სახელი</span>
-                <input name="name" value="{{ old('name') }}" required maxlength="80" autocomplete="username" autofocus placeholder="მაგ. ნინო ბერიძე">
+                <span>ელფოსტა ან მომხმარებლის სახელი</span>
+                <input name="name" value="{{ old('name') }}" required maxlength="190" autocomplete="username" autofocus placeholder="parent@example.com">
             </label>
             <label class="credentials-field">
                 <span>პაროლი</span>
