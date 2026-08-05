@@ -6,7 +6,7 @@
 @section('content')
 <section class="registry-hero">
     <div>
-        <p class="eyebrow">ერთიანი რეესტრი</p>
+        <p class="eyebrow">მომხმარებლები და თანხები</p>
         <h2>რეგისტრაციები, დადასტურება და კლუბის წვდომა</h2>
         <p>თითოეული ანგარიში ავტომატურად ხვდება შესაბამის ბაზაში. ერთი შეხედვით ჩანს, ვის ელოდება დადასტურება, ვის აქვს კლუბი გახსნილი და ვის მონაცემებს სჭირდება მოწესრიგება.</p>
     </div>
@@ -113,6 +113,7 @@
                     </div>
                     <div class="registry-status-stack">
                         <span class="account-chip account-chip-{{ $registryUser->status }}">{{ $accountLabel }}</span>
+                        @if($approved)<span class="account-chip account-chip-active">ადმინის მიერ დადასტურებული</span>@endif
                         <span class="club-chip {{ $clubAccess ? 'open' : 'closed' }}">{{ $clubAccess ? 'კლუბი გახსნილია' : 'კლუბი დახურულია' }}</span>
                     </div>
                 </header>
@@ -167,7 +168,7 @@
 
                     <form method="post" action="{{ route('admin.users.credentials.reset', $registryUser) }}" class="registry-credential-action" onsubmit="return confirm('ახალი დროებითი პაროლი შეცვლის მომხმარებლის მოქმედ პაროლს. გავაგრძელოთ?')">
                         @csrf @method('patch')
-                        <div><strong>{{ $registryUser->username ?: 'ლოგინი ჯერ არ არის შექმნილი' }}</strong><small>{{ $registryUser->password ? 'პაროლი დაცულია და არ ჩანს' : 'პაროლი ჯერ არ არის შექმნილი' }}</small></div>
+                        <div><strong>{{ $registryUser->username ?: 'ლოგინი ჯერ არ არის შექმნილი' }}</strong><small>{{ $registryUser->password ? 'დაცულია — არ ჩანს' : 'პაროლი ჯერ არ არის შექმნილი' }}</small></div>
                         <button type="submit">ახალი დროებითი პაროლი</button>
                     </form>
                 </div>
