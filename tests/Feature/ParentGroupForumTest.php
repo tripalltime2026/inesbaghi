@@ -102,8 +102,8 @@ class ParentGroupForumTest extends TestCase
         $this->get('/parent')->assertRedirect(route('account.status'));
         $this->get('/account')
             ->assertOk()
-            ->assertSee('რეგისტრაციის შემდეგ ჯგუფები და ფორუმი დახურულია')
-            ->assertSee('დადასტურებას ელოდება');
+            ->assertSee('ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა')
+            ->assertSee('Parent Club');
     }
 
     private function group(string $slug, string $name, int $minimumAge): KindergartenGroup

@@ -66,7 +66,7 @@ class RuntimeSmokeTest extends TestCase
         $this->get('/admin/users')
             ->assertOk()
             ->assertSee('მართვის ცენტრი')
-            ->assertSee('მომხმარებლები და თანხები')
+            ->assertSee('მშობლები და ბავშვები')
             ->assertSee('ჩარიცხვის განაცხადები')
             ->assertSee('ბავშვები')
             ->assertSee('საიტის კონტენტი')
@@ -92,7 +92,8 @@ class RuntimeSmokeTest extends TestCase
         $this->get('/account')
             ->assertOk()
             ->assertSee('ანგარიშის ცენტრი')
-            ->assertSee('კლუბის წვდომა')
+            ->assertSee('წვდომის მდგომარეობა')
+            ->assertSee('Parent Club')
             ->assertSee('საინფორმაციო შეტყობინებების მიღება არჩევითია');
     }
 }

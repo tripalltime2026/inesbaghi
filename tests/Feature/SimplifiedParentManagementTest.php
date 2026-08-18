@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Child;
+use App\Models\Enrollment;
 use App\Models\KindergartenGroup;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,21 +16,8 @@ class SimplifiedParentManagementTest extends TestCase
 
     public function test_admin_can_approve_parent_and_set_payment_on_one_screen(): void
     {
-        $admin = User::create([
-            'name' => 'Admin',
-            'username' => 'admin-simple',
-            'password' => 'password123',
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
-
-        $parent = User::create([
-            'name' => 'Parent',
-            'username' => 'parent-simple',
-            'password' => 'password123',
-            'role' => 'member',
-            'status' => 'active',
-        ]);
+        $admin = $this->admin('admin-simple');
+        $parent = $this->parent('Parent', 'parent-simple');
 
         $response = $this->actingAs($admin)->patch(
             route('admin.users.access-payment.update', $parent),
@@ -52,13 +40,9 @@ class SimplifiedParentManagementTest extends TestCase
 
     public function test_registration_does_not_open_groups_or_forum_without_admin_approval(): void
     {
-        $parent = User::create([
-            'name' => 'Waiting Parent',
-            'username' => 'waiting-parent',
-            'password' => 'password123',
-            'role' => 'member',
-            'status' => 'active',
-        ]);
+        $parent = $this->parent('Waiting Parent', 'waiting-parent');
+        $child = $this->child('ნინო', 'ტესტი');
+        $this->link($parent, $child);
 
         $this->assertFalse($parent->isClubAccessApproved());
         $this->assertFalse($parent->canAccessParentClub());
@@ -68,31 +52,22 @@ class SimplifiedParentManagementTest extends TestCase
             ->assertRedirect(route('account.status'));
     }
 
-    public function test_admin_child_form_uses_one_birth_date_field_and_bootstraps_group_options(): void
+    public function test_admin_screen_uses_only_children_already_linked_during_registration(): void
     {
-        $admin = User::create([
-            'name' => 'Admin',
-            'username' => 'admin-child-form',
-            'password' => 'password123',
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
-
-        User::create([
-            'name' => 'Parent',
-            'username' => 'parent-child-form',
-            'password' => 'password123',
-            'role' => 'member',
-            'status' => 'active',
-        ]);
+        $admin = $this->admin('admin-child-form');
+        $parent = $this->parent('Parent', 'parent-child-form');
+        $child = $this->child('ანა', 'ტესტი');
+        $this->link($parent, $child);
 
         $this->assertDatabaseCount('kindergarten_groups', 0);
 
         $this->actingAs($admin)
             ->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('name="birth_date"', false)
-            ->assertDontSee('name="birth_year"', false)
+            ->assertSee('დადასტურება და ჯგუფში ჩარიცხვა')
+            ->assertSee('ანა ტესტი')
+            ->assertDontSee('არსებული ბავშვის არჩევა')
+            ->assertDontSee('ახალი ბავშვის შექმნა')
             ->assertSee('2-3 წელი')
             ->assertSee('3-4 წელი')
             ->assertSee('4-5 წელი')
@@ -101,52 +76,25 @@ class SimplifiedParentManagementTest extends TestCase
         $this->assertDatabaseCount('kindergarten_groups', 4);
     }
 
-    public function test_admin_can_create_and_link_child_without_child_registration(): void
+    public function test_admin_verifies_linked_child_and_enrolls_in_one_action(): void
     {
-        $admin = User::create([
-            'name' => 'Admin',
-            'username' => 'admin-child-link',
-            'password' => 'password123',
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
-
-        $parent = User::create([
-            'name' => 'Nino Parent',
-            'username' => 'nino-parent',
-            'password' => 'password123',
-            'role' => 'member',
-            'status' => 'active',
-        ]);
-
-        $group = KindergartenGroup::create([
-            'name' => '3-4 წლის ჯგუფი',
-            'slug' => '3-4-test',
-            'age_min_months' => 36,
-            'age_max_months' => 48,
-            'capacity' => 20,
-            'monthly_fee' => 500,
-            'academic_year' => '2026-2027',
-            'is_active' => true,
-        ]);
+        $admin = $this->admin('admin-child-link');
+        $parent = $this->parent('Nino Parent', 'nino-parent');
+        $child = $this->child('ანა', 'ტესტი');
+        $this->link($parent, $child);
+        $group = $this->group('3-4 წლის ჯგუფი', '3-4-test');
 
         $response = $this->actingAs($admin)->post(
             route('admin.users.children.store', $parent),
             [
-                'first_name' => 'ანა',
-                'last_name' => 'ტესტი',
-                'birth_date' => '2022-05-10',
+                'child_id' => $child->id,
                 'group_id' => $group->id,
-                'enrollment_status' => 'active',
                 'starts_on' => '2026-08-03',
             ],
         );
 
         $response->assertSessionHasNoErrors();
 
-        $child = Child::query()->where('first_name', 'ანა')->firstOrFail();
-        $this->assertSame(2022, $child->birth_year);
-        $this->assertTrue($parent->children()->whereKey($child->id)->exists());
         $this->assertDatabaseHas('enrollments', [
             'child_id' => $child->id,
             'kindergarten_group_id' => $group->id,
@@ -155,24 +103,79 @@ class SimplifiedParentManagementTest extends TestCase
 
         $parent->refresh();
         $this->assertSame('parent', $parent->role);
+        $this->assertTrue($parent->isClubAccessApproved());
+        $this->assertTrue($parent->canAccessParentClub());
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'parent_child.verified_and_enrolled',
+            'subject_id' => $child->id,
+        ]);
+    }
 
-        $this->actingAs($parent)
-            ->get(route('account.status'))
-            ->assertOk()
-            ->assertSee('ანა')
-            ->assertSee('3-4 წლის ჯგუფი');
+    public function test_admin_cannot_assign_another_parents_child(): void
+    {
+        $admin = $this->admin('admin-security');
+        $firstParent = $this->parent('First Parent', 'first-parent');
+        $secondParent = $this->parent('Second Parent', 'second-parent');
+        $firstChild = $this->child('პირველი', 'ბავშვი');
+        $secondChild = $this->child('მეორე', 'ბავშვი');
+        $this->link($firstParent, $firstChild);
+        $this->link($secondParent, $secondChild);
+        $group = $this->group('4-5 წლის ჯგუფი', '4-5-security');
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.children.store', $firstParent), [
+                'child_id' => $secondChild->id,
+                'group_id' => $group->id,
+                'starts_on' => '2026-08-03',
+            ])
+            ->assertSessionHasErrors('child_id');
+
+        $this->assertDatabaseMissing('enrollments', [
+            'child_id' => $secondChild->id,
+            'kindergarten_group_id' => $group->id,
+        ]);
+        $this->assertFalse($firstParent->fresh()->isClubAccessApproved());
+    }
+
+    public function test_group_change_preserves_old_enrollment_history(): void
+    {
+        $admin = $this->admin('admin-transfer');
+        $parent = $this->parent('Transfer Parent', 'transfer-parent');
+        $child = $this->child('ნინი', 'ტრანსფერი');
+        $this->link($parent, $child);
+        $oldGroup = $this->group('ძველი ჯგუფი', 'old-group');
+        $newGroup = $this->group('ახალი ჯგუფი', 'new-group');
+
+        $oldEnrollment = Enrollment::create([
+            'child_id' => $child->id,
+            'kindergarten_group_id' => $oldGroup->id,
+            'status' => 'active',
+            'starts_on' => '2026-01-10',
+            'enrolled_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.children.store', $parent), [
+                'child_id' => $child->id,
+                'group_id' => $newGroup->id,
+                'starts_on' => '2026-08-10',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $oldEnrollment->refresh();
+        $this->assertSame('completed', $oldEnrollment->status);
+        $this->assertSame($oldGroup->id, $oldEnrollment->kindergarten_group_id);
+        $this->assertDatabaseHas('enrollments', [
+            'child_id' => $child->id,
+            'kindergarten_group_id' => $newGroup->id,
+            'status' => 'active',
+        ]);
+        $this->assertSame(2, $child->enrollments()->count());
     }
 
     public function test_admin_sees_login_and_can_generate_one_time_temporary_password(): void
     {
-        $admin = User::create([
-            'name' => 'Admin',
-            'username' => 'admin-credentials',
-            'password' => 'password123',
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
-
+        $admin = $this->admin('admin-credentials');
         $parent = User::create([
             'name' => 'Nino Beridze',
             'username' => null,
@@ -202,11 +205,60 @@ class SimplifiedParentManagementTest extends TestCase
             'action' => 'user.credentials_reset',
             'subject_id' => $parent->id,
         ]);
+    }
 
-        $this->actingAs($admin)
-            ->get(route('admin.users.index'))
-            ->assertOk()
-            ->assertSee('nino beridze')
-            ->assertSee('დაცულია — არ ჩანს');
+    private function admin(string $username): User
+    {
+        return User::create([
+            'name' => 'Admin',
+            'username' => $username,
+            'password' => 'password123',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+    }
+
+    private function parent(string $name, string $username): User
+    {
+        return User::create([
+            'name' => $name,
+            'username' => $username,
+            'password' => 'password123',
+            'role' => 'member',
+            'status' => 'active',
+        ]);
+    }
+
+    private function child(string $firstName, string $lastName): Child
+    {
+        return Child::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'birth_date' => '2022-05-10',
+            'birth_year' => 2022,
+        ]);
+    }
+
+    private function link(User $parent, Child $child): void
+    {
+        $parent->children()->attach($child->id, [
+            'relationship' => 'parent',
+            'is_primary' => true,
+            'can_pick_up' => true,
+        ]);
+    }
+
+    private function group(string $name, string $slug): KindergartenGroup
+    {
+        return KindergartenGroup::create([
+            'name' => $name,
+            'slug' => $slug,
+            'age_min_months' => 36,
+            'age_max_months' => 60,
+            'capacity' => 20,
+            'monthly_fee' => 500,
+            'academic_year' => '2026-2027',
+            'is_active' => true,
+        ]);
     }
 }

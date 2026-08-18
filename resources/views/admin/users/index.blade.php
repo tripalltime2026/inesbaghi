@@ -6,9 +6,9 @@
 @section('content')
 <section class="registry-hero">
     <div>
-        <p class="eyebrow">მომხმარებლები და თანხები</p>
-        <h2>რეგისტრაციები, დადასტურება და კლუბის წვდომა</h2>
-        <p>თითოეული ანგარიში ავტომატურად ხვდება შესაბამის ბაზაში. ერთი შეხედვით ჩანს, ვის ელოდება დადასტურება, ვის აქვს კლუბი გახსნილი და ვის მონაცემებს სჭირდება მოწესრიგება.</p>
+        <p class="eyebrow">მშობლები და ბავშვები</p>
+        <h2>რეგისტრაცია → დადასტურება → ჯგუფი</h2>
+        <p>მშობელი რეგისტრაციისას უკვე ქმნის და იბამს ბავშვს. თქვენ მხოლოდ ამოწმებთ კავშირს და ირჩევთ ბავშვის ჯგუფს — ცალკე ბავშვის მინიჭება აღარ არის საჭირო.</p>
     </div>
     <div class="registry-total"><span>სულ ანგარიში</span><strong>{{ $counts['total'] }}</strong><small>{{ number_format($counts['outstanding'], 2) }} ₾ დარჩენილი თანხა</small></div>
 </section>
@@ -16,9 +16,9 @@
 <section class="registry-segment-grid" aria-label="მომხმარებელთა ბაზები">
     @foreach([
         'registered' => ['რეგისტრირებული', 'მოქმედი და განხილვაში მყოფი ანგარიშები', '◎'],
-        'awaiting' => ['დადასტურებას ელოდება', 'კლუბზე ადმინის თანხმობა ჯერ არ აქვს', '◷'],
-        'club_active' => ['კლუბის წევრები', 'ყველა პირობა შესრულებულია', '✓'],
-        'approved_incomplete' => ['დამტკიცებული, მაგრამ არასრული', 'აკლია ბავშვი, ჯგუფი ან შესვლის მონაცემი', '!'],
+        'awaiting' => ['დადასტურებას ელოდება', 'ბავშვი მიბმულია, ადმინის შემოწმება დარჩა', '◷'],
+        'club_active' => ['კლუბის წევრები', 'დადასტურებული მშობელი და აქტიური ჯგუფი', '✓'],
+        'approved_incomplete' => ['დამტკიცებული, მაგრამ არასრული', 'დადასტურებულია, თუმცა აქტიური ჯგუფი აკლია', '!'],
         'suspended' => ['შეჩერებული', 'წვდომა დროებით დაბლოკილია', 'Ⅱ'],
         'cancelled' => ['გაუქმებული', 'დახურული ანგარიშები', '×'],
     ] as $key => [$label, $description, $icon])
@@ -70,7 +70,7 @@
 <section class="registry-list-panel">
     <header class="registry-list-heading">
         <div><p class="eyebrow">{{ $users->total() }} შედეგი</p><h2>{{ isset($filters['segment']) ? ($segments[$filters['segment']] ?? 'მომხმარებლები') : 'ყველა მომხმარებელი' }}</h2></div>
-        <p>ანგარიშის მდგომარეობა და კლუბის წვდომა ერთმანეთისგან დამოუკიდებლად იმართება.</p>
+        <p>უსაფრთხოების მიზნით ადმინი მხოლოდ რეგისტრაციისას უკვე მიბმულ ბავშვს ხედავს. სხვა ბავშვის არჩევა ამ ეკრანიდან შეუძლებელია.</p>
     </header>
 
     <div class="registry-user-list">
@@ -80,9 +80,8 @@
                 $latestEnrollment = $enrollments->first();
                 $activeEnrollment = $enrollments->first(fn($enrollment) => $enrollment->status === 'active' && $enrollment->group?->is_active);
                 $approved = $registryUser->isClubAccessApproved();
-                $hasIdentity = $registryUser->hasVerifiedIdentity();
                 $hasChild = $registryUser->children->isNotEmpty();
-                $clubAccess = $registryUser->status === 'active' && $approved && $hasIdentity && $hasChild && $activeEnrollment;
+                $clubAccess = $registryUser->canAccessParentClub();
                 $outstanding = $registryUser->paymentOutstanding();
                 $accountLabel = $accountStatuses[$registryUser->status] ?? $registryUser->status;
 
@@ -92,12 +91,10 @@
                     $accessReason = 'ანგარიში დროებით შეჩერებულია';
                 } elseif ($registryUser->status === 'pending') {
                     $accessReason = 'ანგარიში განხილვის ეტაპზეა';
-                } elseif (!$approved) {
-                    $accessReason = 'საჭიროა ადმინისტრატორის დადასტურება';
-                } elseif (!$hasIdentity) {
-                    $accessReason = 'საჭიროა შესვლის მონაცემების დადასტურება';
                 } elseif (!$hasChild) {
-                    $accessReason = 'საჭიროა ბავშვის დაკავშირება';
+                    $accessReason = 'რეგისტრაციაში ბავშვი არ არის მითითებული';
+                } elseif (!$approved) {
+                    $accessReason = 'ბავშვი უკვე მიბმულია — საჭიროა დადასტურება და ჯგუფის არჩევა';
                 } elseif (!$activeEnrollment) {
                     $accessReason = 'საჭიროა აქტიურ ჯგუფში ჩარიცხვა';
                 } else {
@@ -113,56 +110,62 @@
                     </div>
                     <div class="registry-status-stack">
                         <span class="account-chip account-chip-{{ $registryUser->status }}">{{ $accountLabel }}</span>
-                        @if($approved)<span class="account-chip account-chip-active">ადმინის მიერ დადასტურებული</span>@endif
+                        @if($approved)<span class="account-chip account-chip-active">მშობელი დადასტურებულია</span>@endif
                         <span class="club-chip {{ $clubAccess ? 'open' : 'closed' }}">{{ $clubAccess ? 'კლუბი გახსნილია' : 'კლუბი დახურულია' }}</span>
                     </div>
                 </header>
 
-                <div class="registry-access-message {{ $clubAccess ? 'success' : 'warning' }}"><strong>{{ $accessReason }}</strong>@if(!$clubAccess)<span>ქვემოთ მოცემული ნაბიჯებიდან ჩანს, რა აკლია ანგარიშს.</span>@endif</div>
+                <div class="registry-access-message {{ $clubAccess ? 'success' : 'warning' }}"><strong>{{ $accessReason }}</strong>@if(!$clubAccess)<span>ბავშვის ხელახლა მინიჭება საჭირო არ არის.</span>@endif</div>
 
                 <div class="registry-progress" aria-label="კლუბის წვდომის ეტაპები">
-                    <div class="{{ $registryUser->status === 'active' ? 'done' : '' }}"><i>1</i><span>აქტიური ანგარიში</span></div>
-                    <div class="{{ $approved ? 'done' : '' }}"><i>2</i><span>ადმინის დასტური</span></div>
-                    <div class="{{ $hasIdentity ? 'done' : '' }}"><i>3</i><span>შესვლის მონაცემები</span></div>
-                    <div class="{{ $hasChild ? 'done' : '' }}"><i>4</i><span>ბავშვი</span></div>
-                    <div class="{{ $activeEnrollment ? 'done' : '' }}"><i>5</i><span>აქტიური ჯგუფი</span></div>
+                    <div class="{{ $registryUser->status === 'active' ? 'done' : '' }}"><i>1</i><span>ანგარიში</span></div>
+                    <div class="{{ $hasChild ? 'done' : '' }}"><i>2</i><span>ბავშვი მიბმულია</span></div>
+                    <div class="{{ $approved ? 'done' : '' }}"><i>3</i><span>ადმინის დასტური</span></div>
+                    <div class="{{ $activeEnrollment ? 'done' : '' }}"><i>4</i><span>აქტიური ჯგუფი</span></div>
                 </div>
 
                 <div class="registry-info-grid">
                     <div><span>ბავშვი</span>@forelse($registryUser->children as $linkedChild)<a href="{{ route('admin.children.show', $linkedChild) }}">{{ $linkedChild->first_name }} {{ $linkedChild->last_name }}</a>@empty<strong>არ არის დაკავშირებული</strong>@endforelse</div>
-                    <div><span>ჯგუფი</span><strong>{{ $activeEnrollment?->group?->name ?? $latestEnrollment?->group?->name ?? 'არ არის მინიჭებული' }}</strong><small>{{ $activeEnrollment ? 'აქტიური ჩარიცხვა' : ($latestEnrollment ? ($enrollmentStatuses[$latestEnrollment->status] ?? $latestEnrollment->status) : 'ჩარიცხვა არ არის') }}</small></div>
+                    <div><span>ჯგუფი</span><strong>{{ $activeEnrollment?->group?->name ?? $latestEnrollment?->group?->name ?? 'არ არის მინიჭებული' }}</strong><small>{{ $activeEnrollment ? 'აქტიური ჩარიცხვა' : ($latestEnrollment ? ($enrollmentStatuses[$latestEnrollment->status] ?? $latestEnrollment->status) : 'ადმინი ჯერ ჯგუფს არ არჩევს') }}</small></div>
                     <div><span>განაცხადები</span><strong>{{ (int)$registryUser->application_count }}</strong></div>
                     <div class="{{ $outstanding > 0 ? 'money-due' : '' }}"><span>დარჩენილი თანხა</span><strong>{{ number_format($outstanding, 2) }} ₾</strong><small>{{ $registryUser->payment_due_at ? 'ვადა: '.$registryUser->payment_due_at->format('d.m.Y') : 'ვადა არ არის მითითებული' }}</small></div>
                 </div>
 
                 <div class="registry-card-actions">
+                    @if($hasChild)
+                        <details class="registry-manage" @if(!$clubAccess) open @endif>
+                            <summary>{{ $activeEnrollment ? 'ჯგუფის შეცვლა' : 'დადასტურება და ჯგუფში ჩარიცხვა' }}</summary>
+                            <form method="post" action="{{ route('admin.users.children.store', $registryUser) }}" class="registry-manage-form">
+                                @csrf
+                                @if($registryUser->children->count() > 1)
+                                    <label class="wide"><span>რეგისტრაციისას მიბმული ბავშვი</span><select name="child_id" required>@foreach($registryUser->children as $linkedChild)<option value="{{ $linkedChild->id }}">{{ $linkedChild->first_name }} {{ $linkedChild->last_name }}@if($linkedChild->birth_date) · {{ $linkedChild->birth_date->format('d.m.Y') }}@endif</option>@endforeach</select></label>
+                                @else
+                                    @php($linkedChild = $registryUser->children->first())
+                                    <input type="hidden" name="child_id" value="{{ $linkedChild->id }}">
+                                    <div class="wide"><span>რეგისტრაციისას მიბმული ბავშვი</span><strong>{{ $linkedChild->first_name }} {{ $linkedChild->last_name }}</strong>@if($linkedChild->birth_date)<small>{{ $linkedChild->birth_date->format('d.m.Y') }}</small>@endif</div>
+                                @endif
+                                <label><span>ჯგუფი</span><select name="group_id" required><option value="">აირჩიეთ ჯგუფი</option>@foreach($groups as $group)<option value="{{ $group->id }}" @selected((int)($activeEnrollment?->kindergarten_group_id ?? 0) === (int)$group->id)>{{ $group->name }}</option>@endforeach</select></label>
+                                <label><span>დაწყების თარიღი</span><input type="date" name="starts_on" value="{{ $activeEnrollment?->starts_on?->format('Y-m-d') ?? now()->format('Y-m-d') }}" required></label>
+                                <div class="empty-account wide">ამ მოქმედებით მშობლის კავშირი დადასტურდება, ბავშვი აქტიურ ჯგუფში ჩაირიცხება და Parent Club ავტომატურად გაიხსნება.</div>
+                                <button class="registry-primary wide" type="submit">{{ $activeEnrollment ? 'ჯგუფის განახლება' : 'დადასტურება და ჩარიცხვა' }}</button>
+                            </form>
+                        </details>
+                    @else
+                        <div class="registry-access-message warning"><strong>ბავშვი არ არის მიბმული</strong><span>სხვა ბავშვს ამ ეკრანიდან ნუ მიაბამთ. გადაამოწმეთ რეგისტრაცია ან ჩარიცხვის განაცხადი.</span></div>
+                    @endif
+
                     <details class="registry-manage" {{ session('temporary_credentials.user_id') === $registryUser->id ? 'open' : '' }}>
-                        <summary>ანგარიშის მართვა</summary>
+                        <summary>ანგარიშის და გადასახადის მართვა</summary>
                         <form method="post" action="{{ route('admin.users.access-payment.update', $registryUser) }}" class="registry-manage-form">
                             @csrf
                             @method('patch')
                             <label><span>ანგარიშის მდგომარეობა</span><select name="account_status" required>@foreach($accountStatuses as $key => $label)<option value="{{ $key }}" @selected($registryUser->status === $key)>{{ $label }}</option>@endforeach</select><small>შეჩერებულ და გაუქმებულ ანგარიშს სისტემაში შესვლა აღარ შეუძლია.</small></label>
-                            <label class="registry-check wide"><input type="hidden" name="access_approved" value="0"><input type="checkbox" name="access_approved" value="1" @checked($approved)><span><strong>მშობლის კლუბზე წვდომის დამტკიცება</strong><small>კლუბი მხოლოდ აქტიური ანგარიშის, ბავშვისა და აქტიური ჯგუფის არსებობისას გაიხსნება.</small></span></label>
+                            <label class="registry-check wide"><input type="hidden" name="access_approved" value="0"><input type="checkbox" name="access_approved" value="1" @checked($approved)><span><strong>მშობლის კავშირის დადასტურება</strong><small>ჯგუფში ჩარიცხვისას ეს ავტომატურად ჩაირთვება. აქედან შეგიძლიათ ხელით გააუქმოთ.</small></span></label>
                             <label><span>სულ გადასახდელი ₾</span><input type="number" name="payment_due" value="{{ $registryUser->payment_due ?? 0 }}" min="0" step="0.01" required></label>
                             <label><span>გადახდილია ₾</span><input type="number" name="payment_paid" value="{{ $registryUser->payment_paid ?? 0 }}" min="0" step="0.01" required></label>
                             <label><span>გადახდის ვადა</span><input type="date" name="payment_due_at" value="{{ $registryUser->payment_due_at?->format('Y-m-d') }}"></label>
                             <label class="wide"><span>ადმინისტრაციული შენიშვნა</span><textarea name="payment_note" rows="3" maxlength="1500" placeholder="მაგალითად: აგვისტოს გადასახადი ან ანგარიშის სტატუსის მიზეზი">{{ $registryUser->payment_note }}</textarea></label>
                             <button class="registry-primary wide" type="submit">ცვლილებების შენახვა</button>
-                        </form>
-                    </details>
-
-                    <details class="registry-manage">
-                        <summary>ბავშვის შექმნა ან დაკავშირება</summary>
-                        <form method="post" action="{{ route('admin.users.children.store', $registryUser) }}" class="registry-manage-form">
-                            @csrf
-                            <label class="wide"><span>არსებული ბავშვის არჩევა</span><select name="child_id"><option value="">ახალი ბავშვის შექმნა</option>@foreach($linkableChildren as $childOption)@unless($registryUser->children->contains('id', $childOption->id))<option value="{{ $childOption->id }}">{{ $childOption->first_name }} {{ $childOption->last_name }}@if($childOption->birth_date) · {{ $childOption->birth_date->format('d.m.Y') }}@elseif($childOption->birth_year) · {{ $childOption->birth_year }}@endif</option>@endunless @endforeach</select></label>
-                            <label><span>ახალი ბავშვის სახელი</span><input name="first_name" placeholder="მაგ. ანა"></label>
-                            <label><span>გვარი</span><input name="last_name" placeholder="გვარი"></label>
-                            <label><span>დაბადების თარიღი</span><input type="date" name="birth_date"></label>
-                            <label><span>ჯგუფი</span><select name="group_id"><option value="">ჯერ არ მივანიჭოთ</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
-                            <label><span>ჩარიცხვის სტატუსი</span><select name="enrollment_status">@foreach($enrollmentStatuses as $key => $label)<option value="{{ $key }}" @selected($key === 'active')>{{ $label }}</option>@endforeach</select></label>
-                            <label><span>დაწყების თარიღი</span><input type="date" name="starts_on" value="{{ now()->format('Y-m-d') }}"></label>
-                            <button class="registry-primary wide" type="submit">ბავშვის დაკავშირება</button>
                         </form>
                     </details>
 

@@ -36,7 +36,7 @@ class MemberParentAccessTest extends TestCase
         $this->actingAs($user)->get('/parent')->assertRedirect(route('account.status'));
         $this->actingAs($user)->get('/account')
             ->assertOk()
-            ->assertSee('დასამტკიცებელი')
+            ->assertSee('ბავშვი მიბმულია')
             ->assertSee('დადასტურებას ელოდება');
 
         $enrollment->update(['status' => 'active', 'enrolled_at' => now()]);
@@ -50,9 +50,9 @@ class MemberParentAccessTest extends TestCase
             ->assertSee('მშობელთა კლუბი');
     }
 
-    public function test_unverified_or_inactive_account_cannot_enter_parent_club(): void
+    public function test_phone_verification_is_not_required_but_inactive_account_cannot_enter_parent_club(): void
     {
-        $user = $this->user('დაუდასტურებელი მშობელი', '555310002', 'parent');
+        $user = $this->user('დადასტურებული მშობელი', '555310002', 'parent');
         $user->update(['phone_verified_at' => null]);
         $group = $this->group('4-5');
         $child = Child::create(['first_name' => 'ლუკა', 'last_name' => 'ონიანი', 'birth_year' => 2021]);
@@ -65,9 +65,9 @@ class MemberParentAccessTest extends TestCase
             'enrolled_at' => now(),
         ]);
 
-        $this->actingAs($user)->get('/parent')->assertRedirect(route('account.status'));
+        $this->actingAs($user)->get('/parent')->assertOk();
 
-        $user->update(['phone_verified_at' => now(), 'status' => 'suspended']);
+        $user->update(['status' => 'suspended']);
         $this->actingAs($user)->getJson('/parent/forum/data')
             ->assertForbidden()
             ->assertJsonPath('account_status_url', route('account.status'));
@@ -102,11 +102,11 @@ class MemberParentAccessTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/users')
             ->assertOk()
-            ->assertSee('მომხმარებლები და თანხები')
+            ->assertSee('მშობლები და ბავშვები')
             ->assertSee($registered->name)
             ->assertSee($applicant->name)
             ->assertSee($activeParent->name)
-            ->assertSee('ადმინის მიერ დადასტურებული');
+            ->assertSee('მშობელი დადასტურებულია');
 
         $this->actingAs($admin)->get('/admin/users?access=approved')
             ->assertOk()
