@@ -101,7 +101,6 @@ class User extends Authenticatable
     {
         return $this->status === 'active'
             && $this->isClubAccessApproved()
-            && $this->hasVerifiedIdentity()
             && $this->hasLinkedChild()
             && $this->hasActiveEnrollment();
     }
@@ -117,10 +116,14 @@ class User extends Authenticatable
             return 'დადასტურებული მშობელი';
         }
 
-        if ($this->isClubAccessApproved()) {
-            return 'წვდომა დამტკიცებულია — ჩარიცხვა მოსაწესრიგებელია';
+        if ($this->isClubAccessApproved() && $this->hasLinkedChild()) {
+            return 'მშობელი დადასტურებულია — ჯგუფის მინიჭება დარჩა';
         }
 
-        return 'ადმინისტრატორის დადასტურებას ელოდება';
+        if ($this->hasLinkedChild()) {
+            return 'ბავშვი მიბმულია — ადმინისტრატორის დადასტურებას ელოდება';
+        }
+
+        return 'რეგისტრაცია გადასამოწმებელია';
     }
 }

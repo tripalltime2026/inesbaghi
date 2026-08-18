@@ -11,10 +11,12 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UserRegistryController extends Controller
@@ -108,10 +110,6 @@ class UserRegistryController extends Controller
                 ->orderBy('age_min_months')
                 ->orderBy('name')
                 ->get(),
-            'linkableChildren' => Child::query()
-                ->orderBy('first_name')
-                ->orderBy('last_name')
-                ->get(['id', 'first_name', 'last_name', 'birth_date', 'birth_year']),
             'enrollmentStatuses' => Enrollment::STATUSES,
             'counts' => $counts,
         ]);
@@ -215,87 +213,111 @@ class UserRegistryController extends Controller
         abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
 
         $validated = $request->validate([
-            'child_id' => ['nullable', 'integer', 'exists:children,id'],
-            'first_name' => ['nullable', 'required_without:child_id', 'string', 'min:2', 'max:100'],
-            'last_name' => ['nullable', 'string', 'max:100'],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'group_id' => ['nullable', 'integer', 'exists:kindergarten_groups,id'],
-            'enrollment_status' => ['nullable', 'required_with:group_id', Rule::in(array_keys(Enrollment::STATUSES))],
-            'starts_on' => ['nullable', 'required_with:group_id', 'date'],
+            'child_id' => [
+                'required',
+                'integer',
+                Rule::exists('child_guardians', 'child_id')
+                    ->where(fn ($query) => $query->where('user_id', $user->id)),
+            ],
+            'group_id' => [
+                'required',
+                'integer',
+                Rule::exists('kindergarten_groups', 'id')->where('is_active', true),
+            ],
+            'starts_on' => ['required', 'date'],
         ], [
-            'first_name.required_without' => 'აირჩიეთ არსებული ბავშვი ან ჩაწერეთ ახალი ბავშვის სახელი.',
-            'enrollment_status.required_with' => 'ჯგუფის არჩევისას მიუთითეთ ჩარიცხვის სტატუსი.',
-            'starts_on.required_with' => 'ჯგუფის არჩევისას მიუთითეთ დაწყების თარიღი.',
+            'child_id.required' => 'რეგისტრაციისას მიბმული ბავშვი ვერ მოიძებნა.',
+            'child_id.exists' => 'არჩეული ბავშვი ამ მშობლის ანგარიშს არ ეკუთვნის.',
+            'group_id.required' => 'აირჩიეთ ჯგუფი.',
+            'group_id.exists' => 'არჩეული ჯგუფი აქტიური აღარ არის.',
+            'starts_on.required' => 'მიუთითეთ ჯგუფში დაწყების თარიღი.',
         ]);
 
-        $child = DB::transaction(function () use ($request, $user, $validated): Child {
-            $child = filled($validated['child_id'] ?? null)
-                ? Child::query()->findOrFail($validated['child_id'])
-                : Child::query()->create([
-                    'first_name' => trim($validated['first_name']),
-                    'last_name' => filled($validated['last_name'] ?? null) ? trim($validated['last_name']) : null,
-                    'birth_date' => $validated['birth_date'] ?? null,
-                    'birth_year' => filled($validated['birth_date'] ?? null)
-                        ? (int) substr($validated['birth_date'], 0, 4)
-                        : null,
+        $child = $user->children()->whereKey($validated['child_id'])->firstOrFail();
+
+        DB::transaction(function () use ($request, $user, $child, $validated): void {
+            $group = KindergartenGroup::query()
+                ->whereKey($validated['group_id'])
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $activeCount = Enrollment::query()
+                ->where('kindergarten_group_id', $group->id)
+                ->where('status', 'active')
+                ->where('child_id', '!=', $child->id)
+                ->lockForUpdate()
+                ->count();
+
+            if ($activeCount >= $group->capacity) {
+                throw ValidationException::withMessages([
+                    'group_id' => "{$group->name} შევსებულია. აირჩიეთ სხვა ჯგუფი.",
                 ]);
-
-            $isFirstGuardian = ! $child->guardians()->exists();
-            $user->children()->syncWithoutDetaching([
-                $child->id => [
-                    'relationship' => 'მშობელი',
-                    'is_primary' => $isFirstGuardian,
-                    'can_pick_up' => true,
-                ],
-            ]);
-
-            if ($user->role === 'member') {
-                $user->update(['role' => 'parent']);
             }
 
-            if (filled($validated['group_id'] ?? null)) {
-                $currentEnrollment = $child->enrollments()
-                    ->whereIn('status', ['pending', 'active', 'paused'])
-                    ->latest()
-                    ->first();
+            $openEnrollments = $child->enrollments()
+                ->whereIn('status', ['pending', 'active', 'paused'])
+                ->lockForUpdate()
+                ->get();
 
-                $enrollmentData = [
-                    'kindergarten_group_id' => $validated['group_id'],
-                    'status' => $validated['enrollment_status'],
+            $sameGroupEnrollment = $openEnrollments
+                ->first(fn (Enrollment $enrollment) => (int) $enrollment->kindergarten_group_id === (int) $group->id);
+
+            $previousDay = Carbon::parse($validated['starts_on'])->subDay()->toDateString();
+
+            foreach ($openEnrollments as $openEnrollment) {
+                if ($sameGroupEnrollment && $openEnrollment->is($sameGroupEnrollment)) {
+                    continue;
+                }
+
+                $openEnrollment->update([
+                    'status' => 'completed',
+                    'ends_on' => $previousDay,
+                ]);
+            }
+
+            if ($sameGroupEnrollment) {
+                $sameGroupEnrollment->update([
+                    'status' => 'active',
                     'starts_on' => $validated['starts_on'],
                     'ends_on' => null,
-                    'enrolled_at' => $validated['enrollment_status'] === 'active'
-                        ? ($currentEnrollment?->enrolled_at ?? now())
-                        : null,
-                ];
-
-                if ($currentEnrollment) {
-                    $currentEnrollment->update($enrollmentData);
-                } else {
-                    $child->enrollments()->create($enrollmentData);
-                }
+                    'enrolled_at' => $sameGroupEnrollment->enrolled_at ?? now(),
+                ]);
+            } else {
+                $child->enrollments()->create([
+                    'kindergarten_group_id' => $group->id,
+                    'status' => 'active',
+                    'starts_on' => $validated['starts_on'],
+                    'ends_on' => null,
+                    'enrolled_at' => now(),
+                ]);
             }
+
+            $user->update([
+                'role' => 'parent',
+                'status' => 'active',
+                'club_access_approved_at' => $user->club_access_approved_at ?? now(),
+                'club_access_approved_by_user_id' => $request->user()->id,
+            ]);
 
             DB::table('audit_logs')->insert([
                 'actor_user_id' => $request->user()->id,
-                'action' => 'child.linked_to_parent',
+                'action' => 'parent_child.verified_and_enrolled',
                 'subject_type' => Child::class,
                 'subject_id' => $child->id,
                 'metadata' => json_encode([
                     'parent_user_id' => $user->id,
-                    'group_id' => $validated['group_id'] ?? null,
-                    'enrollment_status' => $validated['enrollment_status'] ?? null,
+                    'group_id' => $group->id,
+                    'starts_on' => $validated['starts_on'],
                 ], JSON_THROW_ON_ERROR),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
-
-            return $child;
         });
 
         return back()->with(
             'success',
-            "{$child->first_name} {$child->last_name} დაუკავშირდა {$user->name}-ის პროფილს.",
+            "{$child->first_name} {$child->last_name} დადასტურდა და ჯგუფში ჩაირიცხა. მშობლის კლუბი გახსნილია.",
         );
     }
 
@@ -342,13 +364,6 @@ class UserRegistryController extends Controller
         return $query
             ->where('status', 'active')
             ->whereNotNull('club_access_approved_at')
-            ->where(function (Builder $identity): void {
-                $identity->where(function (Builder $credentials): void {
-                    $credentials->whereNotNull('username')->whereNotNull('password');
-                })
-                    ->orWhereNotNull('phone_verified_at')
-                    ->orWhereNotNull('email_verified_at');
-            })
             ->whereHas('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
                 ->where('status', 'active')
                 ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
@@ -359,19 +374,9 @@ class UserRegistryController extends Controller
         return $query
             ->where('status', 'active')
             ->whereNotNull('club_access_approved_at')
-            ->where(function (Builder $blocked): void {
-                $blocked->where(function (Builder $identityMissing): void {
-                    $identityMissing
-                        ->where(function (Builder $credentials): void {
-                            $credentials->whereNull('username')->orWhereNull('password');
-                        })
-                        ->whereNull('phone_verified_at')
-                        ->whereNull('email_verified_at');
-                })
-                    ->orWhereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
-                        ->where('status', 'active')
-                        ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
-            });
+            ->whereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
+                ->where('status', 'active')
+                ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
     }
 
     private function applyWithoutClubAccess(Builder $query): Builder
@@ -379,14 +384,6 @@ class UserRegistryController extends Controller
         return $query->where(function (Builder $blocked): void {
             $blocked->where('status', '!=', 'active')
                 ->orWhereNull('club_access_approved_at')
-                ->orWhere(function (Builder $identityMissing): void {
-                    $identityMissing
-                        ->where(function (Builder $credentials): void {
-                            $credentials->whereNull('username')->orWhereNull('password');
-                        })
-                        ->whereNull('phone_verified_at')
-                        ->whereNull('email_verified_at');
-                })
                 ->orWhereDoesntHave('children.enrollments', fn (Builder $enrollmentQuery) => $enrollmentQuery
                     ->where('status', 'active')
                     ->whereHas('group', fn (Builder $groupQuery) => $groupQuery->where('is_active', true)));
