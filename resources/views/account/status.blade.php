@@ -35,14 +35,18 @@
     <section class="account-hero">
         <p class="account-kicker">{{ $user->membershipLabel() }}</p>
         <h1>გამარჯობა, {{ $user->name }}</h1>
-        <p>თქვენ მიერ რეგისტრაციისას მითითებული ბავშვი უკვე დაკავშირებულია ანგარიშთან. ადმინისტრატორი მხოლოდ ამოწმებს მონაცემებს და ირჩევს ჯგუფს — ბავშვის ხელახლა მინიჭება საჭირო არ არის.</p>
+        @if($hasChild)
+            <p>რეგისტრაციისას მითითებული ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან. ადმინისტრატორი მხოლოდ ამოწმებს კავშირს და ირჩევს ჯგუფს — ბავშვის ხელახლა მინიჭება საჭირო არ არის.</p>
+        @else
+            <p>ანგარიში შექმნილია, მაგრამ ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა. Parent Club დახურული დარჩება, სანამ ადმინისტრაცია რეგისტრაციას არ გადაამოწმებს.</p>
+        @endif
     </section>
 
     <section class="status-step-grid" aria-label="ანგარიშის სტატუსის ეტაპები">
         <article class="status-step done"><span>1</span><h2>ანგარიში</h2><p>რეგისტრაცია დასრულებულია.</p></article>
         <article class="status-step {{ $hasChild ? 'done' : 'waiting' }}"><span>2</span><h2>ბავშვი</h2><p>{{ $hasChild ? 'რეგისტრაციისას უკვე დაკავშირებულია.' : 'ბავშვის მონაცემი ვერ მოიძებნა.' }}</p></article>
-        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>დადასტურება და ჯგუფი</h2><p>{{ ($approved && $activeEnrollment) ? 'ადმინისტრატორმა დაადასტურა და ჯგუფი აირჩია.' : 'ადმინისტრატორის შემოწმებას ელოდება.' }}</p></article>
-        <article class="status-step {{ $clubAccess ? 'done' : 'waiting' }}"><span>4</span><h2>Parent Club</h2><p>{{ $clubAccess ? 'წვდომა გახსნილია.' : 'დადასტურების შემდეგ ავტომატურად გაიხსნება.' }}</p></article>
+        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>დადასტურება და ჯგუფი</h2><p>{{ ($approved && $activeEnrollment) ? 'ადმინისტრატორმა დაადასტურა და ჯგუფი აირჩია.' : ($hasChild ? 'ადმინისტრატორის შემოწმებას ელოდება.' : 'ბავშვის კავშირის შემდეგ გახდება ხელმისაწვდომი.') }}</p></article>
+        <article class="status-step {{ $clubAccess ? 'done' : 'waiting' }}"><span>4</span><h2>Parent Club</h2><p>{{ $clubAccess ? 'წვდომა გახსნილია.' : 'ყველა პირობის შესრულების შემდეგ ავტომატურად გაიხსნება.' }}</p></article>
     </section>
 
     <section class="account-grid">
@@ -105,7 +109,7 @@
                     <span class="account-badge">{{ \App\Models\AdmissionApplication::STATUSES[$application->status] ?? $application->status }}</span>
                 </article>
             @empty
-                <div class="empty-account">ცალკე ჩარიცხვის განაცხადი არ არის. რეგისტრაციისას მითითებული ბავშვი მაინც უკვე დაკავშირებულია თქვენს ანგარიშთან.</div>
+                <div class="empty-account">{{ $hasChild ? 'ცალკე ჩარიცხვის განაცხადი არ არის. რეგისტრაციისას მითითებული ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.' : 'ამ ანგარიშზე ჩარიცხვის განაცხადი არ მოიძებნა.' }}</div>
             @endforelse
         </aside>
     </section>
