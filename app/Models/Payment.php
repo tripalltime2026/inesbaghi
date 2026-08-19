@@ -18,18 +18,23 @@ class Payment extends Model
     ];
 
     protected $fillable = [
-        'enrollment_id', 'period', 'amount', 'discount_amount', 'paid_amount', 'currency', 'status',
-        'due_at', 'paid_at', 'provider_reference', 'notes', 'issued_by_user_id', 'cancelled_at',
+        'enrollment_id', 'period', 'period_starts_on', 'period_ends_on',
+        'amount', 'discount_amount', 'paid_amount', 'currency', 'status',
+        'due_at', 'paid_at', 'provider_reference', 'notes', 'issued_by_user_id',
+        'confirmed_at', 'confirmed_by_user_id', 'cancelled_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'period_starts_on' => 'date',
+            'period_ends_on' => 'date',
             'amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'due_at' => 'datetime',
             'paid_at' => 'datetime',
+            'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
     }
@@ -47,6 +52,16 @@ class Payment extends Model
     public function issuedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by_user_id');
+    }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by_user_id');
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->confirmed_at !== null;
     }
 
     public function totalDue(): float
