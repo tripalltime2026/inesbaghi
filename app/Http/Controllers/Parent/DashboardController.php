@@ -34,6 +34,17 @@ class DashboardController extends Controller
             ->orderBy('first_name')
             ->get();
 
+        foreach ($children as $child) {
+            $allConfirmedPayments = $child->enrollments
+                ->flatMap(fn ($enrollment) => $enrollment->payments)
+                ->sortByDesc('period')
+                ->values();
+
+            if ($primaryEnrollment = $child->enrollments->first()) {
+                $primaryEnrollment->setRelation('payments', $allConfirmedPayments);
+            }
+        }
+
         $clubGroups = $children
             ->flatMap(fn ($child) => $child->enrollments
                 ->where('status', 'active')
@@ -95,6 +106,7 @@ class DashboardController extends Controller
         $familyPayments = $children
             ->flatMap(fn ($child) => $child->enrollments)
             ->flatMap(fn ($enrollment) => $enrollment->payments)
+            ->unique('id')
             ->reject(fn ($payment) => in_array($payment->status, ['cancelled', 'waived'], true));
 
         $summary = [
