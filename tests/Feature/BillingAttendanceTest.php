@@ -39,8 +39,8 @@ class BillingAttendanceTest extends TestCase
         $this->assertDatabaseHas('payments', [
             'enrollment_id' => $enrollment->id,
             'period' => '2026-09',
-            'period_starts_on' => '2026-09-01',
-            'period_ends_on' => '2026-09-30',
+            'period_starts_on' => '2026-09-01 00:00:00',
+            'period_ends_on' => '2026-09-30 00:00:00',
             'amount' => 600,
             'paid_amount' => 0,
             'status' => 'pending',
