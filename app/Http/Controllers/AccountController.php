@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
+use App\Models\Child;
 use App\Models\PrivacyConsent;
 use App\Models\User;
 use App\Services\MailchimpMarketing;
@@ -10,6 +11,7 @@ use App\Services\PrivacyConsentRecorder;
 use App\Support\PrivacyPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -55,8 +57,17 @@ class AccountController extends Controller
 
     public function profile(Request $request): View
     {
+        $user = $request->user();
+        $children = $user->children()
+            ->with(['enrollments' => fn ($query) => $query->with('group')->latest()])
+            ->orderBy('first_name')
+            ->get();
+
+        $user->setRelation('children', $children);
+
         return view('account.profile', [
-            'user' => $request->user(),
+            'user' => $user,
+            'children' => $children,
         ]);
     }
 
@@ -65,6 +76,14 @@ class AccountController extends Controller
         $user = $request->user();
         $oldEmail = $user->email;
         $hadMarketingConsent = $this->hasMarketingConsent($user);
+        $needsChild = ! $user->hasLinkedChild();
+
+        if ($needsChild) {
+            $request->merge([
+                'child_first_name' => Str::of((string) $request->input('child_first_name'))->squish()->toString(),
+                'child_last_name' => Str::of((string) $request->input('child_last_name'))->squish()->toString(),
+            ]);
+        }
 
         $validated = $request->validate([
             'username' => [
@@ -86,6 +105,9 @@ class AccountController extends Controller
                 'max:190',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
+            'child_first_name' => [$needsChild ? 'required' : 'nullable', 'string', 'min:2', 'max:100'],
+            'child_last_name' => [$needsChild ? 'required' : 'nullable', 'string', 'min:2', 'max:100'],
+            'child_birth_date' => [$needsChild ? 'required' : 'nullable', 'date', 'before_or_equal:today'],
         ], [
             'username.required' => 'ჩაწერეთ შესვლის სახელი.',
             'username.min' => 'შესვლის სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
@@ -95,6 +117,12 @@ class AccountController extends Controller
             'phone.unique' => 'ეს მობილურის ნომერი უკვე სხვა ანგარიშზეა გამოყენებული.',
             'email.email' => 'ელფოსტის ფორმატი არასწორია.',
             'email.unique' => 'ეს ელფოსტა უკვე სხვა ანგარიშზეა გამოყენებული.',
+            'child_first_name.required' => 'ბავშვის მიბმა აუცილებელია — ჩაწერეთ ბავშვის სახელი.',
+            'child_first_name.min' => 'ბავშვის სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_last_name.required' => 'ბავშვის მიბმა აუცილებელია — ჩაწერეთ ბავშვის გვარი.',
+            'child_last_name.min' => 'ბავშვის გვარი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_birth_date.required' => 'ბავშვის მიბმა აუცილებელია — მიუთითეთ დაბადების თარიღი.',
+            'child_birth_date.before_or_equal' => 'ბავშვის დაბადების თარიღი მომავალში ვერ იქნება.',
         ]);
 
         $username = Str::of($validated['username'])->squish()->lower()->toString();
@@ -136,6 +164,48 @@ class AccountController extends Controller
             ->whereNull('guardian_user_id')
             ->update(['guardian_user_id' => $user->id]);
 
+        $childLinked = false;
+        if ($needsChild) {
+            $childLinked = DB::transaction(function () use ($request, $user, $validated): bool {
+                $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+                if ($lockedUser->children()->exists()) {
+                    return false;
+                }
+
+                $child = Child::query()->create([
+                    'first_name' => $validated['child_first_name'],
+                    'last_name' => $validated['child_last_name'],
+                    'birth_date' => $validated['child_birth_date'],
+                    'birth_year' => (int) substr($validated['child_birth_date'], 0, 4),
+                ]);
+
+                $lockedUser->children()->attach($child->id, [
+                    'relationship' => 'მშობელი',
+                    'is_primary' => true,
+                    'can_pick_up' => true,
+                ]);
+
+                if ($lockedUser->role === 'member') {
+                    $lockedUser->update(['role' => 'parent']);
+                }
+
+                DB::table('audit_logs')->insert([
+                    'actor_user_id' => $lockedUser->id,
+                    'action' => 'parent_child.linked_by_parent',
+                    'subject_type' => Child::class,
+                    'subject_id' => $child->id,
+                    'metadata' => json_encode([
+                        'parent_user_id' => $lockedUser->id,
+                        'source' => 'account_profile',
+                    ], JSON_THROW_ON_ERROR),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                ]);
+
+                return true;
+            });
+        }
+
         if ($hadMarketingConsent && $oldEmail !== $newEmail) {
             $mailchimp->unsubscribe($oldEmail);
             $mailchimp->requestDoubleOptIn($user, ['Parent', 'Profile Update']);
@@ -145,7 +215,9 @@ class AccountController extends Controller
 
         return redirect()
             ->route('account.status')
-            ->with('success', 'პროფილის ინფორმაცია შენახულია.');
+            ->with('success', $childLinked
+                ? 'პროფილი შენახულია და ბავშვი ანგარიშთან დაკავშირებულია. ადმინისტრატორის დადასტურებისა და ჯგუფში ჩარიცხვის შემდეგ Parent Club ავტომატურად გაიხსნება.'
+                : 'პროფილის ინფორმაცია შენახულია.');
     }
 
     public function updatePassword(Request $request): RedirectResponse
