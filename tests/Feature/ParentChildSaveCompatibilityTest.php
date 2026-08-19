@@ -38,8 +38,12 @@ class ParentChildSaveCompatibilityTest extends TestCase
         $this->assertDatabaseHas('children', [
             'first_name' => 'ნიკა',
             'last_name' => 'ბერიძე',
-            'birth_date' => '2022-04-11',
         ]);
+
+        $this->assertSame(
+            '2022-04-11',
+            $parent->fresh()->children()->firstOrFail()->birth_date?->toDateString(),
+        );
 
         $childId = $parent->fresh()->children()->value('children.id');
         $this->assertNotNull($childId);
