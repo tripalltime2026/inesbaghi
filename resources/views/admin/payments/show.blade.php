@@ -17,6 +17,16 @@
     <article><span>დარჩენილი</span><strong>{{ number_format($payment->outstandingAmount(),2) }} {{ $payment->currency }}</strong><small>{{ \App\Models\Payment::STATUSES[$effective] ?? $effective }}</small></article>
 </section>
 
+@if(!$payment->isConfirmed() && $payment->status !== 'cancelled')
+<section class="ops-panel">
+    <div class="ops-panel-head"><div><p class="eyebrow">დადასტურება</p><h2>დარიცხვა ჯერ მშობელს არ უჩანს</h2><p>ჯერ გადაამოწმეთ ბავშვის თანხა, მომსახურების პერიოდი და გადახდის ვადა. შემდეგ დაადასტურეთ.</p></div><span class="status status-new">დასადასტურებელი</span></div>
+    <form method="post" action="{{ route('admin.payments.confirm',$payment) }}" onsubmit="return confirm('ამ დარიცხვის დადასტურების შემდეგ მშობელი მას პირად კაბინეტში დაინახავს. გავაგრძელოთ?')">
+        @csrf @method('PATCH')
+        <button class="primary" type="submit">დარიცხვის დადასტურება</button>
+    </form>
+</section>
+@endif
+
 <div class="ops-two-column">
     <section class="ops-panel">
         <div class="ops-panel-head"><div><p class="eyebrow">ოჯახი</p><h2>{{ $child?->first_name }} {{ $child?->last_name }}</h2></div><span class="status status-{{ in_array($effective,['paid','waived'],true)?'approved':($effective==='overdue'?'rejected':'new') }}">{{ \App\Models\Payment::STATUSES[$effective] ?? $effective }}</span></div>
@@ -24,13 +34,20 @@
             <div><dt>მშობელი</dt><dd>{{ $guardian?->name ?? '—' }}</dd></div>
             <div><dt>ტელეფონი</dt><dd>{{ $guardian?->phone ?? '—' }}</dd></div>
             <div><dt>ჯგუფი</dt><dd>{{ $payment->enrollment?->group?->name ?? '—' }}</dd></div>
+            <div><dt>თვე</dt><dd>{{ $payment->period }}</dd></div>
+            <div><dt>მომსახურების პერიოდი</dt><dd>{{ $payment->period_starts_on?->format('d.m.Y') ?? '—' }} — {{ $payment->period_ends_on?->format('d.m.Y') ?? '—' }}</dd></div>
             <div><dt>გადახდის ვადა</dt><dd>{{ $payment->due_at?->format('d.m.Y') ?? '—' }}</dd></div>
+            <div><dt>დადასტურება</dt><dd>{{ $payment->confirmed_at ? $payment->confirmed_at->format('d.m.Y H:i').' · '.($payment->confirmedBy?->name ?? 'ადმინისტრატორი') : 'ჯერ არ არის დადასტურებული' }}</dd></div>
             <div><dt>შემქმნელი</dt><dd>{{ $payment->issuedBy?->name ?? 'ავტომატური სისტემა' }}</dd></div>
         </dl>
 
         <form class="ops-form" method="post" action="{{ route('admin.payments.update',$payment) }}">
             @csrf @method('PATCH')
+            <label>ბავშვის თვიური თანხა (GEL)<input type="number" min="0" step="0.01" name="amount" value="{{ old('amount',$payment->amount) }}" required><small>აქ შეგიძლიათ დააყენოთ სხვა თანხა, თუ ოჯახის/ბავშვის პირობები განსხვავებულია.</small></label>
             <label>ფასდაკლება (GEL)<input type="number" min="0" step="0.01" name="discount_amount" value="{{ old('discount_amount',$payment->discount_amount) }}" required></label>
+            <label>პერიოდის დასაწყისი<input type="date" name="period_starts_on" value="{{ old('period_starts_on',$payment->period_starts_on?->format('Y-m-d')) }}" required></label>
+            <label>პერიოდის დასასრული<input type="date" name="period_ends_on" value="{{ old('period_ends_on',$payment->period_ends_on?->format('Y-m-d')) }}" required></label>
+            <label>გადახდის ვადა<input type="date" name="due_at" value="{{ old('due_at',$payment->due_at?->format('Y-m-d')) }}" required></label>
             <label>მდგომარეობა<select name="status" required><option value="pending" @selected(in_array($payment->status,['pending','partial','overdue','paid'],true))>აქტიური დარიცხვა</option><option value="waived" @selected($payment->status==='waived')>ჩამოწერილი</option><option value="cancelled" @selected($payment->status==='cancelled')>გაუქმებული</option></select></label>
             <label class="full">შიდა შენიშვნა<textarea name="notes" rows="4">{{ old('notes',$payment->notes) }}</textarea></label>
             <button class="secondary" type="submit">დარიცხვის განახლება</button>
@@ -39,7 +56,9 @@
 
     <section class="ops-panel">
         <div class="ops-panel-head"><div><p class="eyebrow">ახალი ტრანზაქცია</p><h2>გადახდის დაფიქსირება</h2></div></div>
-        @if($payment->outstandingAmount()>0 && !in_array($payment->status,['waived','cancelled'],true))
+        @if(!$payment->isConfirmed())
+            <div class="portal-empty">გადახდის დაფიქსირებამდე ჯერ დაადასტურეთ ამ თვის დარიცხვა.</div>
+        @elseif($payment->outstandingAmount()>0 && !in_array($payment->status,['waived','cancelled'],true))
             <form class="ops-form" method="post" action="{{ route('admin.payments.transactions.store',$payment) }}">
                 @csrf
                 <label>თანხა (GEL)<input type="number" name="amount" min="0.01" max="{{ $payment->outstandingAmount() }}" step="0.01" value="{{ old('amount',$payment->outstandingAmount()) }}" required></label>
