@@ -21,11 +21,13 @@ class BillingController extends Controller
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
             'status' => ['nullable', Rule::in(array_keys(Payment::STATUSES))],
+            'confirmation' => ['nullable', Rule::in(['draft', 'confirmed'])],
             'group_id' => ['nullable', 'integer', 'exists:kindergarten_groups,id'],
             'search' => ['nullable', 'string', 'max:120'],
         ]);
 
         Payment::query()
+            ->whereNotNull('confirmed_at')
             ->whereIn('status', ['pending', 'partial'])
             ->where('due_at', '<', now())
             ->whereRaw('(amount - discount_amount) > paid_amount')
@@ -36,9 +38,12 @@ class BillingController extends Controller
             ->with([
                 'enrollment.child.guardians',
                 'enrollment.group',
+                'confirmedBy',
             ])
             ->where('period', $period)
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status))
+            ->when(($filters['confirmation'] ?? null) === 'draft', fn ($builder) => $builder->whereNull('confirmed_at'))
+            ->when(($filters['confirmation'] ?? null) === 'confirmed', fn ($builder) => $builder->whereNotNull('confirmed_at'))
             ->when($filters['group_id'] ?? null, fn ($builder, $groupId) => $builder->whereHas(
                 'enrollment', fn ($enrollmentQuery) => $enrollmentQuery->where('kindergarten_group_id', $groupId),
             ))
@@ -57,6 +62,8 @@ class BillingController extends Controller
             'paid' => $summaryRows->sum(fn ($payment) => (float) $payment->paid_amount),
             'outstanding' => $summaryRows->reject(fn ($payment) => in_array($payment->status, ['cancelled', 'waived'], true))->sum(fn ($payment) => $payment->outstandingAmount()),
             'overdue_count' => $summaryRows->where('status', 'overdue')->count(),
+            'draft_count' => $summaryRows->whereNull('confirmed_at')->count(),
+            'confirmed_count' => $summaryRows->whereNotNull('confirmed_at')->count(),
         ];
 
         $payments = $query->latest('due_at')->paginate(25)->withQueryString();
@@ -81,7 +88,75 @@ class BillingController extends Controller
             $request->ip(),
         );
 
-        return back()->with('success', "შეიქმნა {$result['created']} დარიცხვა; {$result['skipped']} უკვე არსებობდა.");
+        return back()->with('success', "შეიქმნა {$result['created']} დარიცხვა; {$result['skipped']} უკვე არსებობდა. ახალი დარიცხვები მშობელს გამოუჩნდება მხოლოდ დადასტურების შემდეგ.");
+    }
+
+    public function confirmPeriod(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'period' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'group_id' => ['nullable', 'integer', 'exists:kindergarten_groups,id'],
+        ]);
+
+        $confirmed = DB::transaction(function () use ($request, $validated): int {
+            $payments = Payment::query()
+                ->where('period', $validated['period'])
+                ->whereNull('confirmed_at')
+                ->whereNotIn('status', ['cancelled'])
+                ->when($validated['group_id'] ?? null, fn ($query, $groupId) => $query->whereHas(
+                    'enrollment', fn ($enrollmentQuery) => $enrollmentQuery->where('kindergarten_group_id', $groupId),
+                ))
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($payments as $payment) {
+                $payment->update([
+                    'confirmed_at' => now(),
+                    'confirmed_by_user_id' => $request->user()->id,
+                ]);
+            }
+
+            DB::table('audit_logs')->insert([
+                'actor_user_id' => $request->user()->id,
+                'action' => 'billing.period_confirmed',
+                'subject_type' => Payment::class,
+                'subject_id' => null,
+                'metadata' => json_encode([
+                    'period' => $validated['period'],
+                    'group_id' => $validated['group_id'] ?? null,
+                    'confirmed' => $payments->count(),
+                ], JSON_THROW_ON_ERROR),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            return $payments->count();
+        });
+
+        return back()->with('success', "{$validated['period']} პერიოდის {$confirmed} დარიცხვა დადასტურდა და მშობლებისთვის ხილული გახდა.");
+    }
+
+    public function confirm(Request $request, Payment $payment): RedirectResponse
+    {
+        DB::transaction(function () use ($request, $payment): void {
+            $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($locked->status === 'cancelled') {
+                throw ValidationException::withMessages([
+                    'confirmation' => 'გაუქმებული დარიცხვის დადასტურება შეუძლებელია.',
+                ]);
+            }
+
+            if (! $locked->confirmed_at) {
+                $locked->update([
+                    'confirmed_at' => now(),
+                    'confirmed_by_user_id' => $request->user()->id,
+                ]);
+                $this->audit($request, 'payment.confirmed', $locked, ['period' => $locked->period]);
+            }
+        });
+
+        return back()->with('success', 'დარიცხვა დადასტურდა და მშობლის კაბინეტში გამოჩნდა.');
     }
 
     public function show(Payment $payment): View
@@ -91,6 +166,7 @@ class BillingController extends Controller
             'enrollment.group',
             'transactions.recordedBy',
             'issuedBy',
+            'confirmedBy',
         ]);
 
         return view('admin.payments.show', compact('payment'));
@@ -99,34 +175,54 @@ class BillingController extends Controller
     public function update(Request $request, Payment $payment): RedirectResponse
     {
         $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0'],
             'discount_amount' => ['required', 'numeric', 'min:0'],
+            'period_starts_on' => ['required', 'date'],
+            'period_ends_on' => ['required', 'date', 'after_or_equal:period_starts_on'],
+            'due_at' => ['required', 'date'],
             'status' => ['required', Rule::in(['pending', 'waived', 'cancelled'])],
             'notes' => ['nullable', 'string', 'max:3000'],
         ]);
 
         DB::transaction(function () use ($request, $payment, $validated) {
             $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
-            $maximumDiscount = max(0, (float) $locked->amount - (float) $locked->paid_amount);
+            $amount = (float) $validated['amount'];
+            $discount = (float) $validated['discount_amount'];
+            $paid = (float) $locked->paid_amount;
 
-            if ((float) $validated['discount_amount'] > $maximumDiscount) {
+            if ($discount > $amount) {
                 throw ValidationException::withMessages([
-                    'discount_amount' => 'ფასდაკლება ვერ გადააჭარბებს დარჩენილ გადასახდელ თანხას.',
+                    'discount_amount' => 'ფასდაკლება ვერ გადააჭარბებს დარიცხულ თანხას.',
                 ]);
             }
 
+            if (($amount - $discount) < $paid) {
+                throw ValidationException::withMessages([
+                    'amount' => 'საბოლოო დარიცხვა ვერ იქნება უკვე გადახდილ თანხაზე ნაკლები.',
+                ]);
+            }
+
+            $locked->amount = $validated['amount'];
             $locked->discount_amount = $validated['discount_amount'];
+            $locked->period_starts_on = $validated['period_starts_on'];
+            $locked->period_ends_on = $validated['period_ends_on'];
+            $locked->due_at = $validated['due_at'];
             $locked->notes = $validated['notes'] ?? null;
             $locked->status = $validated['status'];
             $locked->cancelled_at = $validated['status'] === 'cancelled' ? now() : null;
 
-            if ($validated['status'] === 'pending' && (float) $locked->paid_amount > 0) {
+            if ($validated['status'] === 'pending' && $paid > 0) {
                 $locked->status = $locked->outstandingAmount() <= 0 ? 'paid' : 'partial';
             }
 
             $locked->save();
             $this->audit($request, 'payment.updated', $locked, [
                 'status' => $locked->status,
+                'amount' => $locked->amount,
                 'discount_amount' => $locked->discount_amount,
+                'period_starts_on' => $locked->period_starts_on?->toDateString(),
+                'period_ends_on' => $locked->period_ends_on?->toDateString(),
+                'due_at' => $locked->due_at?->toIso8601String(),
             ]);
         });
 
@@ -145,6 +241,10 @@ class BillingController extends Controller
 
         DB::transaction(function () use ($request, $payment, $validated) {
             $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if (! $locked->confirmed_at) {
+                throw ValidationException::withMessages(['amount' => 'გადახდის დაფიქსირებამდე ჯერ დაადასტურეთ თვის დარიცხვა.']);
+            }
 
             if (in_array($locked->status, ['waived', 'cancelled'], true)) {
                 throw ValidationException::withMessages(['amount' => 'ჩამოწერილ ან გაუქმებულ დარიცხვაზე გადახდა ვერ დაემატება.']);

@@ -24,7 +24,14 @@ class AccountController extends Controller
     {
         $user = $request->user();
         $children = $user->children()
-            ->with(['enrollments' => fn ($query) => $query->with('group')->latest()])
+            ->with(['enrollments' => fn ($query) => $query
+                ->with([
+                    'group',
+                    'payments' => fn ($paymentQuery) => $paymentQuery
+                        ->whereNotNull('confirmed_at')
+                        ->latest('period'),
+                ])
+                ->latest()])
             ->orderBy('first_name')
             ->get();
 
@@ -45,6 +52,13 @@ class AccountController extends Controller
             ->sortByDesc('created_at')
             ->first();
 
+        $familyPayments = $children
+            ->flatMap(fn ($child) => $child->enrollments)
+            ->flatMap(fn ($enrollment) => $enrollment->payments)
+            ->reject(fn ($payment) => in_array($payment->status, ['cancelled', 'waived'], true))
+            ->sortByDesc('period')
+            ->values();
+
         return view('account.status', [
             'user' => $user,
             'children' => $children,
@@ -52,6 +66,9 @@ class AccountController extends Controller
             'latestEnrollment' => $latestEnrollment,
             'clubAccess' => $user->canAccessParentClub(),
             'marketingConsent' => $this->hasMarketingConsent($user),
+            'familyPayments' => $familyPayments,
+            'familyOutstanding' => $familyPayments->sum(fn ($payment) => $payment->outstandingAmount()),
+            'familyPaid' => $familyPayments->sum(fn ($payment) => (float) $payment->paid_amount),
         ]);
     }
 
@@ -166,44 +183,12 @@ class AccountController extends Controller
 
         $childLinked = false;
         if ($needsChild) {
-            $childLinked = DB::transaction(function () use ($request, $user, $validated): bool {
-                $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
-                if ($lockedUser->children()->exists()) {
-                    return false;
-                }
-
-                $child = Child::query()->create([
-                    'first_name' => $validated['child_first_name'],
-                    'last_name' => $validated['child_last_name'],
-                    'birth_date' => $validated['child_birth_date'],
-                    'birth_year' => (int) substr($validated['child_birth_date'], 0, 4),
-                ]);
-
-                $lockedUser->children()->attach($child->id, [
-                    'relationship' => 'მშობელი',
-                    'is_primary' => true,
-                    'can_pick_up' => true,
-                ]);
-
-                if ($lockedUser->role === 'member') {
-                    $lockedUser->update(['role' => 'parent']);
-                }
-
-                DB::table('audit_logs')->insert([
-                    'actor_user_id' => $lockedUser->id,
-                    'action' => 'parent_child.linked_by_parent',
-                    'subject_type' => Child::class,
-                    'subject_id' => $child->id,
-                    'metadata' => json_encode([
-                        'parent_user_id' => $lockedUser->id,
-                        'source' => 'account_profile',
-                    ], JSON_THROW_ON_ERROR),
-                    'ip_address' => $request->ip(),
-                    'created_at' => now(),
-                ]);
-
-                return true;
-            });
+            $this->linkNewChild($request, $user, [
+                'child_first_name' => $validated['child_first_name'],
+                'child_last_name' => $validated['child_last_name'],
+                'child_birth_date' => $validated['child_birth_date'],
+            ], true, 'account_profile_required');
+            $childLinked = true;
         }
 
         if ($hadMarketingConsent && $oldEmail !== $newEmail) {
@@ -216,8 +201,38 @@ class AccountController extends Controller
         return redirect()
             ->route('account.status')
             ->with('success', $childLinked
-                ? 'პროფილი შენახულია და ბავშვი ანგარიშთან დაკავშირებულია. ადმინისტრატორის დადასტურებისა და ჯგუფში ჩარიცხვის შემდეგ Parent Club ავტომატურად გაიხსნება.'
+                ? 'პროფილი შენახულია და ბავშვი ანგარიშთან დაკავშირებულია. ადმინისტრატორის ჯგუფში ჩარიცხვის შემდეგ Parent Club ავტომატურად გაიხსნება.'
                 : 'პროფილის ინფორმაცია შენახულია.');
+    }
+
+    public function storeChild(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(in_array($user->role, ['member', 'parent'], true), 403);
+
+        $request->merge([
+            'child_first_name' => Str::of((string) $request->input('child_first_name'))->squish()->toString(),
+            'child_last_name' => Str::of((string) $request->input('child_last_name'))->squish()->toString(),
+        ]);
+
+        $validated = $request->validate([
+            'child_first_name' => ['required', 'string', 'min:2', 'max:100'],
+            'child_last_name' => ['required', 'string', 'min:2', 'max:100'],
+            'child_birth_date' => ['required', 'date', 'before_or_equal:today'],
+        ], [
+            'child_first_name.required' => 'ჩაწერეთ ბავშვის სახელი.',
+            'child_first_name.min' => 'ბავშვის სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_last_name.required' => 'ჩაწერეთ ბავშვის გვარი.',
+            'child_last_name.min' => 'ბავშვის გვარი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_birth_date.required' => 'მიუთითეთ ბავშვის დაბადების თარიღი.',
+            'child_birth_date.before_or_equal' => 'ბავშვის დაბადების თარიღი მომავალში ვერ იქნება.',
+        ]);
+
+        $child = $this->linkNewChild($request, $user, $validated, false, 'account_profile_additional');
+
+        return redirect()
+            ->route('account.profile')
+            ->with('success', "{$child->first_name} {$child->last_name} დაემატა თქვენს ანგარიშს. ადმინისტრატორი შეძლებს მის ცალკე ჯგუფში ჩარიცხვას.");
     }
 
     public function updatePassword(Request $request): RedirectResponse
@@ -293,6 +308,67 @@ class AccountController extends Controller
         $mailchimp->unsubscribe($user->email);
 
         return back()->with('success', 'საინფორმაციო და მარკეტინგული წერილების მიღება გამოირთო.');
+    }
+
+    private function linkNewChild(
+        Request $request,
+        User $user,
+        array $data,
+        bool $onlyIfMissing,
+        string $source,
+    ): Child {
+        return DB::transaction(function () use ($request, $user, $data, $onlyIfMissing, $source): Child {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+
+            if ($onlyIfMissing && $lockedUser->children()->exists()) {
+                return $lockedUser->children()->orderBy('children.id')->firstOrFail();
+            }
+
+            $duplicate = $lockedUser->children()
+                ->where('first_name', $data['child_first_name'])
+                ->where('last_name', $data['child_last_name'])
+                ->whereDate('birth_date', $data['child_birth_date'])
+                ->first();
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'child_first_name' => 'ეს ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.',
+                ]);
+            }
+
+            $isPrimary = ! $lockedUser->children()->exists();
+            $child = Child::query()->create([
+                'first_name' => $data['child_first_name'],
+                'last_name' => $data['child_last_name'],
+                'birth_date' => $data['child_birth_date'],
+                'birth_year' => (int) substr($data['child_birth_date'], 0, 4),
+            ]);
+
+            $lockedUser->children()->attach($child->id, [
+                'relationship' => 'მშობელი',
+                'is_primary' => $isPrimary,
+                'can_pick_up' => true,
+            ]);
+
+            if ($lockedUser->role === 'member') {
+                $lockedUser->update(['role' => 'parent']);
+            }
+
+            DB::table('audit_logs')->insert([
+                'actor_user_id' => $lockedUser->id,
+                'action' => 'parent_child.linked_by_parent',
+                'subject_type' => Child::class,
+                'subject_id' => $child->id,
+                'metadata' => json_encode([
+                    'parent_user_id' => $lockedUser->id,
+                    'source' => $source,
+                ], JSON_THROW_ON_ERROR),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            return $child;
+        });
     }
 
     private function hasMarketingConsent(User $user): bool

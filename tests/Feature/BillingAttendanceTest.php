@@ -39,9 +39,12 @@ class BillingAttendanceTest extends TestCase
         $this->assertDatabaseHas('payments', [
             'enrollment_id' => $enrollment->id,
             'period' => '2026-09',
+            'period_starts_on' => '2026-09-01 00:00:00',
+            'period_ends_on' => '2026-09-30 00:00:00',
             'amount' => 600,
             'paid_amount' => 0,
             'status' => 'pending',
+            'confirmed_at' => null,
         ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'billing.generated']);
     }
@@ -65,12 +68,16 @@ class BillingAttendanceTest extends TestCase
         $payment = Payment::create([
             'enrollment_id' => $enrollment->id,
             'period' => '2026-09',
+            'period_starts_on' => '2026-09-01',
+            'period_ends_on' => '2026-09-30',
             'amount' => 600,
             'discount_amount' => 0,
             'paid_amount' => 0,
             'currency' => 'GEL',
             'status' => 'pending',
             'due_at' => '2026-09-10 23:59:59',
+            'confirmed_at' => now(),
+            'confirmed_by_user_id' => $finance->id,
         ]);
 
         $this->actingAs($finance)->post("/admin/payments/{$payment->id}/transactions", [
@@ -134,15 +141,31 @@ class BillingAttendanceTest extends TestCase
         Payment::create([
             'enrollment_id' => $enrollment->id,
             'period' => now()->format('Y-m'),
+            'period_starts_on' => now()->startOfMonth()->toDateString(),
+            'period_ends_on' => now()->endOfMonth()->toDateString(),
             'amount' => 600,
             'discount_amount' => 50,
             'paid_amount' => 200,
             'currency' => 'GEL',
             'status' => 'partial',
             'due_at' => now()->addDays(5),
+            'confirmed_at' => now(),
         ]);
 
-        [, $otherChild] = $this->activeEnrollment('სხვა', '+995555199999');
+        [, $otherChild, $otherEnrollment] = $this->activeEnrollment('სხვა', '+995555199999');
+        Payment::create([
+            'enrollment_id' => $otherEnrollment->id,
+            'period' => now()->format('Y-m'),
+            'period_starts_on' => now()->startOfMonth()->toDateString(),
+            'period_ends_on' => now()->endOfMonth()->toDateString(),
+            'amount' => 999,
+            'discount_amount' => 0,
+            'paid_amount' => 0,
+            'currency' => 'GEL',
+            'status' => 'pending',
+            'due_at' => now()->addDays(5),
+            'confirmed_at' => now(),
+        ]);
 
         $this->actingAs($parent)
             ->get('/parent')
@@ -150,7 +173,8 @@ class BillingAttendanceTest extends TestCase
             ->assertSee($ownChild->first_name)
             ->assertSee('დასწრებული')
             ->assertSee('350.00')
-            ->assertDontSee($otherChild->first_name);
+            ->assertDontSee($otherChild->first_name)
+            ->assertDontSee('999.00');
     }
 
     private function activeEnrollment(string $childName = 'ანა', ?string $unique = null): array

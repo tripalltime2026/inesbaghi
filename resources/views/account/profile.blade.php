@@ -17,8 +17,8 @@
 
     <section class="credentials-card">
         <span class="credentials-badge">პროფილის დეტალები</span>
-        <h1>დაასრულეთ პროფილის შევსება</h1>
-        <p class="credentials-lead">პროფილში ინახება მშობლისა და მასთან დაკავშირებული ბავშვის ინფორმაცია. Parent Club-ზე წვდომისთვის ბავშვის მიბმა აუცილებელია.</p>
+        <h1>ოჯახის პროფილი</h1>
+        <p class="credentials-lead">ერთ მშობლის ანგარიშზე შეგიძლიათ დაამატოთ ყველა ბავშვი. თითო ბავშვს ადმინისტრატორი ცალკე ჯგუფში ჩარიცხავს და თითოეულს თავისი ფინანსური ისტორია ექნება.</p>
 
         @if(session('success'))<div class="credentials-success">{{ session('success') }}</div>@endif
         @if($errors->any())
@@ -30,19 +30,19 @@
         @if($children->isEmpty())
             <div style="margin:20px 0;padding:18px;border:1px solid #e8c872;border-radius:18px;background:#fffaf0">
                 <span class="credentials-badge">სავალდებულო ნაბიჯი</span>
-                <h2 style="margin:10px 0 8px;font:700 23px 'Noto Serif Georgian',serif">ბავშვის მიბმა აუცილებელია</h2>
-                <p style="margin:0;line-height:1.7;color:#5e6470">თქვენს ანგარიშს ჯერ ბავშვი არ აქვს დაკავშირებული. ქვემოთ შეავსეთ ბავშვის მონაცემები — ამის გარეშე ადმინისტრატორი ვერ შეძლებს ჯგუფში ჩარიცხვას და Parent Club არ გაიხსნება.</p>
+                <h2 style="margin:10px 0 8px;font:700 23px 'Noto Serif Georgian',serif">პირველი ბავშვის მიბმა აუცილებელია</h2>
+                <p style="margin:0;line-height:1.7;color:#5e6470">ქვემოთ შეავსეთ პირველი ბავშვის მონაცემები. ამის შემდეგ პროფილიდან ნებისმიერ დროს შეძლებთ მეორე ან მესამე ბავშვის დამატებასაც.</p>
             </div>
         @else
             <div style="margin:20px 0;padding:18px;border:1px solid #dce9e1;border-radius:18px;background:#f8fcf9">
-                <span class="credentials-badge">ბავშვის პროფილი</span>
-                <h2 style="margin:10px 0 12px;font:700 23px 'Noto Serif Georgian',serif">დაკავშირებული ბავშვები</h2>
+                <span class="credentials-badge">ჩემი ბავშვები</span>
+                <h2 style="margin:10px 0 12px;font:700 23px 'Noto Serif Georgian',serif">დაკავშირებული ბავშვები — {{ $children->count() }}</h2>
                 @foreach($children as $child)
-                    @php($enrollment = $child->enrollments->sortByDesc('created_at')->first())
+                    @php($activeEnrollment = $child->enrollments->first(fn($enrollment) => $enrollment->status === 'active' && $enrollment->group?->is_active))
                     <div style="padding:12px 0;{{ !$loop->last ? 'border-bottom:1px solid #e3ebe6;' : '' }}">
                         <strong style="display:block">{{ $child->first_name }} {{ $child->last_name }}</strong>
                         <small style="display:block;margin-top:4px;color:#667483">დაბადება: {{ $child->birth_date?->format('d.m.Y') ?? 'არ არის მითითებული' }}</small>
-                        <small style="display:block;margin-top:4px;color:#667483">ჯგუფი: {{ $enrollment?->group?->name ?? 'ადმინისტრატორის დადასტურებას ელოდება' }}</small>
+                        <small style="display:block;margin-top:4px;color:#667483">ჯგუფი: {{ $activeEnrollment?->group?->name ?? 'ჯერ არ არის ჩარიცხული' }}</small>
                     </div>
                 @endforeach
             </div>
@@ -70,24 +70,28 @@
 
             @if($children->isEmpty())
                 <div class="credentials-divider"></div>
-                <h2 style="margin:0 0 4px;font:700 23px 'Noto Serif Georgian',serif">ბავშვის მონაცემები</h2>
-                <p style="margin:0 0 8px;color:#667483;line-height:1.6">ეს სამი ველი სავალდებულოა ბავშვის ანგარიშთან დასაკავშირებლად.</p>
-                <label class="credentials-field">
-                    <span>ბავშვის სახელი</span>
-                    <input name="child_first_name" value="{{ old('child_first_name') }}" required minlength="2" maxlength="100" autocomplete="off">
-                </label>
-                <label class="credentials-field">
-                    <span>ბავშვის გვარი</span>
-                    <input name="child_last_name" value="{{ old('child_last_name') }}" required minlength="2" maxlength="100" autocomplete="off">
-                </label>
-                <label class="credentials-field">
-                    <span>დაბადების თარიღი</span>
-                    <input name="child_birth_date" value="{{ old('child_birth_date') }}" type="date" required max="{{ now()->format('Y-m-d') }}">
-                </label>
+                <h2 style="margin:0 0 4px;font:700 23px 'Noto Serif Georgian',serif">პირველი ბავშვის მონაცემები</h2>
+                <label class="credentials-field"><span>ბავშვის სახელი</span><input name="child_first_name" value="{{ old('child_first_name') }}" required minlength="2" maxlength="100" autocomplete="off"></label>
+                <label class="credentials-field"><span>ბავშვის გვარი</span><input name="child_last_name" value="{{ old('child_last_name') }}" required minlength="2" maxlength="100" autocomplete="off"></label>
+                <label class="credentials-field"><span>დაბადების თარიღი</span><input name="child_birth_date" value="{{ old('child_birth_date') }}" type="date" required max="{{ now()->format('Y-m-d') }}"></label>
             @endif
 
             <button class="credentials-submit" type="submit">{{ $children->isEmpty() ? 'პროფილის შენახვა და ბავშვის მიბმა' : 'პროფილის შენახვა' }}</button>
         </form>
+
+        @if($children->isNotEmpty())
+            <div class="credentials-divider"></div>
+            <span class="credentials-badge">+ ახალი ბავშვი</span>
+            <h2 style="margin:10px 0 8px;font:700 23px 'Noto Serif Georgian',serif">ბავშვის დამატება</h2>
+            <p style="margin:0 0 16px;color:#667483;line-height:1.6">თუ ოჯახში კიდევ ერთი ბავშვი სწავლობს ან აპირებს ჩარიცხვას, დაამატეთ აქ. არსებული ბავშვები და მათი ჯგუფები უცვლელი დარჩება.</p>
+            <form class="credentials-form" method="post" action="{{ route('account.children.store') }}">
+                @csrf
+                <label class="credentials-field"><span>ბავშვის სახელი</span><input name="child_first_name" required minlength="2" maxlength="100" autocomplete="off"></label>
+                <label class="credentials-field"><span>ბავშვის გვარი</span><input name="child_last_name" required minlength="2" maxlength="100" autocomplete="off"></label>
+                <label class="credentials-field"><span>დაბადების თარიღი</span><input name="child_birth_date" type="date" required max="{{ now()->format('Y-m-d') }}"></label>
+                <button class="credentials-submit" type="submit">ბავშვის დამატება</button>
+            </form>
+        @endif
 
         <div class="credentials-divider"></div>
 

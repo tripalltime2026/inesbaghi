@@ -18,7 +18,13 @@ class DashboardController extends Controller
             ->children()
             ->with([
                 'enrollments' => fn ($query) => $query
-                    ->with(['group', 'payments' => fn ($paymentQuery) => $paymentQuery->latest('period')])
+                    ->with([
+                        'group',
+                        'payments' => fn ($paymentQuery) => $paymentQuery
+                            ->whereNotNull('confirmed_at')
+                            ->latest('period'),
+                    ])
+                    ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
                     ->latest(),
                 'attendanceRecords' => fn ($query) => $query
                     ->with('group')
@@ -27,6 +33,17 @@ class DashboardController extends Controller
             ])
             ->orderBy('first_name')
             ->get();
+
+        foreach ($children as $child) {
+            $allConfirmedPayments = $child->enrollments
+                ->flatMap(fn ($enrollment) => $enrollment->payments)
+                ->sortByDesc('period')
+                ->values();
+
+            if ($primaryEnrollment = $child->enrollments->first()) {
+                $primaryEnrollment->setRelation('payments', $allConfirmedPayments);
+            }
+        }
 
         $clubGroups = $children
             ->flatMap(fn ($child) => $child->enrollments
@@ -86,11 +103,17 @@ class DashboardController extends Controller
                 'weekly_digest' => true,
             ]);
 
+        $familyPayments = $children
+            ->flatMap(fn ($child) => $child->enrollments)
+            ->flatMap(fn ($enrollment) => $enrollment->payments)
+            ->unique('id')
+            ->reject(fn ($payment) => in_array($payment->status, ['cancelled', 'waived'], true));
+
         $summary = [
             'unread_notifications' => $notifications->whereNull('read_at')->count(),
             'upcoming_events' => $events->where('starts_at', '>=', now())->count(),
             'open_questions' => $myTopics->where('status', 'open')->count(),
-            'outstanding_payment' => $user->paymentOutstanding(),
+            'outstanding_payment' => $familyPayments->sum(fn ($payment) => $payment->outstandingAmount()),
         ];
 
         return view('parent.dashboard', compact(
