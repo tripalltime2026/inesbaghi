@@ -92,7 +92,7 @@ class ParentChildLinkingFlowTest extends TestCase
             'child_id' => $child->id,
             'kindergarten_group_id' => $group->id,
             'status' => 'active',
-            'starts_on' => now()->toDateString(),
+            'starts_on' => now()->startOfDay()->format('Y-m-d H:i:s'),
         ]);
 
         $parent->refresh();
