@@ -36,16 +36,17 @@
         <p class="account-kicker">{{ $user->membershipLabel() }}</p>
         <h1>გამარჯობა, {{ $user->name }}</h1>
         @if($hasChild)
-            <p>რეგისტრაციისას მითითებული ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან. ადმინისტრატორი მხოლოდ ამოწმებს კავშირს და ირჩევს ჯგუფს — ბავშვის ხელახლა მინიჭება საჭირო არ არის.</p>
+            <p>ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან. ახლა ადმინისტრატორი ადასტურებს კავშირს და ჯგუფში ჩარიცხვისთანავე Parent Club ავტომატურად გაიხსნება.</p>
         @else
-            <p>ანგარიში შექმნილია, მაგრამ ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა. Parent Club დახურული დარჩება, სანამ ადმინისტრაცია რეგისტრაციას არ გადაამოწმებს.</p>
+            <p><strong>ბავშვის მიბმა აუცილებელია.</strong> Parent Club-ზე წვდომა და ჯგუფში ჩარიცხვა ვერ გააქტიურდება, სანამ ბავშვის მონაცემებს პროფილში არ დაამატებთ.</p>
+            <a class="account-cta" href="{{ route('account.profile') }}" style="display:inline-flex;margin-top:14px">ბავშვის მიბმა →</a>
         @endif
     </section>
 
     <section class="status-step-grid" aria-label="ანგარიშის სტატუსის ეტაპები">
         <article class="status-step done"><span>1</span><h2>ანგარიში</h2><p>რეგისტრაცია დასრულებულია.</p></article>
-        <article class="status-step {{ $hasChild ? 'done' : 'waiting' }}"><span>2</span><h2>ბავშვი</h2><p>{{ $hasChild ? 'რეგისტრაციისას უკვე დაკავშირებულია.' : 'ბავშვის მონაცემი ვერ მოიძებნა.' }}</p></article>
-        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>დადასტურება და ჯგუფი</h2><p>{{ ($approved && $activeEnrollment) ? 'ადმინისტრატორმა დაადასტურა და ჯგუფი აირჩია.' : ($hasChild ? 'ადმინისტრატორის შემოწმებას ელოდება.' : 'ბავშვის კავშირის შემდეგ გახდება ხელმისაწვდომი.') }}</p></article>
+        <article class="status-step {{ $hasChild ? 'done' : 'waiting' }}"><span>2</span><h2>ბავშვი</h2><p>{{ $hasChild ? 'ანგარიშთან დაკავშირებულია.' : 'სავალდებულოა — დაამატეთ პროფილიდან.' }}</p></article>
+        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>დადასტურება და ჯგუფი</h2><p>{{ ($approved && $activeEnrollment) ? 'ადმინისტრატორმა დაადასტურა და ჯგუფში ჩარიცხა.' : ($hasChild ? 'ადმინისტრატორის ჩარიცხვას ელოდება.' : 'ბავშვის მიბმის შემდეგ გახდება ხელმისაწვდომი.') }}</p></article>
         <article class="status-step {{ $clubAccess ? 'done' : 'waiting' }}"><span>4</span><h2>Parent Club</h2><p>{{ $clubAccess ? 'წვდომა გახსნილია.' : 'ყველა პირობის შესრულების შემდეგ ავტომატურად გაიხსნება.' }}</p></article>
     </section>
 
@@ -64,14 +65,15 @@
                     @endif
                 </article>
             @empty
-                <div class="empty-account">ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა. დაუკავშირდით ადმინისტრაციას.</div>
+                <div class="empty-account"><strong>ბავშვის მიბმა სავალდებულოა.</strong><br>გადადით პროფილში და შეავსეთ ბავშვის სახელი, გვარი და დაბადების თარიღი.</div>
+                <a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">ბავშვის მიბმა →</a>
             @endforelse
         </div>
 
         <aside class="account-panel">
             <h2>წვდომის მდგომარეობა</h2>
             <div class="account-meta">
-                <div><span>ბავშვის კავშირი</span><strong>{{ $hasChild ? 'დაკავშირებულია' : 'საჭიროა გადამოწმება' }}</strong></div>
+                <div><span>ბავშვის კავშირი</span><strong>{{ $hasChild ? 'დაკავშირებულია' : 'სავალდებულოა' }}</strong></div>
                 <div><span>ადმინის დასტური</span><strong>{{ $approved ? 'დადასტურებულია' : 'მოლოდინშია' }}</strong></div>
                 <div><span>ჯგუფი</span><strong>{{ $activeEnrollment?->group?->name ?? 'ჯერ არ არის არჩეული' }}</strong></div>
                 <div><span>Parent Club</span><strong>{{ $clubAccess ? 'გახსნილია' : 'დახურულია' }}</strong></div>
@@ -79,9 +81,10 @@
             @if($clubAccess)
                 <a class="account-cta" href="{{ route('parent.dashboard') }}">Parent Club-ში გადასვლა →</a>
             @elseif($hasChild)
-                <div class="empty-account" style="margin-top:16px">თქვენგან დამატებითი მოქმედება არ არის საჭირო. ადმინისტრატორი გადაამოწმებს ბავშვის კავშირს, აირჩევს ჯგუფს და წვდომა ავტომატურად გაიხსნება.</div>
+                <div class="empty-account" style="margin-top:16px">თქვენგან დამატებითი მოქმედება აღარ არის საჭირო. ადმინისტრატორის მიერ ჯგუფში ჩარიცხვისთანავე Parent Club ავტომატურად გაიხსნება.</div>
             @else
-                <div class="empty-account" style="margin-top:16px">ბავშვის მონაცემი ვერ მოიძებნა. ადმინისტრაციამ უნდა გადაამოწმოს რეგისტრაცია.</div>
+                <div class="empty-account" style="margin-top:16px"><strong>დასასრულებელია:</strong> ჯერ მიაბით ბავშვი პროფილიდან. ეს ნაბიჯი აუცილებელია.</div>
+                <a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">პროფილში გადასვლა →</a>
             @endif
         </aside>
     </section>
@@ -109,7 +112,7 @@
                     <span class="account-badge">{{ \App\Models\AdmissionApplication::STATUSES[$application->status] ?? $application->status }}</span>
                 </article>
             @empty
-                <div class="empty-account">{{ $hasChild ? 'ცალკე ჩარიცხვის განაცხადი არ არის. რეგისტრაციისას მითითებული ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.' : 'ამ ანგარიშზე ჩარიცხვის განაცხადი არ მოიძებნა.' }}</div>
+                <div class="empty-account">{{ $hasChild ? 'ცალკე ჩარიცხვის განაცხადი არ არის. ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.' : 'ჯერ მიაბით ბავშვი პროფილიდან; შემდეგ ადმინისტრატორი შეძლებს ჯგუფში ჩარიცხვას.' }}</div>
             @endforelse
         </aside>
     </section>
