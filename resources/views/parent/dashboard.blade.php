@@ -27,7 +27,7 @@
 
     <section class="smart-welcome">
         <div><span class="club-eyebrow">მშობლის პირადი კაბინეტი</span><h1>გამარჯობა, {{ $user->name }}</h1><p>აქ ხედავთ ბავშვის ყოველდღიურ ინფორმაციას, ღონისძიებებს, ადმინისტრაციის პასუხებს და თქვენი ჯგუფის მშობლებთან დახურულ საუბარს.</p></div>
-        <div class="smart-welcome-actions"><button type="button" data-club-tab-link="forum">კითხვის დასმა</button><button type="button" data-club-tab-link="events">ღონისძიებების ნახვა</button></div>
+        <div class="smart-welcome-actions"><button type="button" data-club-tab-link="children">+ ბავშვის დამატება</button><button type="button" data-club-tab-link="forum">კითხვის დასმა</button><button type="button" data-club-tab-link="events">ღონისძიებების ნახვა</button></div>
     </section>
 
     <section class="smart-summary" aria-label="პირადი კაბინეტის მოკლე მიმოხილვა">
@@ -122,7 +122,19 @@
     </section>
 
     <section class="club-panel" data-club-panel="children" id="children">
-        <div class="smart-section-head"><div><small>ყოველდღიური კონტროლი</small><h2>ბავშვი, დასწრება და ფინანსები</h2></div></div>
+        <div class="smart-section-head"><div><small>ყოველდღიური კონტროლი</small><h2>ბავშვები, დასწრება და ფინანსები</h2><p>აქვე შეგიძლიათ დაამატოთ მეორე ან მესამე ბავშვი. დამატების შემდეგ ადმინისტრატორი ბავშვს შესაბამის ჯგუფში ჩარიცხავს.</p></div></div>
+
+        <article class="smart-child-card" id="add-child" style="margin-bottom:20px;border-style:dashed">
+            <header><span>+</span><div><small>ოჯახის პროფილი</small><h2>ბავშვის დამატება</h2><p>შეავსეთ ბავშვის სახელი, გვარი და დაბადების თარიღი.</p></div></header>
+            <form method="post" action="{{ route('account.children.store') }}" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end">
+                @csrf
+                <label style="display:grid;gap:6px"><span style="font-size:13px;font-weight:700">ბავშვის სახელი</span><input name="child_first_name" value="{{ old('child_first_name') }}" required minlength="2" maxlength="100" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #d9e1df;border-radius:12px;background:#fff"></label>
+                <label style="display:grid;gap:6px"><span style="font-size:13px;font-weight:700">ბავშვის გვარი</span><input name="child_last_name" value="{{ old('child_last_name') }}" required minlength="2" maxlength="100" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #d9e1df;border-radius:12px;background:#fff"></label>
+                <label style="display:grid;gap:6px"><span style="font-size:13px;font-weight:700">დაბადების თარიღი</span><input name="child_birth_date" value="{{ old('child_birth_date') }}" type="date" required max="{{ now()->format('Y-m-d') }}" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #d9e1df;border-radius:12px;background:#fff"></label>
+                <button type="submit" style="grid-column:1/-1;justify-self:start;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer">+ ბავშვის დამატება</button>
+            </form>
+        </article>
+
         @forelse($children as $child)
             @php($enrollment = $child->enrollments->first())
             @php($todayAttendance = $child->attendanceRecords->first(fn($record) => $record->attendance_date->isToday()))
@@ -136,7 +148,7 @@
                 @endif
             </article>
         @empty
-            <div class="smart-empty"><strong>ბავშვის პროფილი არ არის დაკავშირებული</strong><p>დაუკავშირდით ადმინისტრაციას ან შეავსეთ ჩარიცხვის განაცხადი.</p></div>
+            <div class="smart-empty"><strong>ბავშვის პროფილი არ არის დაკავშირებული</strong><p>ზემოთ შეავსეთ ბავშვის მონაცემები და დაამატეთ იგი თქვენს ანგარიშზე.</p></div>
         @endforelse
     </section>
 
