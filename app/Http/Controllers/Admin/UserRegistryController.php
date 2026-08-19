@@ -266,9 +266,9 @@ class UserRegistryController extends Controller
             ]);
         }
 
-        $startsOn = $validated['starts_on'] ?? now()->toDateString();
+        $requestedStartsOn = $validated['starts_on'] ?? null;
 
-        [$child, $enrolled] = DB::transaction(function () use ($request, $user, $validated, $childId, $enrollNow, $startsOn): array {
+        [$child, $enrolled] = DB::transaction(function () use ($request, $user, $validated, $childId, $enrollNow, $requestedStartsOn): array {
             if ($childId) {
                 $child = $user->children()->whereKey($childId)->firstOrFail();
             } else {
@@ -335,6 +335,9 @@ class UserRegistryController extends Controller
             $sameGroupEnrollment = $openEnrollments
                 ->first(fn (Enrollment $enrollment) => (int) $enrollment->kindergarten_group_id === (int) $group->id);
 
+            $startsOn = $requestedStartsOn
+                ?? $sameGroupEnrollment?->starts_on?->toDateString()
+                ?? now()->toDateString();
             $previousDay = Carbon::parse($startsOn)->subDay()->toDateString();
 
             foreach ($openEnrollments as $openEnrollment) {
