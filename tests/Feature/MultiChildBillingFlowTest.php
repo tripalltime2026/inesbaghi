@@ -73,6 +73,11 @@ class MultiChildBillingFlowTest extends TestCase
             ->assertSee('500.00')
             ->assertSee('420.00')
             ->assertSee('920.00')
+            ->assertSee('ბავშვის დამატება')
+            ->assertSee('name="child_first_name"', false)
+            ->assertSee('name="child_last_name"', false)
+            ->assertSee('name="child_birth_date"', false)
+            ->assertSee(route('account.children.store'), false)
             ->assertDontSee($otherChild->first_name)
             ->assertDontSee('999.00');
     }
