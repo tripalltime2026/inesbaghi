@@ -112,6 +112,9 @@ Route::get('/account/profile', [AccountController::class, 'profile'])
 Route::patch('/account/profile', [AccountController::class, 'updateProfile'])
     ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.profile.update');
+Route::post('/account/children', [AccountController::class, 'storeChild'])
+    ->middleware(['auth', NoIndexPrivateArea::class, 'throttle:10,1'])
+    ->name('account.children.store');
 Route::patch('/account/password', [AccountController::class, 'updatePassword'])
     ->middleware(['auth', NoIndexPrivateArea::class])
     ->name('account.password.update');
@@ -181,8 +184,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', NoIndexPrivateArea::
     Route::middleware('role:admin,finance')->group(function () {
         Route::get('/payments', [AdminBillingController::class, 'index'])->name('payments.index');
         Route::post('/payments/generate', [AdminBillingController::class, 'generate'])->name('payments.generate');
+        Route::post('/payments/confirm-period', [AdminBillingController::class, 'confirmPeriod'])->name('payments.confirm-period');
         Route::get('/payments/{payment}', [AdminBillingController::class, 'show'])->name('payments.show');
         Route::patch('/payments/{payment}', [AdminBillingController::class, 'update'])->name('payments.update');
+        Route::patch('/payments/{payment}/confirm', [AdminBillingController::class, 'confirm'])->name('payments.confirm');
         Route::post('/payments/{payment}/transactions', [AdminBillingController::class, 'storeTransaction'])->name('payments.transactions.store');
     });
 
