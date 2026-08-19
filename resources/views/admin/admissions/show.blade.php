@@ -97,6 +97,17 @@
                     </form>
                 @endif
             </div>
+
+            <div class="conversion-box" style="margin-top:16px">
+                <strong>განაცხადის წაშლა</strong>
+                <p>წაიშლება ეს განაცხადი და მისი შიდა კომენტარები. თუ განაცხადიდან უკვე შეიქმნა მშობელი, ბავშვი ან ჩარიცხვა, ისინი არ წაიშლება.</p>
+                <form method="post" action="{{ route('admin.admissions.update', $application) }}" onsubmit="return confirm('ნამდვილად გსურთ ამ განცხადების წაშლა? ეს მოქმედება ვერ გაუქმდება.')">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="intent" value="delete">
+                    <button class="danger-button" type="submit">განაცხადის წაშლა</button>
+                </form>
+            </div>
         </section>
     </aside>
 </div>

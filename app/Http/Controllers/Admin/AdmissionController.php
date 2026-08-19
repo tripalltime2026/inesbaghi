@@ -66,6 +66,10 @@ class AdmissionController extends Controller
 
     public function update(Request $request, AdmissionApplication $application): RedirectResponse
     {
+        if ($request->input('intent') === 'delete') {
+            return $this->destroy($request, $application);
+        }
+
         $validated = $request->validate([
             'child_name' => ['nullable', 'string', 'min:2', 'max:120'],
             'birth_year' => ['nullable', 'integer', 'between:2018,2026'],
@@ -189,6 +193,34 @@ class AdmissionController extends Controller
         }
 
         return back()->with('success', 'მშობელი, ბავშვი და ჩარიცხვის ჩანაწერი შეიქმნა.');
+    }
+
+    private function destroy(Request $request, AdmissionApplication $application): RedirectResponse
+    {
+        $applicationId = $application->id;
+        $parentName = $application->parent_name;
+
+        DB::transaction(function () use ($request, $applicationId): void {
+            $locked = AdmissionApplication::query()
+                ->lockForUpdate()
+                ->findOrFail($applicationId);
+
+            $this->audit($request, 'admission.deleted', $locked, [
+                'parent_name' => $locked->parent_name,
+                'phone' => $locked->phone,
+                'child_name' => $locked->child_name,
+                'status' => $locked->status,
+                'guardian_user_id' => $locked->guardian_user_id,
+                'converted_child_id' => $locked->converted_child_id,
+                'converted_at' => $locked->converted_at?->toIso8601String(),
+            ]);
+
+            $locked->delete();
+        });
+
+        return redirect()
+            ->route('admin.admissions.index')
+            ->with('success', "{$parentName}-ის განაცხადი წაიშალა. უკვე შექმნილი მშობლის, ბავშვის ან ჯგუფის ჩანაწერები უცვლელი დარჩა.");
     }
 
     private function splitName(string $fullName): array

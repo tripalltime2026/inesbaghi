@@ -81,7 +81,15 @@
                     <td><span class="status status-{{ $application->status }}">{{ $statuses[$application->status] ?? $application->status }}</span></td>
                     <td>{{ $application->assignedTo?->name ?? '—' }}</td>
                     <td>{{ $application->created_at->format('d.m.Y H:i') }}</td>
-                    <td><a class="row-link" href="{{ route('admin.admissions.show', $application) }}">გახსნა →</a></td>
+                    <td>
+                        <a class="row-link" href="{{ route('admin.admissions.show', $application) }}">გახსნა →</a>
+                        <form method="post" action="{{ route('admin.admissions.update', $application) }}" style="display:inline" onsubmit="return confirm('ნამდვილად გსურთ ამ განცხადების წაშლა? ეს მოქმედება ვერ გაუქმდება.')">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="intent" value="delete">
+                            <button class="danger-button" type="submit" style="margin-left:8px">წაშლა</button>
+                        </form>
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="8" class="empty-state">ამ ფილტრებით განაცხადი ვერ მოიძებნა.</td></tr>
