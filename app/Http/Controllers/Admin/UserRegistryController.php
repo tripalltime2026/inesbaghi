@@ -212,10 +212,12 @@ class UserRegistryController extends Controller
     {
         abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
 
-        $request->merge([
-            'child_first_name' => Str::of((string) $request->input('child_first_name'))->squish()->toString(),
-            'child_last_name' => Str::of((string) $request->input('child_last_name'))->squish()->toString(),
-        ]);
+        if ($request->filled('child_first_name') || $request->filled('child_last_name')) {
+            $request->merge([
+                'child_first_name' => Str::of((string) $request->input('child_first_name'))->squish()->toString(),
+                'child_last_name' => Str::of((string) $request->input('child_last_name'))->squish()->toString(),
+            ]);
+        }
 
         $validated = $request->validate([
             'child_id' => [
@@ -254,7 +256,10 @@ class UserRegistryController extends Controller
             }
         }
 
-        $enrollNow = $request->boolean('enroll_now') || filled($validated['group_id'] ?? null);
+        $enrollNow = $request->has('enroll_now')
+            ? $request->boolean('enroll_now')
+            : filled($validated['group_id'] ?? null);
+
         if ($enrollNow && blank($validated['group_id'] ?? null)) {
             throw ValidationException::withMessages([
                 'group_id' => 'ჩარიცხვისთვის აირჩიეთ ჯგუფი.',
