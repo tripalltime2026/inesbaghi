@@ -70,5 +70,8 @@
 <script>window.__oldBlogArticleUrl = @json(old('article_url', ''));</script>
 <script src="{{ asset('js/blog-import.js') }}" defer></script>
 @endif
+@if(request()->routeIs('admin.users.*'))
+<script src="{{ asset('js/user-registry.js') }}?v=20260819b" defer></script>
+@endif
 </body>
 </html>
