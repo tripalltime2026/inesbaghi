@@ -24,6 +24,7 @@ class DashboardController extends Controller
                             ->whereNotNull('confirmed_at')
                             ->latest('period'),
                     ])
+                    ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
                     ->latest(),
                 'attendanceRecords' => fn ($query) => $query
                     ->with('group')
