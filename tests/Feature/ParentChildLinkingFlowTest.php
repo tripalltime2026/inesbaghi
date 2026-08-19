@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Child;
+use App\Models\Enrollment;
 use App\Models\KindergartenGroup;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,24 +67,9 @@ class ParentChildLinkingFlowTest extends TestCase
 
     public function test_admin_can_link_missing_child_and_enroll_in_one_action(): void
     {
-        $admin = User::query()->create([
-            'name' => 'Admin',
-            'username' => 'admin-child-flow',
-            'password' => 'password123',
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
+        $admin = $this->admin('admin-child-flow');
         $parent = $this->parent('admin-links-child');
-        $group = KindergartenGroup::query()->create([
-            'name' => '3-4 წლის ჯგუფი',
-            'slug' => 'admin-link-flow',
-            'age_min_months' => 36,
-            'age_max_months' => 48,
-            'capacity' => 20,
-            'monthly_fee' => 500,
-            'academic_year' => '2026-2027',
-            'is_active' => true,
-        ]);
+        $group = $this->group('3-4 წლის ჯგუფი', 'admin-link-flow');
 
         $response = $this->actingAs($admin)
             ->post(route('admin.users.children.store', $parent), [
@@ -123,6 +109,52 @@ class ParentChildLinkingFlowTest extends TestCase
         ]);
     }
 
+    public function test_simplified_admin_action_preserves_start_date_when_same_group_is_saved_again(): void
+    {
+        $admin = $this->admin('admin-preserve-date');
+        $parent = $this->parent('parent-preserve-date');
+        $child = Child::query()->create([
+            'first_name' => 'ლუკა',
+            'last_name' => 'ტესტი',
+            'birth_date' => '2022-01-12',
+            'birth_year' => 2022,
+        ]);
+        $parent->children()->attach($child->id, [
+            'relationship' => 'მშობელი',
+            'is_primary' => true,
+            'can_pick_up' => true,
+        ]);
+        $group = $this->group('4-5 წლის ჯგუფი', 'preserve-start-date');
+        $enrollment = Enrollment::query()->create([
+            'child_id' => $child->id,
+            'kindergarten_group_id' => $group->id,
+            'status' => 'active',
+            'starts_on' => '2026-01-10',
+            'enrolled_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.children.store', $parent), [
+                'child_id' => $child->id,
+                'group_id' => $group->id,
+                'enroll_now' => '1',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-01-10', $enrollment->fresh()->starts_on->toDateString());
+    }
+
+    private function admin(string $username): User
+    {
+        return User::query()->create([
+            'name' => 'Admin',
+            'username' => $username,
+            'password' => 'password123',
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+    }
+
     private function parent(string $username): User
     {
         return User::query()->create([
@@ -133,6 +165,20 @@ class ParentChildLinkingFlowTest extends TestCase
             'email' => $username.'@example.com',
             'role' => 'member',
             'status' => 'active',
+        ]);
+    }
+
+    private function group(string $name, string $slug): KindergartenGroup
+    {
+        return KindergartenGroup::query()->create([
+            'name' => $name,
+            'slug' => $slug,
+            'age_min_months' => 36,
+            'age_max_months' => 60,
+            'capacity' => 20,
+            'monthly_fee' => 500,
+            'academic_year' => '2026-2027',
+            'is_active' => true,
         ]);
     }
 }
