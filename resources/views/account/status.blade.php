@@ -40,7 +40,7 @@
         @if($hasChild)
             <p>თქვენს ანგარიშზე დაკავშირებულია {{ $children->count() }} ბავშვი. თითო ბავშვს აქვს თავისი ჯგუფი და თავისი ფინანსური ისტორია; ქვემოთ მხოლოდ თქვენი ოჯახის მონაცემებია.</p>
         @else
-            <p><strong>ბავშვის მიბმა აუცილებელია.</strong> Parent Club-ზე წვდომა და ჯგუფში ჩარიცხვა ვერ გააქტიურდება, სანამ ბავშვის მონაცემებს პროფილში არ დაამატებთ.</p>
+            <p><strong>ბავშვის მიბმა აუცილებელია.</strong> ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა. Parent Club-ზე წვდომა და ჯგუფში ჩარიცხვა ვერ გააქტიურდება, სანამ ბავშვის მონაცემებს პროფილში არ დაამატებთ.</p>
             <a class="account-cta" href="{{ route('account.profile') }}" style="display:inline-flex;margin-top:14px">ბავშვის მიბმა →</a>
         @endif
     </section>
@@ -67,7 +67,7 @@
                     @endif
                 </article>
             @empty
-                <div class="empty-account"><strong>ბავშვის მიბმა სავალდებულოა.</strong><br>გადადით პროფილში და შეავსეთ ბავშვის სახელი, გვარი და დაბადების თარიღი.</div>
+                <div class="empty-account"><strong>ბავშვის მიბმა სავალდებულოა.</strong><br>ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა. გადადით პროფილში და შეავსეთ ბავშვის სახელი, გვარი და დაბადების თარიღი.</div>
             @endforelse
             @if($hasChild)<a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">+ ბავშვის დამატება</a>@endif
         </div>
@@ -85,7 +85,7 @@
             @elseif($hasChild)
                 <div class="empty-account" style="margin-top:16px">ადმინისტრატორის მიერ მინიმუმ ერთი ბავშვის აქტიურ ჯგუფში ჩარიცხვის შემდეგ Parent Club გაიხსნება.</div>
             @else
-                <div class="empty-account" style="margin-top:16px"><strong>დასასრულებელია:</strong> ჯერ მიაბით ბავშვი პროფილიდან.</div>
+                <div class="empty-account" style="margin-top:16px"><strong>დასასრულებელია:</strong> ბავშვის მონაცემი ანგარიშთან ვერ მოიძებნა — ჯერ მიაბით ბავშვი პროფილიდან.</div>
                 <a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">პროფილში გადასვლა →</a>
             @endif
         </aside>
@@ -102,16 +102,9 @@
             </div>
 
             @forelse($children as $child)
-                @php
-                    $childPayments = $child->enrollments
-                        ->flatMap(fn($enrollment) => $enrollment->payments)
-                        ->reject(fn($payment) => in_array($payment->status, ['cancelled','waived'], true))
-                        ->sortByDesc('period')
-                        ->values();
-                    $childOutstanding = $childPayments->sum(fn($payment) => $payment->outstandingAmount());
-                @endphp
+                @php($childPayments = $child->enrollments->flatMap(fn($enrollment) => $enrollment->payments)->reject(fn($payment) => in_array($payment->status, ['cancelled','waived'], true))->sortByDesc('period')->values())
                 <article class="account-record" style="margin-top:12px">
-                    <strong>{{ $child->first_name }} {{ $child->last_name }} — {{ number_format($childOutstanding, 2) }} ₾ დარჩენილი</strong>
+                    <strong>{{ $child->first_name }} {{ $child->last_name }} — {{ number_format($childPayments->sum(fn($payment) => $payment->outstandingAmount()), 2) }} ₾ დარჩენილი</strong>
                     @if($childPayments->isNotEmpty())
                         @foreach($childPayments->take(3) as $payment)
                             <small style="display:block;margin-top:5px">{{ $payment->period }} · {{ number_format($payment->totalDue(),2) }} ₾ · გადახდილი {{ number_format((float)$payment->paid_amount,2) }} ₾ · ვადა {{ $payment->due_at?->format('d.m.Y') ?? '—' }}</small>
