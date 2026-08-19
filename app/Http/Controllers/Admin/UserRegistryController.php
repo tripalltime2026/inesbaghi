@@ -212,30 +212,97 @@ class UserRegistryController extends Controller
     {
         abort_unless(in_array($user->role, ['member', 'parent'], true), 404);
 
+        $request->merge([
+            'child_first_name' => Str::of((string) $request->input('child_first_name'))->squish()->toString(),
+            'child_last_name' => Str::of((string) $request->input('child_last_name'))->squish()->toString(),
+        ]);
+
         $validated = $request->validate([
             'child_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('child_guardians', 'child_id')
                     ->where(fn ($query) => $query->where('user_id', $user->id)),
             ],
+            'child_first_name' => ['nullable', 'string', 'min:2', 'max:100'],
+            'child_last_name' => ['nullable', 'string', 'min:2', 'max:100'],
+            'child_birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'group_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('kindergarten_groups', 'id')->where('is_active', true),
             ],
-            'starts_on' => ['required', 'date'],
+            'enroll_now' => ['nullable', 'boolean'],
+            'starts_on' => ['nullable', 'date'],
         ], [
-            'child_id.required' => 'რეგისტრაციისას მიბმული ბავშვი ვერ მოიძებნა.',
             'child_id.exists' => 'არჩეული ბავშვი ამ მშობლის ანგარიშს არ ეკუთვნის.',
-            'group_id.required' => 'აირჩიეთ ჯგუფი.',
+            'child_first_name.min' => 'ბავშვის სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_last_name.min' => 'ბავშვის გვარი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.',
+            'child_birth_date.before_or_equal' => 'ბავშვის დაბადების თარიღი მომავალში ვერ იქნება.',
             'group_id.exists' => 'არჩეული ჯგუფი აქტიური აღარ არის.',
-            'starts_on.required' => 'მიუთითეთ ჯგუფში დაწყების თარიღი.',
         ]);
 
-        $child = $user->children()->whereKey($validated['child_id'])->firstOrFail();
+        $childId = $validated['child_id'] ?? null;
+        if (! $childId) {
+            $missingChildFields = collect(['child_first_name', 'child_last_name', 'child_birth_date'])
+                ->filter(fn (string $field) => blank($validated[$field] ?? null));
 
-        DB::transaction(function () use ($request, $user, $child, $validated): void {
+            if ($missingChildFields->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'child_first_name' => 'ბავშვის მიბმისთვის შეავსეთ სახელი, გვარი და დაბადების თარიღი.',
+                ]);
+            }
+        }
+
+        $enrollNow = $request->boolean('enroll_now') || filled($validated['group_id'] ?? null);
+        if ($enrollNow && blank($validated['group_id'] ?? null)) {
+            throw ValidationException::withMessages([
+                'group_id' => 'ჩარიცხვისთვის აირჩიეთ ჯგუფი.',
+            ]);
+        }
+
+        $startsOn = $validated['starts_on'] ?? now()->toDateString();
+
+        [$child, $enrolled] = DB::transaction(function () use ($request, $user, $validated, $childId, $enrollNow, $startsOn): array {
+            if ($childId) {
+                $child = $user->children()->whereKey($childId)->firstOrFail();
+            } else {
+                $isPrimary = ! $user->children()->exists();
+                $child = Child::query()->create([
+                    'first_name' => $validated['child_first_name'],
+                    'last_name' => $validated['child_last_name'],
+                    'birth_date' => $validated['child_birth_date'],
+                    'birth_year' => (int) substr($validated['child_birth_date'], 0, 4),
+                ]);
+
+                $user->children()->attach($child->id, [
+                    'relationship' => 'მშობელი',
+                    'is_primary' => $isPrimary,
+                    'can_pick_up' => true,
+                ]);
+
+                DB::table('audit_logs')->insert([
+                    'actor_user_id' => $request->user()->id,
+                    'action' => 'parent_child.linked_by_admin',
+                    'subject_type' => Child::class,
+                    'subject_id' => $child->id,
+                    'metadata' => json_encode([
+                        'parent_user_id' => $user->id,
+                        'source' => 'admin_user_registry',
+                    ], JSON_THROW_ON_ERROR),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            if (! $enrollNow) {
+                if ($user->role === 'member') {
+                    $user->update(['role' => 'parent']);
+                }
+
+                return [$child, false];
+            }
+
             $group = KindergartenGroup::query()
                 ->whereKey($validated['group_id'])
                 ->where('is_active', true)
@@ -263,7 +330,7 @@ class UserRegistryController extends Controller
             $sameGroupEnrollment = $openEnrollments
                 ->first(fn (Enrollment $enrollment) => (int) $enrollment->kindergarten_group_id === (int) $group->id);
 
-            $previousDay = Carbon::parse($validated['starts_on'])->subDay()->toDateString();
+            $previousDay = Carbon::parse($startsOn)->subDay()->toDateString();
 
             foreach ($openEnrollments as $openEnrollment) {
                 if ($sameGroupEnrollment && $openEnrollment->is($sameGroupEnrollment)) {
@@ -279,7 +346,7 @@ class UserRegistryController extends Controller
             if ($sameGroupEnrollment) {
                 $sameGroupEnrollment->update([
                     'status' => 'active',
-                    'starts_on' => $validated['starts_on'],
+                    'starts_on' => $startsOn,
                     'ends_on' => null,
                     'enrolled_at' => $sameGroupEnrollment->enrolled_at ?? now(),
                 ]);
@@ -287,7 +354,7 @@ class UserRegistryController extends Controller
                 $child->enrollments()->create([
                     'kindergarten_group_id' => $group->id,
                     'status' => 'active',
-                    'starts_on' => $validated['starts_on'],
+                    'starts_on' => $startsOn,
                     'ends_on' => null,
                     'enrolled_at' => now(),
                 ]);
@@ -308,16 +375,25 @@ class UserRegistryController extends Controller
                 'metadata' => json_encode([
                     'parent_user_id' => $user->id,
                     'group_id' => $group->id,
-                    'starts_on' => $validated['starts_on'],
+                    'starts_on' => $startsOn,
                 ], JSON_THROW_ON_ERROR),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
+
+            return [$child, true];
         });
+
+        if ($enrolled) {
+            return back()->with(
+                'success',
+                "{$child->first_name} {$child->last_name} ჯგუფში ჩაირიცხა. მშობლის დასტური და Parent Club ავტომატურად გააქტიურდა.",
+            );
+        }
 
         return back()->with(
             'success',
-            "{$child->first_name} {$child->last_name} დადასტურდა და ჯგუფში ჩაირიცხა. მშობლის კლუბი გახსნილია.",
+            "{$child->first_name} {$child->last_name} მშობლის ანგარიშთან დაკავშირებულია. ჯგუფში ჩარიცხვა შეგიძლიათ იმავე ბარათიდან.",
         );
     }
 
