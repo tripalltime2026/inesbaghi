@@ -26,17 +26,19 @@
     @php
         $approved = $user->isClubAccessApproved();
         $hasChild = $children->isNotEmpty();
-        $activeEnrollment = $children
+        $activeEnrollments = $children
             ->flatMap(fn($child) => $child->enrollments)
-            ->first(fn($enrollment) => $enrollment->status === 'active' && $enrollment->group?->is_active);
-        $outstanding = $user->paymentOutstanding();
+            ->filter(fn($enrollment) => $enrollment->status === 'active' && $enrollment->group?->is_active)
+            ->values();
+        $activeEnrollment = $activeEnrollments->first();
+        $activeGroupNames = $activeEnrollments->pluck('group.name')->filter()->unique()->implode(', ');
     @endphp
 
     <section class="account-hero">
         <p class="account-kicker">{{ $user->membershipLabel() }}</p>
         <h1>გამარჯობა, {{ $user->name }}</h1>
         @if($hasChild)
-            <p>ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან. ახლა ადმინისტრატორი ადასტურებს კავშირს და ჯგუფში ჩარიცხვისთანავე Parent Club ავტომატურად გაიხსნება.</p>
+            <p>თქვენს ანგარიშზე დაკავშირებულია {{ $children->count() }} ბავშვი. თითო ბავშვს აქვს თავისი ჯგუფი და თავისი ფინანსური ისტორია; ქვემოთ მხოლოდ თქვენი ოჯახის მონაცემებია.</p>
         @else
             <p><strong>ბავშვის მიბმა აუცილებელია.</strong> Parent Club-ზე წვდომა და ჯგუფში ჩარიცხვა ვერ გააქტიურდება, სანამ ბავშვის მონაცემებს პროფილში არ დაამატებთ.</p>
             <a class="account-cta" href="{{ route('account.profile') }}" style="display:inline-flex;margin-top:14px">ბავშვის მიბმა →</a>
@@ -45,45 +47,45 @@
 
     <section class="status-step-grid" aria-label="ანგარიშის სტატუსის ეტაპები">
         <article class="status-step done"><span>1</span><h2>ანგარიში</h2><p>რეგისტრაცია დასრულებულია.</p></article>
-        <article class="status-step {{ $hasChild ? 'done' : 'waiting' }}"><span>2</span><h2>ბავშვი</h2><p>{{ $hasChild ? 'ანგარიშთან დაკავშირებულია.' : 'სავალდებულოა — დაამატეთ პროფილიდან.' }}</p></article>
-        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>დადასტურება და ჯგუფი</h2><p>{{ ($approved && $activeEnrollment) ? 'ადმინისტრატორმა დაადასტურა და ჯგუფში ჩარიცხა.' : ($hasChild ? 'ადმინისტრატორის ჩარიცხვას ელოდება.' : 'ბავშვის მიბმის შემდეგ გახდება ხელმისაწვდომი.') }}</p></article>
-        <article class="status-step {{ $clubAccess ? 'done' : 'waiting' }}"><span>4</span><h2>Parent Club</h2><p>{{ $clubAccess ? 'წვდომა გახსნილია.' : 'ყველა პირობის შესრულების შემდეგ ავტომატურად გაიხსნება.' }}</p></article>
+        <article class="status-step {{ $hasChild ? 'done' : 'waiting' }}"><span>2</span><h2>ბავშვები</h2><p>{{ $hasChild ? $children->count().' ბავშვი დაკავშირებულია.' : 'სავალდებულოა — დაამატეთ პროფილიდან.' }}</p></article>
+        <article class="status-step {{ ($approved && $activeEnrollment) ? 'done' : 'waiting' }}"><span>3</span><h2>ჯგუფები</h2><p>{{ ($approved && $activeEnrollment) ? 'აქტიური ჯგუფი მინიჭებულია.' : ($hasChild ? 'ადმინისტრატორის ჩარიცხვას ელოდება.' : 'ბავშვის მიბმის შემდეგ გახდება ხელმისაწვდომი.') }}</p></article>
+        <article class="status-step {{ $clubAccess ? 'done' : 'waiting' }}"><span>4</span><h2>Parent Club</h2><p>{{ $clubAccess ? 'წვდომა გახსნილია.' : 'პირობების შესრულების შემდეგ ავტომატურად გაიხსნება.' }}</p></article>
     </section>
 
     <section class="account-grid">
         <div class="account-panel">
-            <h2>ბავშვი და ჯგუფი</h2>
+            <h2>ბავშვები და ჯგუფები</h2>
             @forelse($children as $child)
-                @php($enrollment = $child->enrollments->sortByDesc('created_at')->first())
+                @php($enrollment = $child->enrollments->first(fn($item) => $item->status === 'active' && $item->group?->is_active) ?? $child->enrollments->sortByDesc('created_at')->first())
                 <article class="account-record">
                     <strong>{{ $child->first_name }} {{ $child->last_name }}</strong>
                     <small>{{ $enrollment?->group?->name ?? 'ადმინისტრატორი ჯერ ჯგუფს არჩევს' }}</small>
                     @if($enrollment)
                         <span class="account-badge {{ $enrollment->status === 'active' ? 'active' : '' }}">{{ \App\Models\Enrollment::STATUSES[$enrollment->status] ?? $enrollment->status }}</span>
                     @else
-                        <span class="account-badge blocked">დადასტურების მოლოდინში</span>
+                        <span class="account-badge blocked">ჩარიცხვის მოლოდინში</span>
                     @endif
                 </article>
             @empty
                 <div class="empty-account"><strong>ბავშვის მიბმა სავალდებულოა.</strong><br>გადადით პროფილში და შეავსეთ ბავშვის სახელი, გვარი და დაბადების თარიღი.</div>
-                <a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">ბავშვის მიბმა →</a>
             @endforelse
+            @if($hasChild)<a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">+ ბავშვის დამატება</a>@endif
         </div>
 
         <aside class="account-panel">
             <h2>წვდომის მდგომარეობა</h2>
             <div class="account-meta">
-                <div><span>ბავშვის კავშირი</span><strong>{{ $hasChild ? 'დაკავშირებულია' : 'სავალდებულოა' }}</strong></div>
+                <div><span>ბავშვები</span><strong>{{ $hasChild ? $children->count() : 'სავალდებულოა' }}</strong></div>
                 <div><span>ადმინის დასტური</span><strong>{{ $approved ? 'დადასტურებულია' : 'მოლოდინშია' }}</strong></div>
-                <div><span>ჯგუფი</span><strong>{{ $activeEnrollment?->group?->name ?? 'ჯერ არ არის არჩეული' }}</strong></div>
+                <div><span>აქტიური ჯგუფები</span><strong>{{ $activeGroupNames ?: 'ჯერ არ არის' }}</strong></div>
                 <div><span>Parent Club</span><strong>{{ $clubAccess ? 'გახსნილია' : 'დახურულია' }}</strong></div>
             </div>
             @if($clubAccess)
                 <a class="account-cta" href="{{ route('parent.dashboard') }}">Parent Club-ში გადასვლა →</a>
             @elseif($hasChild)
-                <div class="empty-account" style="margin-top:16px">თქვენგან დამატებითი მოქმედება აღარ არის საჭირო. ადმინისტრატორის მიერ ჯგუფში ჩარიცხვისთანავე Parent Club ავტომატურად გაიხსნება.</div>
+                <div class="empty-account" style="margin-top:16px">ადმინისტრატორის მიერ მინიმუმ ერთი ბავშვის აქტიურ ჯგუფში ჩარიცხვის შემდეგ Parent Club გაიხსნება.</div>
             @else
-                <div class="empty-account" style="margin-top:16px"><strong>დასასრულებელია:</strong> ჯერ მიაბით ბავშვი პროფილიდან. ეს ნაბიჯი აუცილებელია.</div>
+                <div class="empty-account" style="margin-top:16px"><strong>დასასრულებელია:</strong> ჯერ მიაბით ბავშვი პროფილიდან.</div>
                 <a class="account-cta" href="{{ route('account.profile') }}" style="margin-top:14px">პროფილში გადასვლა →</a>
             @endif
         </aside>
@@ -91,16 +93,36 @@
 
     <section class="account-grid">
         <div class="account-panel">
-            <h2>გადასახდელი</h2>
+            <h2>ჩემი ოჯახის გადასახდელი</h2>
             <div class="account-meta">
-                <div><span>სულ გადასახდელი</span><strong>{{ number_format((float)$user->payment_due, 2) }} ₾</strong></div>
-                <div><span>გადახდილია</span><strong>{{ number_format((float)$user->payment_paid, 2) }} ₾</strong></div>
-                <div><span>დარჩენილი</span><strong>{{ number_format($outstanding, 2) }} ₾</strong></div>
-                <div><span>გადახდის ვადა</span><strong>{{ $user->payment_due_at?->format('d.m.Y') ?? 'არ არის მითითებული' }}</strong></div>
+                <div><span>დადასტურებული დარიცხვები</span><strong>{{ $familyPayments->count() }}</strong></div>
+                <div><span>გადახდილია</span><strong>{{ number_format($familyPaid, 2) }} ₾</strong></div>
+                <div><span>დარჩენილი</span><strong>{{ number_format($familyOutstanding, 2) }} ₾</strong></div>
+                <div><span>კონფიდენციალურობა</span><strong>მხოლოდ თქვენი ოჯახი</strong></div>
             </div>
-            @if($user->payment_note)
-                <div class="empty-account" style="margin-top:16px"><strong>ადმინისტრატორის შენიშვნა:</strong><br>{{ $user->payment_note }}</div>
-            @endif
+
+            @forelse($children as $child)
+                @php
+                    $childPayments = $child->enrollments
+                        ->flatMap(fn($enrollment) => $enrollment->payments)
+                        ->reject(fn($payment) => in_array($payment->status, ['cancelled','waived'], true))
+                        ->sortByDesc('period')
+                        ->values();
+                    $childOutstanding = $childPayments->sum(fn($payment) => $payment->outstandingAmount());
+                @endphp
+                <article class="account-record" style="margin-top:12px">
+                    <strong>{{ $child->first_name }} {{ $child->last_name }} — {{ number_format($childOutstanding, 2) }} ₾ დარჩენილი</strong>
+                    @if($childPayments->isNotEmpty())
+                        @foreach($childPayments->take(3) as $payment)
+                            <small style="display:block;margin-top:5px">{{ $payment->period }} · {{ number_format($payment->totalDue(),2) }} ₾ · გადახდილი {{ number_format((float)$payment->paid_amount,2) }} ₾ · ვადა {{ $payment->due_at?->format('d.m.Y') ?? '—' }}</small>
+                        @endforeach
+                    @else
+                        <small>დადასტურებული დარიცხვა ჯერ არ არის.</small>
+                    @endif
+                </article>
+            @empty
+                <div class="empty-account">ფინანსური ინფორმაცია ბავშვის მიბმის შემდეგ გამოჩნდება.</div>
+            @endforelse
         </div>
 
         <aside class="account-panel">
@@ -112,7 +134,7 @@
                     <span class="account-badge">{{ \App\Models\AdmissionApplication::STATUSES[$application->status] ?? $application->status }}</span>
                 </article>
             @empty
-                <div class="empty-account">{{ $hasChild ? 'ცალკე ჩარიცხვის განაცხადი არ არის. ბავშვი უკვე დაკავშირებულია თქვენს ანგარიშთან.' : 'ჯერ მიაბით ბავშვი პროფილიდან; შემდეგ ადმინისტრატორი შეძლებს ჯგუფში ჩარიცხვას.' }}</div>
+                <div class="empty-account">{{ $hasChild ? 'ცალკე ჩარიცხვის განაცხადი არ არის. ბავშვები თქვენს ანგარიშთან უკვე დაკავშირებულია.' : 'ჯერ მიაბით ბავშვი პროფილიდან; შემდეგ ადმინისტრატორი შეძლებს ჯგუფში ჩარიცხვას.' }}</div>
             @endforelse
         </aside>
     </section>
