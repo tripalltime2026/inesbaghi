@@ -89,7 +89,9 @@ class DashboardController extends Controller
                     ->with('author:id,name')
                     ->latest(),
             ])
-            ->withCount('comments')
+            ->withCount([
+                'comments' => fn ($query) => $query->where('is_official_answer', true),
+            ])
             ->orderByDesc('is_pinned')
             ->latest('updated_at')
             ->limit(8)
