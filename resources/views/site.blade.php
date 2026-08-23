@@ -55,11 +55,11 @@
                 <p>ინდივიდუალური მიდგომა თითოეულ ბავშვთან, თანამედროვე სასწავლო პროგრამა და მზრუნველი პედაგოგები. მშობლებისთვის გამჭვირვალე კომუნიკაცია, აქტიური მონაწილეობა და განსაკუთრებული ღონისძიებები მთელი წლის განმავლობაში.</p>
                 <div class="button-row">
                     @auth
-                        <a class="primary-button" href="{{ $cabinetUrl ?? route('parent.dashboard') }}">შემოგვიერთდი კლუბში</a>
+                        <a class="primary-button" href="{{ $cabinetUrl ?? route('parent.dashboard') }}">კლუბში გადასვლა</a>
                     @else
                         <button class="primary-button" type="button" data-open-login>შემოგვიერთდი კლუბში</button>
+                        <button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>
                     @endauth
-                    <button class="secondary-button lavender" type="button" data-page-target="admission">ვიზიტის დაგეგმვა</button>
                 </div>
             </div>
             <div class="hero-art" role="img" aria-label="ინეს ბაღის ილუსტრაცია"><img src="{{ asset('images/ines-final-hero.svg') }}" alt="ინეს ბაღი — სივრცე ბავშვებისთვის"></div>
