@@ -26,7 +26,6 @@
         <button type="button" data-page-target="contact">კონტაქტი</button>
     </nav>
     <div class="site-actions">
-        <button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>
         @auth
             @php
                 $cabinetUrl = auth()->user()->hasRole('admin')
@@ -40,6 +39,7 @@
             <a class="pill navy" href="{{ $cabinetUrl }}">{{ auth()->user()->hasRole('admin') ? 'ადმინი' : 'კლუბი' }}</a>
             <span class="user-chip"><i>{{ mb_substr(auth()->user()->name, 0, 1) }}</i>{{ auth()->user()->name }}</span>
         @else
+            <button class="pill butter" type="button" data-page-target="admission">ვიზიტი</button>
             <button class="pill navy" type="button" data-open-login>შესვლა</button>
         @endauth
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="მენიუს გახსნა">☰</button>
