@@ -17,7 +17,7 @@
 <body class="club-body smart-club-body">
 <header class="club-header smart-club-header">
     <a class="club-brand" href="{{ route('home') }}"><span class="club-arch"><i></i></span><span><strong>ინეს ბაღი</strong><small>მშობლის პირადი კაბინეტი</small></span></a>
-    <nav><a href="{{ route('parent.dashboard') }}#feed">ჩემი სივრცე</a><a href="{{ route('parent.dashboard') }}#events">ღონისძიებები</a><a href="{{ route('parent.dashboard') }}#forum">მშობელთა კლუბი</a><a href="{{ route('parent.dashboard') }}#children">ბავშვი</a></nav>
+    <nav><a href="{{ route('parent.dashboard') }}#feed">ჩემი სივრცე</a><a href="{{ route('parent.dashboard') }}#events">ღონისძიებები</a><a href="{{ route('parent.dashboard') }}#forum">ადმინისტრაციასთან კავშირი</a><a href="{{ route('parent.dashboard') }}#children">ბავშვი</a></nav>
     <div class="club-head-actions"><span class="head-pill navy">{{ $user->membershipLabel() }}</span><span class="club-user"><i>{{ mb_substr($user->name,0,1) }}</i>{{ $user->name }}</span><form method="post" action="{{ route('logout') }}">@csrf<button type="submit" class="logout-button">გასვლა</button></form></div>
 </header>
 
@@ -26,7 +26,7 @@
     @if($errors->any())<div class="smart-flash error">@foreach($errors->all() as $error)<span>{{ $error }}</span>@endforeach</div>@endif
 
     <section class="smart-welcome">
-        <div><span class="club-eyebrow">მშობლის პირადი კაბინეტი</span><h1>გამარჯობა, {{ $user->name }}</h1><p>აქ ხედავთ ბავშვის ყოველდღიურ ინფორმაციას, ღონისძიებებს, ადმინისტრაციის პასუხებს და თქვენი ჯგუფის მშობლებთან დახურულ საუბარს.</p></div>
+        <div><span class="club-eyebrow">მშობლის პირადი კაბინეტი</span><h1>გამარჯობა, {{ $user->name }}</h1><p>აქ ხედავთ ბავშვის ყოველდღიურ ინფორმაციას, ღონისძიებებს, ადმინისტრაციის პასუხებს და ბაღთან პირად მიმოწერას.</p></div>
         <div class="smart-welcome-actions"><button type="button" data-club-tab-link="children">+ ბავშვის დამატება</button><button type="button" data-club-tab-link="forum">კითხვის დასმა</button><button type="button" data-club-tab-link="events">ღონისძიებების ნახვა</button></div>
     </section>
 
@@ -51,7 +51,7 @@
     <nav class="club-tabs smart-tabs" aria-label="პირადი კაბინეტის სექციები">
         <button class="active" type="button" data-club-tab="feed">ჩემი სივრცე</button>
         <button type="button" data-club-tab="events">ღონისძიებები</button>
-        <button type="button" data-club-tab="forum">მშობელთა კლუბი</button>
+        <button type="button" data-club-tab="forum">ადმინისტრაციასთან კავშირი</button>
         <button type="button" data-club-tab="children">ბავშვი და ფინანსები</button>
         <button type="button" data-club-tab="profile">პროფილი</button>
     </nav>
@@ -88,7 +88,7 @@
                 <div class="feed-list"><div class="club-loading">ჯგუფის სიახლეები იტვირთება…</div></div>
 
                 <section class="smart-my-questions">
-                    <div class="smart-section-head"><div><small>პასუხების კონტროლი</small><h2>ჩემი ბოლო კითხვები</h2></div><button type="button" data-club-tab-link="forum">ყველა საუბარი</button></div>
+                    <div class="smart-section-head"><div><small>პასუხების კონტროლი</small><h2>ჩემი ბოლო კითხვები</h2></div><button type="button" data-club-tab-link="forum">ყველა მიმოწერა</button></div>
                     @forelse($myTopics as $topic)
                         @php($officialAnswer = $topic->comments->first())
                         <article id="my-topic-{{ $topic->id }}" class="smart-question {{ $topic->status }}">
@@ -96,7 +96,7 @@
                             @if($officialAnswer)<p><b>ადმინისტრაციის პასუხი:</b> {{ $officialAnswer->body }}</p>@else<p>პასუხის მიღებისთანავე შეტყობინებას აქვე ნახავთ.</p>@endif
                         </article>
                     @empty
-                        <div class="smart-empty"><strong>კითხვა ჯერ არ დაგისვამთ</strong><p>მშობელთა კლუბში შეგიძლიათ ჰკითხოთ ადმინისტრაციას ან თქვენი ჯგუფის მშობლებს.</p></div>
+                        <div class="smart-empty"><strong>კითხვა ჯერ არ დაგისვამთ</strong><p>აქ შეგიძლიათ პირადად მისწეროთ ბაღის ადმინისტრაციას. თქვენი წერილი და პასუხი სხვა მშობლებისთვის არ გამოჩნდება.</p></div>
                     @endforelse
                 </section>
             </div>
@@ -142,8 +142,8 @@
     </section>
 
     <section class="club-panel" data-club-panel="forum" id="forum">
-        <div class="smart-forum-intro"><div><small>დახურული და უსაფრთხო სივრცე</small><h2>მშობელთა კლუბი</h2><p>დასვით კითხვა, გაუზიარეთ გამოცდილება ჯგუფის მშობლებს და მიიღეთ ადმინისტრაციის ოფიციალური პასუხი. პირადი საკონტაქტო მონაცემები წევრებს არ უჩანს.</p></div></div>
-        <div class="forum-layout"><aside class="forum-sidebar"><div class="club-loading">ჯგუფის წევრები იტვირთება…</div></aside><div class="forum-content"><div class="club-loading">ჯგუფის საუბრები იტვირთება…</div></div></div>
+        <div class="smart-forum-intro"><div><small>პირადი და უსაფრთხო კომუნიკაცია</small><h2>ადმინისტრაციასთან კავშირი</h2><p>დაუსვით კითხვა პირდაპირ ბაღის ადმინისტრაციას. თქვენი წერილი და ადმინისტრაციის პასუხი სხვა მშობლებისთვის არ ჩანს. ეს წესი მოქმედებს ყველა ჯგუფზე.</p></div></div>
+        <div class="forum-layout"><aside class="forum-sidebar"><div class="club-loading">პირადი სივრცე იტვირთება…</div></aside><div class="forum-content"><div class="club-loading">თქვენი წერილები და პასუხები იტვირთება…</div></div></div>
     </section>
 
     <section class="club-panel" data-club-panel="children" id="children">
@@ -190,6 +190,6 @@
     </section>
 </main>
 <script src="{{ asset('js/portal.js') }}"></script>
-<script src="{{ asset('js/cms-portal.js') }}?v=20260805"></script>
+<script src="{{ asset('js/cms-portal.js') }}?v=20260823-private"></script>
 </body>
 </html>
