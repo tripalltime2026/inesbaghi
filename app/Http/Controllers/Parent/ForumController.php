@@ -26,7 +26,8 @@ class ForumController extends Controller
         ManagedContent $content,
         ParentClubContent $clubContent,
     ): JsonResponse {
-        $groupIds = $this->accessibleGroupIds($request->user());
+        $user = $request->user();
+        $groupIds = $this->accessibleGroupIds($user);
 
         $groups = KindergartenGroup::query()
             ->whereIn('id', $groupIds)
@@ -55,19 +56,32 @@ class ForumController extends Controller
                 'club_topic' => [],
                 'members' => [],
                 'can_create' => false,
-                'contact_policy' => 'ჯგუფური კომუნიკაცია ხელმისაწვდომია მხოლოდ აქტიურ ჯგუფში ჩარიცხული მშობლებისთვის.',
-            ]);
+                'contact_policy' => 'ადმინისტრაციასთან პირადი მიმოწერა ხელმისაწვდომი გახდება ბავშვის აქტიურ ჯგუფში ჩარიცხვის შემდეგ.',
+            ])->header('Cache-Control', 'no-store, private');
         }
 
         $topics = ForumTopic::query()
             ->where('kindergarten_group_id', $selectedGroup->id)
+            ->where('user_id', $user->id)
             ->with([
                 'group:id,name,slug',
                 'author:id,name',
                 'answeredBy:id,name',
-                'comments.author:id,name,role',
+                'comments' => function ($query) use ($user): void {
+                    $query->where(function ($privateComments) use ($user): void {
+                        $privateComments->where('user_id', $user->id)
+                            ->orWhere('is_official_answer', true);
+                    })->with('author:id,name,role');
+                },
             ])
-            ->withCount('comments')
+            ->withCount([
+                'comments' => function ($query) use ($user): void {
+                    $query->where(function ($privateComments) use ($user): void {
+                        $privateComments->where('user_id', $user->id)
+                            ->orWhere('is_official_answer', true);
+                    });
+                },
+            ])
             ->orderByDesc('is_pinned')
             ->orderByDesc(DB::raw('COALESCE(last_activity_at, created_at)'))
             ->limit(50)
@@ -84,7 +98,7 @@ class ForumController extends Controller
                 'is_pinned' => $topic->is_pinned,
                 'title' => $topic->title,
                 'body' => $topic->body,
-                'author' => $topic->author?->name ?? 'მშობელი',
+                'author' => $topic->author?->name ?? $user->name,
                 'answered_by' => $topic->answeredBy?->name,
                 'answered_at' => $topic->answered_at?->format('d.m.Y H:i'),
                 'created_at' => $topic->created_at?->format('d.m.Y H:i'),
@@ -94,7 +108,9 @@ class ForumController extends Controller
                 'comments' => $topic->comments->sortBy('created_at')->map(fn ($comment) => [
                     'id' => $comment->id,
                     'body' => $comment->body,
-                    'author' => $comment->author?->name ?? 'მშობელი',
+                    'author' => $comment->is_official_answer
+                        ? 'ინეს ბაღი'
+                        : 'თქვენ',
                     'is_official_answer' => $comment->is_official_answer,
                     'created_at' => $comment->created_at?->format('d.m.Y H:i'),
                 ])->values(),
@@ -105,7 +121,7 @@ class ForumController extends Controller
             ->where('kindergarten_group_id', $selectedGroup->id)
             ->with([
                 'options' => fn ($query) => $query->withCount('votes'),
-                'votes' => fn ($query) => $query->where('user_id', $request->user()->id),
+                'votes' => fn ($query) => $query->where('user_id', $user->id),
             ])
             ->latest('published_at')
             ->limit(20)
@@ -148,22 +164,6 @@ class ForumController extends Controller
             $knownGroups,
         );
 
-        $members = User::query()
-            ->where('status', 'active')
-            ->whereNotNull('club_access_approved_at')
-            ->whereHas('children.enrollments', fn ($query) => $query
-                ->where('status', 'active')
-                ->where('kindergarten_group_id', $selectedGroup->id))
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->unique('id')
-            ->values()
-            ->map(fn (User $member) => [
-                'name' => $member->name,
-                'initial' => mb_substr($member->name, 0, 1),
-                'is_you' => $member->is($request->user()),
-            ]);
-
         return response()->json([
             'groups' => $groups,
             'active_group' => $selectedGroup,
@@ -172,16 +172,16 @@ class ForumController extends Controller
             'topics' => $topics,
             'polls' => $polls,
             ...$scopedContent,
-            'members' => $members,
+            'members' => [],
             'can_create' => true,
-            'contact_policy' => 'თქვენ ხედავთ მხოლოდ ამ ჯგუფის მშობლებს, კითხვებსა და გამოკითხვებს. სხვა ასაკობრივი ჯგუფის სივრცე მიუწვდომელია.',
+            'contact_policy' => 'ეს არის პირადი მიმოწერა ბაღის ადმინისტრაციასთან. თქვენს წერილებსა და ადმინისტრაციის პასუხებს სხვა მშობლები ვერ ხედავენ. ეს წესი მოქმედებს ყველა ჯგუფზე.',
         ])->header('Cache-Control', 'no-store, private');
     }
 
     public function storeTopic(Request $request): JsonResponse|RedirectResponse
     {
         $groupIds = $this->accessibleGroupIds($request->user());
-        abort_if($groupIds->isEmpty(), 403, 'თემის შესაქმნელად ბავშვის აქტიური ჯგუფი უნდა იყოს დაკავშირებული.');
+        abort_if($groupIds->isEmpty(), 403, 'ადმინისტრაციასთან მისაწერად ბავშვის აქტიური ჯგუფი უნდა იყოს დაკავშირებული.');
 
         $validated = $request->validate([
             'kindergarten_group_id' => ['required', 'integer', Rule::in($groupIds->all())],
@@ -198,16 +198,18 @@ class ForumController extends Controller
             'last_activity_at' => now(),
         ]);
 
+        $message = 'წერილი გაიგზავნა ბაღის ადმინისტრაციასთან. მას სხვა მშობლები ვერ ნახავენ.';
+
         if ($request->expectsJson()) {
             return response()->json([
                 'ok' => true,
                 'topic_id' => $topic->id,
-                'message' => 'კითხვა გამოქვეყნდა მხოლოდ თქვენი ჯგუფის ფიდში.',
+                'message' => $message,
             ], 201);
         }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
-            ->with('success', 'კითხვა გამოქვეყნდა მხოლოდ თქვენი ჯგუფის ფიდში.');
+            ->with('success', $message);
     }
 
     public function storeComment(
@@ -216,8 +218,12 @@ class ForumController extends Controller
         ClubNotificationService $notifications,
     ): JsonResponse|RedirectResponse {
         $groupIds = $this->accessibleGroupIds($request->user());
-        abort_unless($groupIds->contains($topic->kindergarten_group_id), 404);
-        abort_if($topic->is_locked || $topic->status === 'closed', 403, 'ამ თემაზე კომენტარები დახურულია.');
+        abort_unless(
+            $groupIds->contains($topic->kindergarten_group_id)
+                && (int) $topic->user_id === (int) $request->user()->id,
+            404,
+        );
+        abort_if($topic->is_locked || $topic->status === 'closed', 403, 'ამ მიმოწერაზე პასუხები დახურულია.');
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'min:2', 'max:2000'],
@@ -240,12 +246,12 @@ class ForumController extends Controller
             return response()->json([
                 'ok' => true,
                 'comment_id' => $comment->id,
-                'message' => 'პასუხი დაემატა.',
+                'message' => 'დამატებითი შეტყობინება ადმინისტრაციას გაეგზავნა.',
             ], 201);
         }
 
         return redirect()->to(route('parent.dashboard').'#forum-topic-'.$topic->id)
-            ->with('success', 'პასუხი დაემატა.');
+            ->with('success', 'დამატებითი შეტყობინება ადმინისტრაციას გაეგზავნა.');
     }
 
     public function votePoll(Request $request, ClubPoll $poll): JsonResponse
