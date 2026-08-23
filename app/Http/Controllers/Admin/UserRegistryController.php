@@ -314,11 +314,12 @@ class UserRegistryController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // The group row lock serializes capacity changes for this group.
+            // PostgreSQL does not allow FOR UPDATE on aggregate COUNT queries.
             $activeCount = Enrollment::query()
                 ->where('kindergarten_group_id', $group->id)
                 ->where('status', 'active')
                 ->where('child_id', '!=', $child->id)
-                ->lockForUpdate()
                 ->count();
 
             if ($activeCount >= $group->capacity) {
