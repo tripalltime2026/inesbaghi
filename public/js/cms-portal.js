@@ -21,6 +21,28 @@
 
   const emptyState = (title, text) => `<div class="club-empty"><span>🌱</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(text)}</p></div>`;
 
+  function applyPrivateContactCopy() {
+    document.querySelectorAll('a[href$="#forum"], button[data-club-tab="forum"]').forEach((element) => {
+      element.textContent = 'ადმინისტრაციასთან კავშირი';
+    });
+
+    const welcome = document.querySelector('.smart-welcome p');
+    if (welcome) {
+      welcome.textContent = 'აქ ხედავთ ბავშვის ყოველდღიურ ინფორმაციას, ღონისძიებებს, ადმინისტრაციის პასუხებს და ბაღთან პირად მიმოწერას.';
+    }
+
+    const intro = document.querySelector('.smart-forum-intro');
+    if (intro) {
+      intro.innerHTML = '<div><small>პირადი და უსაფრთხო კომუნიკაცია</small><h2>ადმინისტრაციასთან კავშირი</h2><p>დაუსვით კითხვა პირდაპირ ბაღის ადმინისტრაციას. თქვენი წერილი და ადმინისტრაციის პასუხი სხვა მშობლებისთვის არ ჩანს. ეს წესი მოქმედებს ყველა ჯგუფზე.</p></div>';
+    }
+
+    document.querySelectorAll('.smart-my-questions .smart-empty p').forEach((paragraph) => {
+      if (paragraph.textContent.includes('მშობლ')) {
+        paragraph.textContent = 'აქ შეგიძლიათ პირადად მისწეროთ ბაღის ადმინისტრაციას და პასუხიც მხოლოდ თქვენს ანგარიშში მიიღოთ.';
+      }
+    });
+  }
+
   async function request(url, options = {}) {
     const response = await fetch(url, {
       credentials: 'same-origin',
@@ -46,8 +68,8 @@
   function setLoading() {
     const messages = {
       '.feed-list': 'ჯგუფის სიახლეები იტვირთება…',
-      '.forum-sidebar': 'ჯგუფის სივრცე იტვირთება…',
-      '.forum-content': 'კითხვები და გამოკითხვები იტვირთება…',
+      '.forum-sidebar': 'პირადი სივრცე იტვირთება…',
+      '.forum-content': 'თქვენი წერილები და პასუხები იტვირთება…',
     };
 
     Object.entries(messages).forEach(([selector, message]) => {
@@ -123,28 +145,28 @@
   function topicCard(topic) {
     const comments = (topic.comments || []).map((comment) => `
       <div class="forum-comment ${comment.is_official_answer ? 'official' : ''}">
-        <strong>${comment.is_official_answer ? 'ინეს ბაღი · ' : ''}${escapeHtml(comment.author)}</strong>
+        <strong>${comment.is_official_answer ? 'ინეს ბაღი' : 'თქვენ'}</strong>
         <p>${escapeHtml(comment.body)}</p>
         <small>${escapeHtml(comment.created_at || '')}</small>
       </div>
     `).join('');
 
-    const commentForm = topic.is_locked ? '<p class="forum-locked">ამ თემაზე პასუხები დახურულია.</p>' : `
+    const commentForm = topic.is_locked ? '<p class="forum-locked">ამ მიმოწერაზე პასუხები დახურულია.</p>' : `
       <form class="forum-comment-form" data-comment-topic="${Number(topic.id)}">
-        <textarea name="body" rows="2" minlength="2" maxlength="2000" required placeholder="დაწერეთ პასუხი ამ ჯგუფის მშობლებისთვის…"></textarea>
-        <div><button type="submit">პასუხის დამატება</button><span class="forum-form-status" aria-live="polite"></span></div>
+        <textarea name="body" rows="2" minlength="2" maxlength="2000" required placeholder="დამატებით მისწერეთ ბაღის ადმინისტრაციას…"></textarea>
+        <div><button type="submit">ადმინისტრაციას გაგზავნა</button><span class="forum-form-status" aria-live="polite"></span></div>
       </form>
     `;
 
     return `
       <article class="club-feed-card club-feed-question" id="forum-topic-${Number(topic.id)}" data-feed-type="question" data-topic-category="${escapeHtml(topic.category)}">
-        <header><span class="club-feed-avatar">${escapeHtml((topic.author || 'მ').slice(0, 1))}</span><div><strong>${escapeHtml(topic.author)}</strong><small>${escapeHtml(topic.created_at || '')}</small></div><b class="status-${escapeHtml(topic.status)}">${escapeHtml(topic.status_label || '')}</b></header>
-        <div class="club-feed-labels"><span>${escapeHtml(topic.category_label || '')}</span>${topic.is_pinned ? '<span>დამაგრებული</span>' : ''}</div>
+        <header><span class="club-feed-avatar">თ</span><div><strong>თქვენი წერილი</strong><small>${escapeHtml(topic.created_at || '')}</small></div><b class="status-${escapeHtml(topic.status)}">${escapeHtml(topic.status_label || '')}</b></header>
+        <div class="club-feed-labels"><span>${escapeHtml(topic.category_label || '')}</span>${topic.is_pinned ? '<span>მნიშვნელოვანი</span>' : ''}</div>
         <h3>${escapeHtml(topic.title)}</h3>
         <p>${escapeHtml(topic.body || '')}</p>
         <details class="forum-thread" ${topic.comments_count ? '' : 'open'}>
-          <summary>${Number(topic.comments_count || 0)} პასუხი · საუბრის გახსნა</summary>
-          <div class="forum-comments">${comments || '<p class="forum-no-comments">პირველი პასუხი თქვენ დაწერეთ.</p>'}</div>
+          <summary>${Number(topic.comments_count || 0)} პასუხი · პირადი მიმოწერის გახსნა</summary>
+          <div class="forum-comments">${comments || '<p class="forum-no-comments">ადმინისტრაციის პასუხს აქ მიიღებთ.</p>'}</div>
           ${commentForm}
         </details>
       </article>
@@ -157,7 +179,6 @@
     if (!sidebar || !content) return;
 
     const categories = Object.entries(data.categories || {});
-    const members = data.members || [];
     const activeGroup = data.active_group;
     const entries = [
       ...(data.polls || []).map((item) => ({ type: 'poll', sortAt: Number(item.sort_at || 0), html: pollCard(item) })),
@@ -166,32 +187,31 @@
 
     sidebar.innerHTML = `
       <div class="club-feed-scope">
-        <small>დახურული სივრცე</small>
-        <h3>${escapeHtml(activeGroup?.name || 'ჯგუფი')}</h3>
-        <p>${escapeHtml(data.contact_policy || '')}</p>
-        <strong>${members.length} მშობელი</strong>
-        <div>${members.slice(0, 8).map((member) => `<span title="${escapeHtml(member.name)}">${escapeHtml(member.initial)}</span>`).join('')}</div>
+        <small>🔒 პირადი კომუნიკაცია</small>
+        <h3>${escapeHtml(activeGroup?.name || 'თქვენი ჯგუფი')}</h3>
+        <p>${escapeHtml(data.contact_policy || 'თქვენს წერილებს მხოლოდ ბაღის ადმინისტრაცია ხედავს.')}</p>
+        <strong>მხოლოდ თქვენ და ადმინისტრაცია</strong>
       </div>
       <div class="club-feed-filters">
-        <strong>ფიდის ფილტრი</strong>
+        <strong>სივრცის ფილტრი</strong>
         <button type="button" data-feed-filter="all" class="${state.filter === 'all' ? 'active' : ''}">ყველაფერი</button>
-        <button type="button" data-feed-filter="question" class="${state.filter === 'question' ? 'active' : ''}">მშობლების კითხვები</button>
+        <button type="button" data-feed-filter="question" class="${state.filter === 'question' ? 'active' : ''}">ჩემი წერილები</button>
         <button type="button" data-feed-filter="poll" class="${state.filter === 'poll' ? 'active' : ''}">გამოკითხვები</button>
       </div>
     `;
 
     content.innerHTML = `
       <div class="club-feed-head">
-        <div><small>${escapeHtml(activeGroup?.name || '')}</small><h2>ჯგუფის ფიდი</h2><p>კითხვები, პასუხები და სწრაფი გამოკითხვები ერთ მარტივ ნაკადში.</p></div>
-        <button type="button" data-new-topic>+ კითხვის დასმა</button>
+        <div><small>${escapeHtml(activeGroup?.name || '')}</small><h2>ადმინისტრაციასთან პირადი კავშირი</h2><p>თქვენი კითხვები და პასუხები კონფიდენციალურია — სხვა მშობლები მათ ვერ ხედავენ.</p></div>
+        <button type="button" data-new-topic>+ ადმინისტრაციას მიწერა</button>
       </div>
       <form class="forum-topic-form club-feed-composer" data-topic-form hidden>
         <label><span>თემა</span><select name="category">${categories.map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join('')}</select></label>
-        <label><span>სათაური</span><input name="title" minlength="4" maxlength="180" required placeholder="რას ეკითხებით მშობლებს ან ადმინისტრაციას?"></label>
-        <label class="wide"><span>ტექსტი</span><textarea name="body" minlength="5" maxlength="5000" rows="4" required placeholder="დაწერეთ მხოლოდ ${escapeHtml(activeGroup?.name || 'ამ ჯგუფის')} წევრებისთვის…"></textarea></label>
-        <div class="wide"><button type="submit">ფიდში გამოქვეყნება</button><button type="button" data-cancel-topic>გაუქმება</button><span class="forum-form-status" aria-live="polite"></span></div>
+        <label><span>სათაური</span><input name="title" minlength="4" maxlength="180" required placeholder="რა გსურთ ჰკითხოთ ბაღის ადმინისტრაციას?"></label>
+        <label class="wide"><span>თქვენი წერილი</span><textarea name="body" minlength="5" maxlength="5000" rows="4" required placeholder="დაწერეთ დეტალურად — შეტყობინებას მხოლოდ ბაღის ადმინისტრაცია ნახავს."></textarea></label>
+        <div class="wide"><button type="submit">ადმინისტრაციას გაგზავნა</button><button type="button" data-cancel-topic>გაუქმება</button><span class="forum-form-status" aria-live="polite"></span></div>
       </form>
-      <div class="club-feed-list">${entries.map((entry) => entry.html).join('') || emptyState('ფიდი ჯერ ცარიელია', 'დასვით პირველი კითხვა ან დაელოდეთ ჯგუფის გამოკითხვას.')}</div>
+      <div class="club-feed-list">${entries.map((entry) => entry.html).join('') || emptyState('პირადი მიმოწერა ჯერ არ დაგიწყიათ', 'მისწერეთ ბაღის ადმინისტრაციას — თქვენი წერილი სხვა მშობლებისთვის არ გამოჩნდება.')}</div>
     `;
 
     sidebar.querySelectorAll('[data-feed-filter]').forEach((button) => {
@@ -318,9 +338,10 @@
       renderGroupButtons(data.groups, data.active_group);
       renderPosts(data.club_post, data.active_group);
       renderForumFeed(data);
+      applyPrivateContactCopy();
       document.documentElement.dataset.clubCmsReady = 'true';
     } catch (error) {
-      const message = emptyState('ჯგუფის სივრცე ვერ ჩაიტვირთა', error.message);
+      const message = emptyState('პირადი სივრცე ვერ ჩაიტვირთა', error.message);
       ['.feed-list', '.forum-content', '.forum-sidebar'].forEach((selector) => {
         const element = document.querySelector(selector);
         if (element) element.innerHTML = message;
@@ -329,10 +350,12 @@
     }
   }
 
+  applyPrivateContactCopy();
+
   if (state.groupId) {
     loadGroup(state.groupId);
   } else {
-    const message = emptyState('აქტიური ჯგუფი ვერ მოიძებნა', 'კლუბის სივრცე გაიხსნება ბავშვის აქტიურ ჯგუფში ჩარიცხვის შემდეგ.');
+    const message = emptyState('აქტიური ჯგუფი ვერ მოიძებნა', 'ადმინისტრაციასთან პირადი კავშირი გაიხსნება ბავშვის აქტიურ ჯგუფში ჩარიცხვის შემდეგ.');
     ['.feed-list', '.forum-content', '.forum-sidebar'].forEach((selector) => {
       const element = document.querySelector(selector);
       if (element) element.innerHTML = message;
