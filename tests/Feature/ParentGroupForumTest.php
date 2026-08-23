@@ -15,7 +15,7 @@ class ParentGroupForumTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_topics_are_visible_only_inside_the_child_group_and_members_can_comment(): void
+    public function test_parent_messages_are_private_from_other_parents_even_in_the_same_group(): void
     {
         $groupA = $this->group('3-4', '3-4 წელი', 36);
         $groupB = $this->group('4-5', '4-5 წელი', 48);
@@ -27,34 +27,50 @@ class ParentGroupForumTest extends TestCase
         $createResponse = $this->actingAs($author)->postJson('/parent/forum/topics', [
             'kindergarten_group_id' => $groupA->id,
             'category' => 'general',
-            'title' => 'შაბათის შეხვედრა ბავშვებისთვის',
-            'body' => 'შევხვდეთ ეზოში და ბავშვებმა ერთად ითამაშონ.',
+            'title' => 'პირადი კითხვა ადმინისტრაციას',
+            'body' => 'ეს წერილი მხოლოდ ბაღის ადმინისტრაციამ უნდა ნახოს.',
         ]);
 
-        $createResponse->assertCreated()->assertJsonPath('ok', true);
+        $createResponse
+            ->assertCreated()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('message', 'წერილი გაიგზავნა ბაღის ადმინისტრაციასთან. მას სხვა მშობლები ვერ ნახავენ.');
+
         $topic = ForumTopic::firstOrFail();
+
+        $this->actingAs($author)
+            ->getJson('/parent/forum/data')
+            ->assertOk()
+            ->assertJsonFragment(['title' => 'პირადი კითხვა ადმინისტრაციას'])
+            ->assertJsonCount(0, 'members')
+            ->assertJsonFragment([
+                'contact_policy' => 'ეს არის პირადი მიმოწერა ბაღის ადმინისტრაციასთან. თქვენს წერილებსა და ადმინისტრაციის პასუხებს სხვა მშობლები ვერ ხედავენ. ეს წესი მოქმედებს ყველა ჯგუფზე.',
+            ]);
 
         $this->actingAs($sameGroupParent)
             ->getJson('/parent/forum/data')
             ->assertOk()
-            ->assertJsonFragment(['title' => 'შაბათის შეხვედრა ბავშვებისთვის'])
-            ->assertJsonFragment(['group_name' => '3-4 წელი']);
+            ->assertJsonMissing(['title' => 'პირადი კითხვა ადმინისტრაციას']);
 
         $this->actingAs($sameGroupParent)
-            ->postJson('/parent/forum/topics/'.$topic->id.'/comments', ['body' => 'ჩვენც მოვალთ!'])
+            ->postJson('/parent/forum/topics/'.$topic->id.'/comments', ['body' => 'სხვა მშობელს ეს არ უნდა შეეძლოს.'])
+            ->assertNotFound();
+
+        $this->actingAs($author)
+            ->postJson('/parent/forum/topics/'.$topic->id.'/comments', ['body' => 'დამატებითი ინფორმაცია ადმინისტრაციისთვის.'])
             ->assertCreated()
             ->assertJsonPath('ok', true);
 
         $this->assertDatabaseHas('forum_comments', [
             'forum_topic_id' => $topic->id,
-            'user_id' => $sameGroupParent->id,
-            'body' => 'ჩვენც მოვალთ!',
+            'user_id' => $author->id,
+            'body' => 'დამატებითი ინფორმაცია ადმინისტრაციისთვის.',
         ]);
 
         $this->actingAs($otherGroupParent)
             ->getJson('/parent/forum/data')
             ->assertOk()
-            ->assertJsonMissing(['title' => 'შაბათის შეხვედრა ბავშვებისთვის']);
+            ->assertJsonMissing(['title' => 'პირადი კითხვა ადმინისტრაციას']);
 
         $this->actingAs($otherGroupParent)
             ->postJson('/parent/forum/topics/'.$topic->id.'/comments', ['body' => 'ეს თემა არ უნდა ჩანდეს.'])
