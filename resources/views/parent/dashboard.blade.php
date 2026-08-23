@@ -59,6 +59,31 @@
     <section class="club-panel active" data-club-panel="feed">
         <div class="smart-dashboard-grid">
             <div>
+                @php($upcomingPreview = $events->filter(fn ($event) => $event->starts_at->greaterThanOrEqualTo(now()))->take(3))
+                <section class="smart-my-questions" style="margin-top:0;margin-bottom:28px">
+                    <div class="smart-section-head"><div><small>უახლოესი გეგმები</small><h2>ღონისძიებები და აქტივობები</h2><p>აქვე ნახავთ თქვენი ჯგუფისთვის დაგეგმილ უახლოეს შეხვედრებსა და აქტივობებს.</p></div><button type="button" data-club-tab-link="events">ყველა ღონისძიება</button></div>
+                    <div class="smart-event-list">
+                        @forelse($upcomingPreview as $event)
+                            @php($myResponse = $event->responses->first())
+                            <article class="smart-event {{ $event->is_featured ? 'featured' : '' }}">
+                                <div class="smart-event-date"><strong>{{ $event->starts_at->format('d') }}</strong><span>{{ $event->starts_at->translatedFormat('M') }}</span><small>{{ $event->starts_at->format('H:i') }}</small></div>
+                                <div class="smart-event-content"><div class="smart-event-meta"><span>{{ $event->audienceLabel() }}</span>@if($event->is_featured)<b>მნიშვნელოვანი</b>@endif</div><h3>{{ $event->title }}</h3><p>{{ \Illuminate\Support\Str::limit($event->description, 180) }}</p><small>{{ $event->location ? '📍 '.$event->location.' · ' : '' }}{{ $event->going_count }} ოჯახი მოდის @if($event->capacity) · ადგილი {{ $event->capacity }} ოჯახისთვის @endif</small></div>
+                                <form method="post" action="{{ route('parent.events.response', $event) }}" class="smart-rsvp">
+                                    @csrf
+                                    <span>თქვენი პასუხი</span>
+                                    <div>
+                                        @foreach(\App\Models\ClubEvent::RESPONSE_STATUSES as $value => $label)
+                                            <button type="submit" name="status" value="{{ $value }}" class="{{ $myResponse?->status === $value ? 'active' : '' }}">{{ $label }}</button>
+                                        @endforeach
+                                    </div>
+                                </form>
+                            </article>
+                        @empty
+                            <div class="smart-empty compact"><strong>უახლოესი ღონისძიება ჯერ არ არის დაგეგმილი</strong><p>როგორც კი ადმინისტრაცია ახალ აქტივობას დაამატებს, ის პირდაპირ „ჩემ სივრცეში“ გამოჩნდება.</p></div>
+                        @endforelse
+                    </div>
+                </section>
+
                 <div class="smart-section-head"><div><small>თქვენი ჯგუფი</small><h2>სიახლეები და მნიშვნელოვანი ინფორმაცია</h2></div><button type="button" data-club-tab-link="forum">+ კითხვა</button></div>
                 <div class="feed-list"><div class="club-loading">ჯგუფის სიახლეები იტვირთება…</div></div>
 
