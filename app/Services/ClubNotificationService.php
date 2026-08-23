@@ -42,7 +42,6 @@ class ClubNotificationService
     public function topicReply(ForumTopic $topic, User $actor, bool $official): int
     {
         $userIds = collect([$topic->user_id])
-            ->merge($topic->comments()->pluck('user_id'))
             ->filter()
             ->unique()
             ->reject(fn (int $userId) => $userId === $actor->id)
@@ -63,8 +62,8 @@ class ClubNotificationService
 
         return $this->send(
             $allowedIds,
-            $official ? 'official_answer' : 'forum_reply',
-            $official ? 'ადმინისტრაციამ თქვენს კითხვას უპასუხა' : 'თქვენს საუბარს ახალი პასუხი აქვს',
+            $official ? 'official_answer' : 'private_thread_reply',
+            $official ? 'ადმინისტრაციამ თქვენს კითხვას უპასუხა' : 'თქვენს პირად მიმოწერას ახალი პასუხი აქვს',
             $topic->title,
             route('parent.dashboard').'#forum-topic-'.$topic->id,
             ['topic_id' => $topic->id, 'official' => $official],
